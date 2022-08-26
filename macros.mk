@@ -69,7 +69,7 @@ endef
 #  2 = List of valid values.
 #-
 define must_be_one_of
-  $(if $(findstring ${$(1)},$(2)),\
+  $(if $(filter ${$(1)},$(2)),\
     $(info $(1) = ${$(1)} and is a valid option),\
     $(warning $(1) must equal one of: $(2))\
   )
@@ -95,3 +95,78 @@ endef
 define basenames_in
   $(foreach file,$(wildcard $(1)),$(basename $(notdir ${file})))
 endef
+
+ifneq ($(findstring help-macros,${MAKECMDGOALS}),)
+define HelpMacrosMsg
+Make segment: macros.mk
+
+Defines a number of useful macros.
+
+Defines:
+
+this_segment
+  This callable macro returns the basename of the newly included make segment.
+  This should be used at the beginning of a make segment and before including
+  additional make segments.
+
+this_segment_dir
+  This callable macro returns the path to the newly included make segment.
+  This should be used at the beginning of a make segment and before including
+  additional make segments.
+  Returns:
+    The path to the make segment.
+
+newline
+  Use this macro to insert a newline pattern into a multiline message.
+
+signal_error
+  Generates an error message and exits make.
+  Parameters:
+    1 = The error message.
+
+require
+  A callable marco which verifies each of the variables in a list have
+  been defined.
+  Parameters:
+    1 = A list of variable names.
+  Returns:
+    Adds a message to the error message list for each of the variables which
+    have not been defined.
+
+must_be_one_of
+  A callable macro which verifies the value of a variable is one of the
+  values in a list of possible values.
+  Parameters:
+    1 = The name of the variable.
+    2 = A space delimited list of acceptable values.
+  Returns:
+    Issues a warning if the variable does not have a valid value.
+
+sticky
+  A callable macro for setting sticky options. This can be used in a mod
+  using a mod specific sticky directory. An option becomes sticky only
+  if it hasn't been previously defined.
+  Parameters:
+    1 = The name of the sticky variable.
+  Returns:
+    The value of the sticky variable.
+
+  Other make segments can define sticky options. These are options which become
+  defaults once they have been used. Sticky options can also be preset in the
+  stick directory which helps simplify automated builds especially when build
+  repeatability is required.
+
+basenames_in
+  A callable macro to get a list of basenames for all files matching a glob
+  pattern.
+  Parameters:
+    1 = The glob pattern including the path.
+  Returns:
+    A list of basenames for all files matching the glob pattern.
+
+endef
+
+export HelpMacrosMsg
+help-macros:
+> @echo "$$HelpMacrosMsg" | less
+endif
