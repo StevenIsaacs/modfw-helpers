@@ -96,6 +96,10 @@ define basenames_in
   $(foreach file,$(wildcard $(1)),$(basename $(notdir ${file})))
 endef
 
+# Display the value of any variable.
+show-%:
+> @echo '$*=$($*)'
+
 ifneq ($(findstring help-macros,${MAKECMDGOALS}),)
 define HelpMacrosMsg
 Make segment: macros.mk
