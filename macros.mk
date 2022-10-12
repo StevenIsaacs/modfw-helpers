@@ -96,6 +96,19 @@ define basenames_in
   $(foreach file,$(wildcard $(1)),$(basename $(notdir ${file})))
 endef
 
+#+
+# Declare an item in a manifest. A manifest is a list of items which are
+# associated with each other.
+# Parameters:
+#  1 = The manifest
+#  2 = The line item in the manifest. Use dummy if not important.
+#  3 = The path to the line item.
+#-
+define add-to-manifest
+${2} = ${3}
+${1} += ${2}
+endef
+
 # Display the value of any variable.
 show-%:
 > @echo '$*=$($*)'
