@@ -101,12 +101,12 @@ endef
 # associated with each other.
 # Parameters:
 #  1 = The manifest
-#  2 = The line item in the manifest. Use dummy if not important.
+#  2 = The line item in the manifest. Use "null" if not important.
 #  3 = The path to the line item.
 #-
 define add-to-manifest
-${2} = ${3}
-${1} += ${2}
+$(2) := $(3)
+$(1) += $(3)
 endef
 
 # Display the value of any variable.
