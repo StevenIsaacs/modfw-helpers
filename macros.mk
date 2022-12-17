@@ -74,7 +74,6 @@ else
   endef
 endif
 
-
 #+
 # This private macro is used to verify a single variable exists.
 # If the variable is empty then an error message is appended to ErrorMessages.
