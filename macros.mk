@@ -5,13 +5,16 @@
 # NOTE: Helper macros can only use variables defined in config.mk.
 #-
 
+# Special target to force another target.
+FORCE:
+
 #+
 # Get the included file base name (no path or extension).
 #
 # Returns:
 #   The segment base name.
 #-
-this_segment = \
+this-segment = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
 #+
@@ -20,7 +23,7 @@ this_segment = \
 # Returns:
 #   The path to the current segment.
 #-
-this_segment_dir = \
+this-segment-dir = \
   $(basename $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
 #+
@@ -32,6 +35,8 @@ ifdef VERBOSE
 define verbose
     $(info verbose:$(1))
 endef
+# Prepend to recipe lines to echo commands being executed.
+V := @
 endif
 
 #+
@@ -65,11 +70,11 @@ endef
 #    1 = The error message.
 #-
 ifeq (${MAKECMDGOALS},help)
-  define signal_error
+  define signal-error
     $(eval ErrorMessages += $(1)$(newline))
   endef
 else
-  define signal_error
+  define signal-error
     $(error ERROR: $1 -- Use: make help)
   endef
 endif
@@ -81,10 +86,11 @@ endif
 #   1 = The name of the variable.
 #   2 = The module in which it is required.
 #-
-define _require_this
+define _require-this
   $(call verbose,Requiring: $(1))
   $(if ${$(1)},\
     ,\
+    $(warning Variable $(1) is not defined); \
     $(eval ErrorMessages += Variable $(1) must be defined in: $(2)$(newline))\
   )
 endef
@@ -97,22 +103,7 @@ endef
 #-
 define require
   $(call verbose,Required in: $(1))
-  $(foreach v,$(2),$(call _require_this,$(v), $(1)))
-endef
-
-#+
-# This macro displays a list of accumulated messages if defined.
-# Parameters:
-# NOTE: This is intended to be used as part of a recipe.
-#  1 = The heading for displaying the list of messages.
-#  2 = The list of messages separated by ${newline}.
-#-
-define show-messages
-@if [ -n '${$(2)}' ]; then \
-    echo $(1);\
-    m="${$(2)}";printf "$${m//${newline}/\\n}";\
-    read -p "Press ENTER to continue...";\
-  fi
+  $(foreach v,$(2),$(call _require-this,$(v), $(1)))
 endef
 
 #+
@@ -121,7 +112,7 @@ endef
 #  1 = Variable name
 #  2 = List of valid values.
 #-
-define must_be_one_of
+define must-be-one-of
   $(if $(findstring ${$(1)},$(2)),\
     $(info $(1) = ${$(1)} and is a valid option),\
     $(warning $(1) must equal one of: $(2))\
@@ -145,9 +136,23 @@ endef
 # Parameters:
 #  1 = The glob pattern including path.
 #+
-define basenames_in
+define basename-in
   $(foreach file,$(wildcard $(1)),$(basename $(notdir ${file})))
 endef
+
+#+
+# This macro displays a list of accumulated messages if defined.
+# Parameters:
+#  MsgHeading  = The heading for displaying the list of messages.
+#  MsgList     = The name of the variable containing the list of messages
+#                separated by ${newline}.
+#-
+display-messages:
+> @if [ -n '${${MsgList}}' ]; then \
+    echo ${MsgHeading};\
+    m="${${MsgList}}";printf "$${m//${newline}/\\n}";\
+    read -p "Press ENTER to continue...";\
+  fi
 
 #+
 # Display the value of any variable.
