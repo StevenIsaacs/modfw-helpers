@@ -5,82 +5,113 @@
 # NOTE: Helper macros can only use variables defined in config.mk.
 #-
 
+# Special target to force another target.
+FORCE:
+
+# Some behavior depends upon which platform.
+ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
+  Platform = Microsoft
+else ifeq ($(shell echo $$(expr substr $$(uname -s) 1 5)),Linux)
+  Platform = Linux
+else ifeq ($(shell uname),Darwin)
+# Detecting OS X is untested.
+  Platform = OsX
+else
+  $(call signal-error,Unable to identify platform)
+endif
+$(info Running on: ${Platform})
+
 #+
-# Get the included file base name (no path or extension).
-#
-# Returns:
-#   The segment base name.
+# See help-macros
 #-
-this_segment = \
+this-segment = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
 #+
-# Get the included file directory path.
-#
-# Returns:
-#   The path to the current segment.
+# See help-macros
 #-
-this_segment_dir = \
+this-segment-dir = \
   $(basename $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
 #+
-# Use this macro to insert new lines into multiline messages.
+# See help-macros
+#-
+ifdef VERBOSE
+define verbose
+    $(info verbose:$(1))
+endef
+# Prepend to recipe lines to echo commands being executed.
+V := @
+endif
+
+#+
+# See help-macros
+#-
+define add-to-manifest
+  $$(call verbose,Adding $(3) to $(1))
+  ifneq ($(2),null)
+    $$(call verbose,Declaring: $(2))
+    $(2) = $(3)
+  endif
+  $(1) += $(3)
+endef
+
+#+
+# See help-macros
 #-
 define newline
 nlnl
 endef
 
 #+
-# Use this macro to issue an error message as a warning and signal an
-# error exit.
-#  Paramaters:
-#    1 = The error message.
+# See help-macros
 #-
 ifeq (${MAKECMDGOALS},help)
-  define signal_error
+  define signal-error
     $(eval ErrorMessages += $(1)$(newline))
   endef
 else
-  define signal_error
+  define signal-error
     $(error ERROR: $1 -- Use: make help)
   endef
 endif
 
 #+
-# Use this macro to verify variables are set.
-#  Parameters:
-#    1 = A list of required variables.
+# This private macro is used to verify a single variable exists.
+# If the variable is empty then an error message is appended to ErrorMessages.
+# Parameters:
+#   1 = The name of the variable.
+#   2 = The module in which it is required.
 #-
-define _require_this
+define _require-this
+  $(call verbose,Requiring: $(1))
   $(if ${$(1)},\
     ,\
+    $(warning Variable $(1) is not defined); \
     $(eval ErrorMessages += Variable $(1) must be defined in: $(2)$(newline))\
   )
 endef
 
+#+
+# See help-macros
+#-
 define require
-  $(foreach v,$(2),$(call _require_this,$(v), $(1)))
+  $(call verbose,Required in: $(1))
+  $(foreach v,$(2),$(call _require-this,$(v), $(1)))
 endef
 
 #+
-# Verify a variable has a valid value. If doesn't then error.
-# Parameters:
-#  1 = Variable name
-#  2 = List of valid values.
+# See help-macros
 #-
-define must_be_one_of
-  $(if $(filter ${$(1)},$(2)),\
+define must-be-one-of
+  $(if $(findstring ${$(1)},$(2)),\
     $(info $(1) = ${$(1)} and is a valid option),\
     $(warning $(1) must equal one of: $(2))\
   )
 endef
 
 #+
-# Make a variable sticky (see help-config).
-# Parameters:
-#  1 = Variable name
-# Returns:
-#  The variable value.
+# See help-macros
 #-
 define sticky
   $(info Sticky variable: ${1})
@@ -88,28 +119,25 @@ define sticky
 endef
 
 #+
-# Get the basenames of all the files in a directory matching a glob pattern.
-# Parameters:
-#  1 = The glob pattern including path.
+# See help-macros
 #+
-define basenames_in
+define basenames-in
   $(foreach file,$(wildcard $(1)),$(basename $(notdir ${file})))
 endef
 
 #+
-# Declare an item in a manifest. A manifest is a list of items which are
-# associated with each other.
-# Parameters:
-#  1 = The manifest
-#  2 = The line item in the manifest. Use "null" if not important.
-#  3 = The path to the line item.
+# See help-macros
 #-
-define add-to-manifest
-$(2) := $(3)
-$(1) += $(3)
-endef
+display-messages:
+> @if [ -n '${${MsgList}}' ]; then \
+    echo ${MsgHeading};\
+    m="${${MsgList}}";printf "$${m//${newline}/\\n}";\
+    read -p "Press ENTER to continue...";\
+  fi
 
-# Display the value of any variable.
+#+
+# See help-macros
+#-
 show-%:
 > @echo '$*=$($*)'
 
@@ -117,70 +145,81 @@ ifneq ($(findstring help-macros,${MAKECMDGOALS}),)
 define HelpMacrosMsg
 Make segment: macros.mk
 
-Defines a number of useful macros.
+Defines the makefile helper macros. These are:
 
-Defines:
+this-segment
+    Returns the basename of the most recently included makefile segment.
 
-this_segment
-  This callable macro returns the basename of the newly included make segment.
-  This should be used at the beginning of a make segment and before including
-  additional make segments.
+this-segment-dir
+    Returns the directory of the most recently included makefile segment.
 
-this_segment_dir
-  This callable macro returns the path to the newly included make segment.
-  This should be used at the beginning of a make segment and before including
-  additional make segments.
-  Returns:
-    The path to the make segment.
+verbose
+    Displays the message if VERBOSE has been defined.
+    Parameters:
+        1 = The message to display.
+
+add-to-manifest
+    Add an item to a manifest variable.
+    Parameters:
+        1 = The list to add to.
+        2 = The optional variable to declare for the value. Use "null" to skip
+            declaring a new variable.
+        3 = The value to add to the list.
 
 newline
-  Use this macro to insert a newline pattern into a multiline message.
+    Use this macro to insert new lines into multiline messages.
 
-signal_error
-  Generates an error message and exits make.
-  Parameters:
-    1 = The error message.
+signal-error
+    Use this macro to issue an error message as a warning and signal a
+    delayed error exit.
+    Parameters:
+        1 = The error message.
 
 require
-  A callable marco which verifies each of the variables in a list have
-  been defined.
-  Parameters:
-    1 = A list of variable names.
-  Returns:
-    Adds a message to the error message list for each of the variables which
-    have not been defined.
+    Use this macro to verify variables are set.
+    Parameters:
+        1 = The make file segment.
+        2 = A list of required variables.
 
-must_be_one_of
-  A callable macro which verifies the value of a variable is one of the
-  values in a list of possible values.
-  Parameters:
-    1 = The name of the variable.
-    2 = A space delimited list of acceptable values.
-  Returns:
-    Issues a warning if the variable does not have a valid value.
+must-be-one-of
+    Verify a variable has a valid value. If not then issue a warning.
+    Parameters:
+        1 = Variable name
+        2 = List of valid values.
 
 sticky
-  A callable macro for setting sticky options. This can be used in a mod
-  using a mod specific sticky directory. An option becomes sticky only
-  if it hasn't been previously defined.
-  Parameters:
-    1 = The name of the sticky variable.
-  Returns:
-    The value of the sticky variable.
+    A sticky variable is persistent and needs to be defined on the command line
+    at least once.
+    Uses sticky.sh to make a variable sticky. If the variable has not been
+    defined when this macro is called then the previous value is used. Defining
+    the variable will overwrite the previous sticky value.
+    WARNING: The variable must be defined at least once.
 
-  Other make segments can define sticky options. These are options which become
-  defaults once they have been used. Sticky options can also be preset in the
-  stick directory which helps simplify automated builds especially when build
-  repeatability is required.
+    Parameters:
+    1 = Variable name
+    Returns:
+    The variable value.
 
-basenames_in
-  A callable macro to get a list of basenames for all files matching a glob
-  pattern.
-  Parameters:
-    1 = The glob pattern including the path.
-  Returns:
-    A list of basenames for all files matching the glob pattern.
+basenames-in
+    Get the basenames of all the files in a directory matching a glob pattern.
+    Parameters:
+        1 = The glob pattern including path.
 
+Special targets:
+show-%
+    Display the value of any variable.
+
+display-messages
+    This target displays a list of accumulated messages if defined.
+    Parameters:
+        MsgHeading  = The heading for displaying the list of messages.
+        MsgList     = The name of the variable containing the list of messages
+                      separated by ${newline}.
+
+Defines:
+    Platform = $(Platform)
+        The platform (OS) on which make is running. This can be one of:
+        Microsoft, Linux, or OsX.
 endef
 
 export HelpMacrosMsg
