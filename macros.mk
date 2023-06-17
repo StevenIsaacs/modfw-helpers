@@ -115,14 +115,22 @@ endef
 #-
 define sticky
   $(info Sticky variable: ${1})
-  $(eval $(1)=$(shell ${HELPERS_DIR}/sticky.sh $(1)=${$(1)} ${STICKY_DIR}))
+  $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH}))
 endef
 
 #+
 # See help-macros
 #+
 define basenames-in
-  $(foreach file,$(wildcard $(1)),$(basename $(notdir ${file})))
+  $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
+endef
+
+#+
+# See help-macros
+#+
+define directories-in
+  $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
+  $(notdir ${d}))
 endef
 
 #+
@@ -194,16 +202,20 @@ sticky
     defined when this macro is called then the previous value is used. Defining
     the variable will overwrite the previous sticky value.
     WARNING: The variable must be defined at least once.
-
     Parameters:
-    1 = Variable name
+        1 = Variable name
     Returns:
-    The variable value.
+        The variable value.
 
 basenames-in
     Get the basenames of all the files in a directory matching a glob pattern.
     Parameters:
         1 = The glob pattern including path.
+
+directories-in
+    Get a list of directories in a directory. The path is stripped.
+    Parameters:
+        1 = The path to the directory.
 
 Special targets:
 show-%
