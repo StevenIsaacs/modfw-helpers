@@ -8,6 +8,7 @@
 #      <var>=<val>   Makes the variable stick.
 #      <var>         Retrieves the previous value.
 #  2 = The directory in which to store the sticky variable.
+#  3 = Optional default value for the variable.
 __v=(${1//=/ })
 if [ "$2" == "" ]; then
   echo "Sticky directory must be specified." 1>&2
@@ -18,7 +19,12 @@ if [ "${__v[1]}" == "" ]; then
   if [ -f $2/${__v[0]} ]; then
     cat $2/${__v[0]}
   else
-    echo Sticky variable ${__v[0]} has not been set 1>&2
+    if [ "$3" == "" ]; then
+      echo "Sticky variable ${__v[0]} has not been set." 1>&2
+      exit 1
+    else
+      echo $3
+    fi
   fi
 else
   # Set the variable.

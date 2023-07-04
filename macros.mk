@@ -30,7 +30,7 @@ this-segment = \
 #+
 # See help-macros
 #-
-this-segment-dir = \
+this-segment-path = \
   $(basename $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
 #+
@@ -115,7 +115,7 @@ endef
 #-
 define sticky
   $(info Sticky variable: ${1})
-  $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH}))
+  $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(3)))
 endef
 
 #+
@@ -158,7 +158,7 @@ Defines the makefile helper macros. These are:
 this-segment
     Returns the basename of the most recently included makefile segment.
 
-this-segment-dir
+this-segment-path
     Returns the directory of the most recently included makefile segment.
 
 verbose
