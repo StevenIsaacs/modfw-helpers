@@ -115,7 +115,7 @@ endef
 #-
 define sticky
   $(info Sticky variable: ${1})
-  $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(3)))
+  $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2)))
 endef
 
 #+
@@ -204,6 +204,7 @@ sticky
     WARNING: The variable must be defined at least once.
     Parameters:
         1 = Variable name
+        2 = Optional default value.
     Returns:
         The variable value.
 
