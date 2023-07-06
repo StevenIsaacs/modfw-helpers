@@ -1,9 +1,19 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Helper macros for makefiles.
 #----------------------------------------------------------------------------
-#+
-# NOTE: Helper macros can only use variables defined in config.mk.
-#-
+# Changing the prefix because some editors, like vscode, don't handle tabs
+# in make files very well. This also slightly improves readability.
+.RECIPEPREFIX := >
+SHELL = /bin/bash
+
+$(info Goal: ${MAKECMDGOALS})
+ifeq (${MAKECMDGOALS},)
+  $(info No goal was specified.)
+  .DEFAULT_GOAL := $(DefaultGoal)
+endif
+
+Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
+$(info Goals: ${Goals})
 
 # Special target to force another target.
 FORCE:
@@ -36,9 +46,27 @@ this-segment-path = \
 #+
 # See help-macros
 #-
+is-goal = $(filter $(1),$(Goals))
+
+#+
+# See help-macros
+#-
+define newline
+nlnl
+endef
+
+define add-message
+  $(eval MsgList += ${newline}$(call this-segment):$(1))
+  $(eval Messages = yes)
+endef
+
+#+
+# See help-macros
+#-
 ifdef VERBOSE
 define verbose
     $(info verbose:$(1))
+    $(call add-message,$(1))
 endef
 # Prepend to recipe lines to echo commands being executed.
 V := @
@@ -48,33 +76,20 @@ endif
 # See help-macros
 #-
 define add-to-manifest
-  $$(call verbose,Adding $(3) to $(1))
-  ifneq ($(2),null)
-    $$(call verbose,Declaring: $(2))
-    $(2) = $(3)
-  endif
-  $(1) += $(3)
+  $(call verbose,Adding $(3) to $(1))
+  $(call verbose,Var: $(2))
+  $(eval $(2) = $(3))
+  $(call verbose,$(2)=$(3))
+  $(eval $(1) += $(3))
 endef
 
 #+
 # See help-macros
 #-
-define newline
-nlnl
+define signal-error
+  $(eval ErrorMessages += ${newline}$(call this-segment):$(1))
+  $(eval Errors = yes)
 endef
-
-#+
-# See help-macros
-#-
-ifeq (${MAKECMDGOALS},help)
-  define signal-error
-    $(eval ErrorMessages += $(1)$(newline))
-  endef
-else
-  define signal-error
-    $(error ERROR: $1 -- Use: make help)
-  endef
-endif
 
 #+
 # This private macro is used to verify a single variable exists.
@@ -85,10 +100,9 @@ endif
 #-
 define _require-this
   $(call verbose,Requiring: $(1))
-  $(if ${$(1)},\
-    ,\
+  $(if $(findstring undefined,$(flavor ${1})),\
     $(warning Variable $(1) is not defined); \
-    $(eval ErrorMessages += Variable $(1) must be defined in: $(2)$(newline))\
+    $(call signal-error,Variable $(1) must be defined in: $(2))
   )
 endef
 
@@ -105,16 +119,18 @@ endef
 #-
 define must-be-one-of
   $(if $(findstring ${$(1)},$(2)),\
-    $(info $(1) = ${$(1)} and is a valid option),\
-    $(warning $(1) must equal one of: $(2))\
+    $(call verbose,$(1) = ${$(1)} and is a valid option),\
+    $(call signal-error,Variable $(1) must equal one of: $(2))\
   )
 endef
 
 #+
 # See help-macros
 #-
+HELPERS_PATH ?= $(call this-segment-path)
+STICKY_PATH ?= /tmp/sticky
 define sticky
-  $(info Sticky variable: ${1})
+  $(call verbose Sticky variable: ${1})
   $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2)))
 endef
 
@@ -136,11 +152,21 @@ endef
 #+
 # See help-macros
 #-
+define increment
+  $(eval $(1):=$(shell expr $($(1)) + 1))
+endef
+
+#+
+# See help-macros
+#-
 display-messages:
-> @if [ -n '${${MsgList}}' ]; then \
-    echo ${MsgHeading};\
-    m="${${MsgList}}";printf "$${m//${newline}/\\n}";\
-    read -p "Press ENTER to continue...";\
+> @if [ -n '${MsgList}' ]; then \
+    m="${MsgList}";printf "Messages:$${m//${newline}/\\n}" | less;\
+  fi
+
+display-errors:
+> @if [ -n '${ErrorMessages}' ]; then \
+    m="${ErrorMessages}";printf "Errors:$${m//${newline}/\\n}" | less;\
   fi
 
 #+
@@ -149,11 +175,22 @@ display-messages:
 show-%:
 > @echo '$*=$($*)'
 
-ifneq ($(findstring help-macros,${MAKECMDGOALS}),)
+ifneq ($(findstring help-macros,${Goals}),)
 define HelpMacrosMsg
 Make segment: macros.mk
 
+Defines make variables to simplify editing rules in some editors which
+don't handle tab characters very well. Also to enable some bash specific
+features.
+.RECIPEPREFIX=${.RECIPEPREFIX}
+SHELL=${SHELL}
+
 Defines the makefile helper macros. These are:
+
+is-goal
+    Returns the goal if it is a member of the list of goals.
+    Parameters:
+        1 = The goal to check.
 
 this-segment
     Returns the basename of the most recently included makefile segment.
@@ -177,9 +214,19 @@ add-to-manifest
 newline
     Use this macro to insert new lines into multiline messages.
 
+add-message
+    Use this macro to add a message to a list of messages to be displayed
+    by the display-messages goal. All verbose messages are automatically added
+    to the message list.
+    NOTE: This is NOT intended to be used as part of a rule.
+    Parameters:
+        1 = The message.
+
 signal-error
     Use this macro to issue an error message as a warning and signal a
-    delayed error exit.
+    delayed error exit. The messages can be displayed using the display-errors
+    goal.
+    NOTE: This is NOT intended to be used as part of a rule.
     Parameters:
         1 = The error message.
 
@@ -197,16 +244,31 @@ must-be-one-of
 
 sticky
     A sticky variable is persistent and needs to be defined on the command line
-    at least once.
+    at least once or have a default value as an argument.
     Uses sticky.sh to make a variable sticky. If the variable has not been
     defined when this macro is called then the previous value is used. Defining
     the variable will overwrite the previous sticky value.
     WARNING: The variable must be defined at least once.
+    Variables used:
+        HELPERS_PATH=${HELPERS_PATH}
+            The path to the helpers directory. Defaults to the directory
+            containing this makefile segment.
+        STICKY_PATH=${STICKY_PATH}
+            Where to store the sticky variable values. Defaults to /tmp/sticky.
     Parameters:
-        1 = Variable name
+        1 = Variable name[=<value>]
         2 = Optional default value.
     Returns:
         The variable value.
+    Examples:
+        $(call sticky,<var>=<value>)
+            Sets the sticky variable equal to <value>. The <value> is saved
+            for retrieval at a later time.
+        $(call sticky,<var>[=])
+            Restores the previously saved <value>.
+        $(call sticky,<var>[=],<default>)
+            Restores the previously saved <value> or sets <var> equal to
+            <default>. The variable is not saved in this case.
 
 basenames-in
     Get the basenames of all the files in a directory matching a glob pattern.
@@ -218,16 +280,20 @@ directories-in
     Parameters:
         1 = The path to the directory.
 
+increment
+    Increment the value of a variable by 1.
+    Parameters:
+        1 = The name of the variable to increment.
+
 Special targets:
 show-%
     Display the value of any variable.
 
 display-messages
     This target displays a list of accumulated messages if defined.
-    Parameters:
-        MsgHeading  = The heading for displaying the list of messages.
-        MsgList     = The name of the variable containing the list of messages
-                      separated by ${newline}.
+
+display-errors
+    This target displays a list of accumulated errors if defined.
 
 Defines:
     Platform = $(Platform)
@@ -238,4 +304,5 @@ endef
 export HelpMacrosMsg
 help-macros:
 > @echo "$$HelpMacrosMsg" | less
+
 endif
