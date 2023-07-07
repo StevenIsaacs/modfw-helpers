@@ -7,8 +7,12 @@ VERBOSE=1
 
 include macros.mk
 
+Seg := makefile
 ifneq ($(findstring test,$(Goals)),)
+$(call add-message,Running macro tests.)
 include test/test-macros.mk
+$(call add-message,Macro tests complete.)
+$(call add-message,Testing include of same file.)
 include test/test-macros.mk
 endif
 

@@ -34,6 +34,13 @@ $(info Running on: ${Platform})
 #+
 # See help-macros
 #-
+define increment
+  $(eval $(1):=$(shell expr $($(1)) + 1))
+endef
+
+#+
+# See help-macros
+#-
 this-segment = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
@@ -56,7 +63,8 @@ nlnl
 endef
 
 define add-message
-  $(eval MsgList += ${newline}$(call this-segment):$(1))
+  $(eval MsgList += ${newline}${Seg}:$(1))
+  $(info ${Seg}:$(1))
   $(eval Messages = yes)
 endef
 
@@ -65,8 +73,7 @@ endef
 #-
 ifdef VERBOSE
 define verbose
-    $(info verbose:$(1))
-    $(call add-message,$(1))
+    $(call add-message,verbose:$(1))
 endef
 # Prepend to recipe lines to echo commands being executed.
 V := @
@@ -87,8 +94,9 @@ endef
 # See help-macros
 #-
 define signal-error
-  $(eval ErrorMessages += ${newline}$(call this-segment):$(1))
+  $(eval ErrorMessages += ${newline}${Seg}:$(1))
   $(eval Errors = yes)
+  $(warning Error:${Seg}:$(1))
 endef
 
 #+
@@ -152,13 +160,6 @@ endef
 #+
 # See help-macros
 #-
-define increment
-  $(eval $(1):=$(shell expr $($(1)) + 1))
-endef
-
-#+
-# See help-macros
-#-
 display-messages:
 > @if [ -n '${MsgList}' ]; then \
     m="${MsgList}";printf "Messages:$${m//${newline}/\\n}" | less;\
@@ -185,7 +186,55 @@ features.
 .RECIPEPREFIX=${.RECIPEPREFIX}
 SHELL=${SHELL}
 
-Defines the makefile helper macros. These are:
+Message prefix variable - Seg:
+    The variable named Segment is used to prefix all messages issued using
+    add-message, verbose and, signal-error. The calling module is expected
+    to set this variable. e.g. Seg := <seg>.
+    NOTE that the immediate form of the assignment (:=) must be used.
+
+Preamble and postamble
+    Makefile segments should use the standard preamble and postamble to avoid
+    inclusion of the same file more than once and to use standardized ID
+    variables.
+
+    Preamble:
+        To avoid name conflicts a unique prefix is required. In this example
+        the unique prefix is indicated by <u>.
+
+        # Prefix for this segment.
+        _pfx := <u>
+        # Save current context.
+        <u>PrvPfx := $${Pfx}
+        <u>PrvSeg := $${Seg}
+        <u>PrvSegN := $${SegN}
+        # Set new context.
+        Pfx := $${_pfx}
+        Seg := $$(call this-segment)
+        SegN := $$(subst -,_,$${Seg})
+        # Set the context specific variables.
+        $${Pfx}_$${SegN} := $${Seg}
+        $.ifndef $${$${Pfx}_$${SegN}}
+        $${$${Pfx}_$${SegN}} := $${$${Pfx}_$${SegN}}
+        $${SegN}_mk_path := $$(call this-segment-path)
+        $${SegN}_name := $${SegN}
+        $$(call verbose,Make segment: $${$${SegN}_mk_path})
+
+    Postamble:
+
+        else
+        $$(call add-message,$${$${Seg} has already been included)
+        endif
+        # Restore the previous context.
+        Pfx := $${<u>PrvPfx}
+        Seg := $${<u>PrvSeg}
+        SegN := $${<u>PrvSegN}
+
+Defines the helper macros:
+
+increment
+    Increment the value of a variable by 1.
+    Parameters:
+        1 = The name of the variable to increment.
 
 is-goal
     Returns the goal if it is a member of the list of goals.
@@ -197,11 +246,6 @@ this-segment
 
 this-segment-path
     Returns the directory of the most recently included makefile segment.
-
-verbose
-    Displays the message if VERBOSE has been defined.
-    Parameters:
-        1 = The message to display.
 
 add-to-manifest
     Add an item to a manifest variable.
@@ -216,11 +260,18 @@ newline
 
 add-message
     Use this macro to add a message to a list of messages to be displayed
-    by the display-messages goal. All verbose messages are automatically added
-    to the message list.
+    by the display-messages goal.
+    Messages are prefixed with the variable Segment which is set by the
+    calling segment.
     NOTE: This is NOT intended to be used as part of a rule.
     Parameters:
         1 = The message.
+
+verbose
+    Displays the message if VERBOSE has been defined. All verbose messages are
+    automatically added to the message list.
+    Parameters:
+        1 = The message to display.
 
 signal-error
     Use this macro to issue an error message as a warning and signal a
@@ -261,12 +312,12 @@ sticky
     Returns:
         The variable value.
     Examples:
-        $(call sticky,<var>=<value>)
+        $$(call sticky,<var>=<value>)
             Sets the sticky variable equal to <value>. The <value> is saved
             for retrieval at a later time.
-        $(call sticky,<var>[=])
+        $$(call sticky,<var>[=])
             Restores the previously saved <value>.
-        $(call sticky,<var>[=],<default>)
+        $$(call sticky,<var>[=],<default>)
             Restores the previously saved <value> or sets <var> equal to
             <default>. The variable is not saved in this case.
 
@@ -279,11 +330,6 @@ directories-in
     Get a list of directories in a directory. The path is stripped.
     Parameters:
         1 = The path to the directory.
-
-increment
-    Increment the value of a variable by 1.
-    Parameters:
-        1 = The name of the variable to increment.
 
 Special targets:
 show-%
