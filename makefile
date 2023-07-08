@@ -7,8 +7,6 @@ VERBOSE=1
 
 include macros.mk
 
-$(eval $(call set-segment-context,1))
-
 ifneq ($(findstring test,$(Goals)),)
 $(call add-message,Running macro tests.)
 include test/test-macros.mk

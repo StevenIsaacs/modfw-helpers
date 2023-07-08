@@ -138,6 +138,9 @@ define directories-in
   $(notdir ${d}))
 endef
 
+# Context defaults to the top makefile.
+$(eval $(call set-segment-context,1))
+
 display-messages:
 > @if [ -n '${MsgList}' ]; then \
     m="${MsgList}";printf "Messages:$${m//${newline}/\\n}" | less;\
@@ -235,6 +238,7 @@ set-segment-context
     Sets the context for the makefile segment corresponding to ID.
     Among other things this is needed in order to have correct prefixes
     prepended to messages emitted by a makefile segment.
+    The context defaults to the top makefile (ID = 1).
     Parameters:
         1 = ID of the segment.
     Sets:
