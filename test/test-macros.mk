@@ -2,23 +2,14 @@
 # This make segment is designed to test macros.mk.
 #-----------------------------------------------------------------------------
 #+
-# Prefix for this segment.
-_pfx := tm_
-# Save current context.
-tm_PrvPfx := ${Pfx}
-tm_PrvSeg := ${Seg}
-tm_PrvSegN := ${SegN}
-# Set new context.
-Pfx := ${_pfx}
-Seg := $(call this-segment)
-SegN := $(subst -,_,${Seg})
+ifndef _tm_id
+_tm_id := $(call last-segment-id)
+_tm_seg := $(call last-segment)
+_tm_name := $(call last-segment-name)
+_tm_prv_id := ${SegId}
+$(eval $(call set-segment-context,${_tm_id}))
 
-${Pfx}_${SegN} := ${Seg}
-ifndef ${${Pfx}_${SegN}}
-${${Pfx}_${SegN}} := ${${Pfx}_${SegN}}
-${SegN}_mk_path := $(call this-segment-path)
-${SegN}_name := ${SegN}
-$(call verbose,Make segment: ${${SegN}_mk_path})
+$(call verbose,Make segment: $(call segment,${_tm_id}))
 
 _test := 0
 
@@ -42,15 +33,24 @@ endef
 #-
 define next-test
 $(call increment,_test)
-$(call test-message,Test number: ${_test} $(1))
+$(call test-message,${newline}${newline}Test number: ${_test} $(1))
 endef
 
 ifneq ($(call is-goal,test-macros),)
 
 $(call next-test,Segment identifiers.)
-$(call test-message,Segment: ${${${Seg}}})
-$(call test-message,Path: ${${SegN}_mk_path})
-$(call test-message,Name: ${${SegN}_name})
+$(call test-message,last-segment-id:$(call last-segment-id))
+$(call test-message,last-segment:$(call last-segment))
+$(call test-message,last-segment-name:$(call last-segment-name))
+$(call test-message,last-segment-path:$(call last-segment-path))
+$(call test-message,segment:$(call segment,${_tm_id}))
+$(call test-message,segment-path:$(call segment-path,${_tm_id}))
+$(call test-message,segment-name:$(call segment-name,${_tm_id}))
+
+$(call next-test,Current context.)
+$(call test-message,SegId:$(SegId))
+$(call test-message,Seg:$(Seg))
+$(call test-message,SegN:$(SegN))
 
 $(call next-test,add-to-manifest)
 $(call add-to-manifest,l1,null,one)
@@ -101,12 +101,8 @@ export help_${Pfx}_${SegN}_msg
 help-${${Seg}}:
 > @echo "$$help_${Pfx}_${SegN}_msg" | less
 endif
+$(eval $(call set-segment-context,${_tm_prv_id}))
 
 else
-  $(call add-message,${Seg} has already been included)
+  $(call add-message,${_tm_seg} has already been included)
 endif
-
-# Restore the previous context.
-Pfx := ${tm_PrvPfx}
-Seg := ${tm_PrvSeg}
-SegN := ${tm_PrvSegN}

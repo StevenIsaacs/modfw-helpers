@@ -27,37 +27,42 @@ else ifeq ($(shell uname),Darwin)
 # Detecting OS X is untested.
   Platform = OsX
 else
-  $(call signal-error,Unable to identify platform)
+  $(error Unable to identify platform)
 endif
 $(info Running on: ${Platform})
 
-#+
-# See help-macros
-#-
 define increment
   $(eval $(1):=$(shell expr $($(1)) + 1))
 endef
 
-#+
-# See help-macros
-#-
-this-segment = \
+last-segment-id = $(words ${MAKEFILE_LIST})
+
+last-segment = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
-#+
-# See help-macros
-#-
-this-segment-path = \
-  $(basename $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
+last-segment-name = \
+  $(subst -,_,$(call last-segment))
 
-#+
-# See help-macros
-#-
+last-segment-path = \
+  $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST}))
+
+segment = \
+  $(basename $(notdir $(word $(1),${MAKEFILE_LIST})))
+
+segment-name = \
+  $(subst -,_,$(call segment,$(1)))
+
+segment-path = \
+  $(dir $(word $(1),${MAKEFILE_LIST}))
+
+define set-segment-context
+  SegId := $(1)
+  Seg := $(call segment,$(1))
+  SegN := $(call segment-name,$(1))
+endef
+
 is-goal = $(filter $(1),$(Goals))
 
-#+
-# See help-macros
-#-
 define newline
 nlnl
 endef
@@ -68,9 +73,6 @@ define add-message
   $(eval Messages = yes)
 endef
 
-#+
-# See help-macros
-#-
 ifdef VERBOSE
 define verbose
     $(call add-message,verbose:$(1))
@@ -79,9 +81,6 @@ endef
 V := @
 endif
 
-#+
-# See help-macros
-#-
 define add-to-manifest
   $(call verbose,Adding $(3) to $(1))
   $(call verbose,Var: $(2))
@@ -90,9 +89,6 @@ define add-to-manifest
   $(eval $(1) += $(3))
 endef
 
-#+
-# See help-macros
-#-
 define signal-error
   $(eval ErrorMessages += ${newline}${Seg}:$(1))
   $(eval Errors = yes)
@@ -114,17 +110,11 @@ define _require-this
   )
 endef
 
-#+
-# See help-macros
-#-
 define require
   $(call verbose,Required in: $(1))
   $(foreach v,$(2),$(call _require-this,$(v), $(1)))
 endef
 
-#+
-# See help-macros
-#-
 define must-be-one-of
   $(if $(findstring ${$(1)},$(2)),\
     $(call verbose,$(1) = ${$(1)} and is a valid option),\
@@ -132,34 +122,22 @@ define must-be-one-of
   )
 endef
 
-#+
-# See help-macros
-#-
-HELPERS_PATH ?= $(call this-segment-path)
+HELPERS_PATH ?= $(call last-segment-path)
 STICKY_PATH ?= /tmp/sticky
 define sticky
   $(call verbose Sticky variable: ${1})
   $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2)))
 endef
 
-#+
-# See help-macros
-#+
 define basenames-in
   $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
 endef
 
-#+
-# See help-macros
-#+
 define directories-in
   $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
   $(notdir ${d}))
 endef
 
-#+
-# See help-macros
-#-
 display-messages:
 > @if [ -n '${MsgList}' ]; then \
     m="${MsgList}";printf "Messages:$${m//${newline}/\\n}" | less;\
@@ -170,9 +148,6 @@ display-errors:
     m="${ErrorMessages}";printf "Errors:$${m//${newline}/\\n}" | less;\
   fi
 
-#+
-# See help-macros
-#-
 show-%:
 > @echo '$*=$($*)'
 
@@ -201,33 +176,24 @@ Preamble and postamble
         To avoid name conflicts a unique prefix is required. In this example
         the unique prefix is indicated by <u>.
 
-        # Prefix for this segment.
-        _pfx := <u>
-        # Save current context.
-        <u>PrvPfx := $${Pfx}
-        <u>PrvSeg := $${Seg}
-        <u>PrvSegN := $${SegN}
-        # Set new context.
-        Pfx := $${_pfx}
-        Seg := $$(call this-segment)
-        SegN := $$(subst -,_,$${Seg})
-        # Set the context specific variables.
-        $${Pfx}_$${SegN} := $${Seg}
-        $.ifndef $${$${Pfx}_$${SegN}}
-        $${$${Pfx}_$${SegN}} := $${$${Pfx}_$${SegN}}
-        $${SegN}_mk_path := $$(call this-segment-path)
-        $${SegN}_name := $${SegN}
-        $$(call verbose,Make segment: $${$${SegN}_mk_path})
+        $.ifndef <u>_id
+        <u>_id := $$(call last-segment-id)
+        <u>_seg := $$(call last-segment)
+        <u>_name := $$(call last-segment-name)
+        <u>_prv_id := $${SegId}
+        $$(eval $$(call set-segment-context,$${<u>_id}))
+
+        $$(call verbose,Make segment: $$(call segment,${<u>_id}))
+
+        ....Make segment body....
 
     Postamble:
 
-        else
-        $$(call add-message,$${$${Seg} has already been included)
-        endif
-        # Restore the previous context.
-        Pfx := $${<u>PrvPfx}
-        Seg := $${<u>PrvSeg}
-        SegN := $${<u>PrvSegN}
+        $$(eval $$(call set-segment-context,$${<u>_prv_id}))
+
+        $.else
+        $$(call add-message,$${<u>_seg} has already been included)
+        $.endif
 
 Defines the helper macros:
 
@@ -241,11 +207,40 @@ is-goal
     Parameters:
         1 = The goal to check.
 
-this-segment
+last-segment-id
+    Returns the ID of the most recently included makefile segment.
+
+last-segment
     Returns the basename of the most recently included makefile segment.
 
-this-segment-path
+last-segment-path
     Returns the directory of the most recently included makefile segment.
+
+segment
+    Returns the basename of the makefile segment corresponding to ID.
+    Parameters:
+        1 = ID of the segment.
+
+segment-name
+    Returns the name of the makefile segment corresponding to ID.
+    Parameters:
+        1 = ID of the segment.
+
+segment-path
+    Returns the path of the makefile segment corresponding to ID.
+    Parameters:
+        1 = ID of the segment.
+
+set-segment-context
+    Sets the context for the makefile segment corresponding to ID.
+    Among other things this is needed in order to have correct prefixes
+    prepended to messages emitted by a makefile segment.
+    Parameters:
+        1 = ID of the segment.
+    Sets:
+        SegId   The makefile segment ID for the new context.
+        Seg     The makefile segment basename for the new context.
+        SegN    The makefile segment name for the new context.
 
 add-to-manifest
     Add an item to a manifest variable.
