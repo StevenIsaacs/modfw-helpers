@@ -8,7 +8,7 @@ SHELL = /bin/bash
 
 $(info Goal: ${MAKECMDGOALS})
 ifeq (${MAKECMDGOALS},)
-  $(info No goal was specified.)
+  $(info No goal was specified -- defaulting to: ${DefaultGoal}.)
   .DEFAULT_GOAL := $(DefaultGoal)
 endif
 
@@ -61,7 +61,7 @@ define set-segment-context
   SegN := $(call segment-name,$(1))
 endef
 
-is-goal = $(filter $(1),$(Goals))
+is-goal = $(filter $(1),${Goals})
 
 define newline
 nlnl
@@ -186,7 +186,7 @@ Preamble and postamble
         <u>_prv_id := $${SegId}
         $$(eval $$(call set-segment-context,$${<u>_id}))
 
-        $$(call verbose,Make segment: $$(call segment,${<u>_id}))
+        $$(call verbose,Make segment: $$(call segment,$${<u>_id}))
 
         ....Make segment body....
 

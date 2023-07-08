@@ -6,7 +6,7 @@ ifndef _tm_id
 _tm_id := $(call last-segment-id)
 _tm_seg := $(call last-segment)
 _tm_name := $(call last-segment-name)
-_tm_prv_id := ${SegId}
+_tm_previous_id := ${SegId}
 $(eval $(call set-segment-context,${_tm_id}))
 
 $(call verbose,Make segment: $(call segment,${_tm_id}))
@@ -92,16 +92,16 @@ $(call must-be-one-of,a,2 3)
 test-macros: display-errors display-messages
 endif
 
-ifneq ($(call is-goal,help-${${Seg}}),)
-$(info Help message variable: help_${Pfx}_${SegN}_msg)
-define help_${Pfx}_${SegN}_msg
+ifneq ($(call is-goal,help-${_tm_seg}),)
+$(info Help message variable: help_${_tm_name}_msg)
+define help_${_tm_name}_msg
 This make segment tests the macros in macros.mk.
 endef
-export help_${Pfx}_${SegN}_msg
-help-${${Seg}}:
-> @echo "$$help_${Pfx}_${SegN}_msg" | less
+export help_${_tm_name}_msg
+help-${_tm_seg}:
+> echo "$$help_${_tm_name}_msg" | less
 endif
-$(eval $(call set-segment-context,${_tm_prv_id}))
+$(eval $(call set-segment-context,${_tm_previous_id}))
 
 else
   $(call add-message,${_tm_seg} has already been included)
