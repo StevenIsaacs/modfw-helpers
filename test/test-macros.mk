@@ -6,7 +6,7 @@ ifndef _tm_id
 _tm_id := $(call this-segment-id)
 _tm_seg := $(call this-segment)
 _tm_name := $(call this-segment-name)
-_tm_previous_id := ${SegId}
+_tm_prv_id := ${SegId}
 $(eval $(call set-segment-context,${_tm_id}))
 
 $(call verbose,Make segment: $(call segment,${_tm_id}))
@@ -101,7 +101,7 @@ export help_${_tm_name}_msg
 help-${_tm_seg}:
 > echo "$$help_${_tm_name}_msg" | less
 endif
-$(eval $(call set-segment-context,${_tm_previous_id}))
+$(eval $(call set-segment-context,${_tm_prv_id}))
 
 else
   $(call add-message,${_tm_seg} has already been included)
