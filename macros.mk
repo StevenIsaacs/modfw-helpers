@@ -31,124 +31,123 @@ else
 endif
 $(info Running on: ${Platform})
 
-define increment
+define Inc-Var
   $(eval $(1):=$(shell expr $($(1)) + 1))
 endef
 
-this-segment-id = $(words ${MAKEFILE_LIST})
+This-Segment-Id = $(words ${MAKEFILE_LIST})
 
-this-segment = \
+This-Segment-File = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
-this-segment-name = \
-  $(subst -,_,$(call this-segment))
+This-Segment-Name = \
+  $(subst -,_,$(call This-Segment-File))
 
-this-segment-path = \
-  $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST}))
+This-Segment-Path = \
+  $(realpath $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
-segment = \
+Segment-File = \
   $(basename $(notdir $(word $(1),${MAKEFILE_LIST})))
 
-segment-name = \
-  $(subst -,_,$(call segment,$(1)))
+Segment-Name = \
+  $(subst -,_,$(call Segment-File,$(1)))
 
-segment-path = \
-  $(dir $(word $(1),${MAKEFILE_LIST}))
+Segment-Path = \
+  $(realpath $(dir $(word $(1),${MAKEFILE_LIST})))
 
-define set-segment-context
+define Set-Segment-Context
   SegId := $(1)
-  Seg := $(call segment,$(1))
-  SegN := $(call segment-name,$(1))
+  Seg := $(call Segment-File,$(1))
+  SegN := $(call Segment-Name,$(1))
 endef
 
-is-goal = $(filter $(1),${Goals})
+Is-Goal = $(filter $(1),${Goals})
 
-define newline
-nlnl
-endef
+NewLine = nlnl
 
-define add-message
-  $(eval MsgList += ${newline}${Seg}:$(1))
+define Add-Message
+  $(eval MsgList += ${NewLine}${Seg}:$(1))
   $(info ${Seg}:$(1))
   $(eval Messages = yes)
 endef
 
 ifdef VERBOSE
-define verbose
-    $(call add-message,verbose:$(1))
+define Verbose
+    $(call Add-Message,Verbose:$(1))
 endef
 # Prepend to recipe lines to echo commands being executed.
 V := @
 endif
 
-define add-to-manifest
-  $(call verbose,Adding $(3) to $(1))
-  $(call verbose,Var: $(2))
+define Add-To-Manifest
+  $(call Verbose,Adding $(3) to $(1))
+  $(call Verbose,Var: $(2))
   $(eval $(2) = $(3))
-  $(call verbose,$(2)=$(3))
+  $(call Verbose,$(2)=$(3))
   $(eval $(1) += $(3))
 endef
 
-define signal-error
-  $(eval ErrorMessages += ${newline}${Seg}:$(1))
+define Signal-Error
+  $(eval ErrorList += ${NewLine}${Seg}:$(1))
+  $(eval MsgList += ${NewLine}${Seg}:$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
 endef
 
 #+
 # This private macro is used to verify a single variable exists.
-# If the variable is empty then an error message is appended to ErrorMessages.
+# If the variable is empty then an error message is appended to ErrorList.
 # Parameters:
 #   1 = The name of the variable.
 #   2 = The module in which it is required.
 #-
 define _require-this
-  $(call verbose,Requiring: $(1))
+  $(call Verbose,Requiring: $(1))
   $(if $(findstring undefined,$(flavor ${1})),\
     $(warning Variable $(1) is not defined); \
-    $(call signal-error,Variable $(1) must be defined in: $(2))
+    $(call Signal-Error,Variable $(1) must be defined in: $(2))
   )
 endef
 
-define require
-  $(call verbose,Required in: $(1))
+define Require
+  $(call Verbose,Required in: $(1))
   $(foreach v,$(2),$(call _require-this,$(v), $(1)))
 endef
 
-define must-be-one-of
+define Must-Be-One-Of
   $(if $(findstring ${$(1)},$(2)),\
-    $(call verbose,$(1) = ${$(1)} and is a valid option),\
-    $(call signal-error,Variable $(1) must equal one of: $(2))\
+    $(call Verbose,$(1) = ${$(1)} and is a valid option),\
+    $(call Signal-Error,Variable $(1) must equal one of: $(2))\
   )
 endef
 
-HELPERS_PATH ?= $(call this-segment-path)
+HELPERS_PATH ?= $(call This-Segment-Path)
 STICKY_PATH ?= /tmp/sticky
-define sticky
-  $(call verbose Sticky variable: ${1})
+define Sticky
+  $(call Verbose Sticky variable: ${1})
   $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2)))
 endef
 
-define basenames-in
+define Basenames-In
   $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
 endef
 
-define directories-in
+define Directories-In
   $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
   $(notdir ${d}))
 endef
 
 # Context defaults to the top makefile.
-$(eval $(call set-segment-context,1))
+$(eval $(call Set-Segment-Context,1))
 
 display-messages:
 > @if [ -n '${MsgList}' ]; then \
-    m="${MsgList}";printf "Messages:$${m//${newline}/\\n}" | less;\
+    m="${MsgList}";printf "Messages:$${m//${NewLine}/\\n}" | less;\
   fi
 
 display-errors:
-> @if [ -n '${ErrorMessages}' ]; then \
-    m="${ErrorMessages}";printf "Errors:$${m//${newline}/\\n}" | less;\
+> @if [ -n '${ErrorList}' ]; then \
+    m="${ErrorList}";printf "Errors:$${m//${NewLine}/\\n}" | less;\
   fi
 
 show-%:
@@ -174,63 +173,66 @@ Preamble and postamble
         the unique prefix is indicated by <u>.
 
         $.ifndef <u>_id
-        <u>_id := $$(call this-segment-id)
-        <u>_seg := $$(call this-segment)
-        <u>_name := $$(call this-segment-name)
+        <u>_id := $$(call This-Segment-Id)
+        <u>_seg := $$(call This-Segment-File)
+        <u>_name := $$(call This-Segment-Name)
         <u>_prv_id := $${SegId}
-        $$(eval $$(call set-segment-context,$${<u>_id}))
+        $$(eval $$(call Set-Segment-Context,$${<u>_id}))
 
-        $$(call verbose,Make segment: $$(call segment,$${<u>_id}))
+        $$(call Verbose,Make segment: $$(call Segment-File,$${<u>_id}))
 
         ....Make segment body....
 
     Postamble:
 
-        $$(eval $$(call set-segment-context,$${<u>_prv_id}))
+        $$(eval $$(call Set-Segment-Context,$${<u>_prv_id}))
 
         $.else
-        $$(call add-message,$${<u>_seg} has already been included)
+        $$(call Add-Message,$${<u>_seg} has already been included)
         $.endif
 
     A template for new make segments is provided in seg-template.mk.
 
 Defines the helper macros:
 
-increment
+Inc-Var
     Increment the value of a variable by 1.
     Parameters:
-        1 = The name of the variable to increment.
+        1 = The name of the variable to Inc-Var.
 
-is-goal
+Is-Goal
     Returns the goal if it is a member of the list of goals.
     Parameters:
         1 = The goal to check.
 
-this-segment-id
+This-Segment-Id
     Returns the ID of the most recently included makefile segment.
 
-this-segment
+This-Segment-File
     Returns the basename of the most recently included makefile segment.
 
-this-segment-path
+This-Segment-Name
+    Returns the name of the most recently included makefile segment.
+
+This-Segment-Path
     Returns the directory of the most recently included makefile segment.
 
-segment
+Segment-File
     Returns the basename of the makefile segment corresponding to ID.
     Parameters:
         1 = ID of the segment.
 
-segment-name
+Segment-Name
     Returns the name of the makefile segment corresponding to ID.
     Parameters:
         1 = ID of the segment.
 
-segment-path
+Segment-Path
     Returns the path of the makefile segment corresponding to ID.
     Parameters:
         1 = ID of the segment.
 
-set-segment-context
+Set-Segment-Context
     Sets the context for the makefile segment corresponding to ID.
     Among other things this is needed in order to have correct prefixes
     prepended to messages emitted by a makefile segment.
@@ -242,7 +244,7 @@ set-segment-context
         Seg     The makefile segment basename for the new context.
         SegN    The makefile segment name for the new context.
 
-add-to-manifest
+Add-To-Manifest
     Add an item to a manifest variable.
     Parameters:
         1 = The list to add to.
@@ -250,10 +252,10 @@ add-to-manifest
             declaring a new variable.
         3 = The value to add to the list.
 
-newline
+NewLine
     Use this macro to insert new lines into multiline messages.
 
-add-message
+Add-Message
     Use this macro to add a message to a list of messages to be displayed
     by the display-messages goal.
     Messages are prefixed with the variable Segment which is set by the
@@ -262,13 +264,13 @@ add-message
     Parameters:
         1 = The message.
 
-verbose
+Verbose
     Displays the message if VERBOSE has been defined. All verbose messages are
     automatically added to the message list.
     Parameters:
         1 = The message to display.
 
-signal-error
+Signal-Error
     Use this macro to issue an error message as a warning and signal a
     delayed error exit. The messages can be displayed using the display-errors
     goal.
@@ -276,19 +278,19 @@ signal-error
     Parameters:
         1 = The error message.
 
-require
+Require
     Use this macro to verify variables are set.
     Parameters:
         1 = The make file segment.
         2 = A list of required variables.
 
-must-be-one-of
+Must-Be-One-Of
     Verify a variable has a valid value. If not then issue a warning.
     Parameters:
         1 = Variable name
         2 = List of valid values.
 
-sticky
+Sticky
     A sticky variable is persistent and needs to be defined on the command line
     at least once or have a default value as an argument.
     Uses sticky.sh to make a variable sticky. If the variable has not been
@@ -307,21 +309,21 @@ sticky
     Returns:
         The variable value.
     Examples:
-        $$(call sticky,<var>=<value>)
+        $$(call Sticky,<var>=<value>)
             Sets the sticky variable equal to <value>. The <value> is saved
             for retrieval at a later time.
-        $$(call sticky,<var>[=])
+        $$(call Sticky,<var>[=])
             Restores the previously saved <value>.
-        $$(call sticky,<var>[=],<default>)
+        $$(call Sticky,<var>[=],<default>)
             Restores the previously saved <value> or sets <var> equal to
             <default>. The variable is not saved in this case.
 
-basenames-in
+Basenames-In
     Get the basenames of all the files in a directory matching a glob pattern.
     Parameters:
         1 = The glob pattern including path.
 
-directories-in
+Directories-In
     Get a list of directories in a directory. The path is stripped.
     Parameters:
         1 = The path to the directory.
