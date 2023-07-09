@@ -35,15 +35,15 @@ define increment
   $(eval $(1):=$(shell expr $($(1)) + 1))
 endef
 
-last-segment-id = $(words ${MAKEFILE_LIST})
+this-segment-id = $(words ${MAKEFILE_LIST})
 
-last-segment = \
+this-segment = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
-last-segment-name = \
-  $(subst -,_,$(call last-segment))
+this-segment-name = \
+  $(subst -,_,$(call this-segment))
 
-last-segment-path = \
+this-segment-path = \
   $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST}))
 
 segment = \
@@ -122,7 +122,7 @@ define must-be-one-of
   )
 endef
 
-HELPERS_PATH ?= $(call last-segment-path)
+HELPERS_PATH ?= $(call this-segment-path)
 STICKY_PATH ?= /tmp/sticky
 define sticky
   $(call verbose Sticky variable: ${1})
@@ -158,17 +158,11 @@ ifneq ($(findstring help-macros,${Goals}),)
 define HelpMacrosMsg
 Make segment: macros.mk
 
-Defines make variables to simplify editing rules in some editors which
+Sets make variables to simplify editing rules in some editors which
 don't handle tab characters very well. Also to enable some bash specific
 features.
 .RECIPEPREFIX=${.RECIPEPREFIX}
 SHELL=${SHELL}
-
-Message prefix variable - Seg:
-    The variable named Segment is used to prefix all messages issued using
-    add-message, verbose and, signal-error. The calling module is expected
-    to set this variable. e.g. Seg := <seg>.
-    NOTE that the immediate form of the assignment (:=) must be used.
 
 Preamble and postamble
     Makefile segments should use the standard preamble and postamble to avoid
@@ -180,9 +174,9 @@ Preamble and postamble
         the unique prefix is indicated by <u>.
 
         $.ifndef <u>_id
-        <u>_id := $$(call last-segment-id)
-        <u>_seg := $$(call last-segment)
-        <u>_name := $$(call last-segment-name)
+        <u>_id := $$(call this-segment-id)
+        <u>_seg := $$(call this-segment)
+        <u>_name := $$(call this-segment-name)
         <u>_prv_id := $${SegId}
         $$(eval $$(call set-segment-context,$${<u>_id}))
 
@@ -198,6 +192,8 @@ Preamble and postamble
         $$(call add-message,$${<u>_seg} has already been included)
         $.endif
 
+    A template for new make segments is provided in seg-template.mk.
+
 Defines the helper macros:
 
 increment
@@ -210,13 +206,13 @@ is-goal
     Parameters:
         1 = The goal to check.
 
-last-segment-id
+this-segment-id
     Returns the ID of the most recently included makefile segment.
 
-last-segment
+this-segment
     Returns the basename of the most recently included makefile segment.
 
-last-segment-path
+this-segment-path
     Returns the directory of the most recently included makefile segment.
 
 segment

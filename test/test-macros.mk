@@ -3,9 +3,9 @@
 #-----------------------------------------------------------------------------
 #+
 ifndef _tm_id
-_tm_id := $(call last-segment-id)
-_tm_seg := $(call last-segment)
-_tm_name := $(call last-segment-name)
+_tm_id := $(call this-segment-id)
+_tm_seg := $(call this-segment)
+_tm_name := $(call this-segment-name)
 _tm_previous_id := ${SegId}
 $(eval $(call set-segment-context,${_tm_id}))
 
@@ -39,10 +39,10 @@ endef
 ifneq ($(call is-goal,test-macros),)
 
 $(call next-test,Segment identifiers.)
-$(call test-message,last-segment-id:$(call last-segment-id))
-$(call test-message,last-segment:$(call last-segment))
-$(call test-message,last-segment-name:$(call last-segment-name))
-$(call test-message,last-segment-path:$(call last-segment-path))
+$(call test-message,this-segment-id:$(call this-segment-id))
+$(call test-message,this-segment:$(call this-segment))
+$(call test-message,this-segment-name:$(call this-segment-name))
+$(call test-message,this-segment-path:$(call this-segment-path))
 $(call test-message,segment:$(call segment,${_tm_id}))
 $(call test-message,segment-path:$(call segment-path,${_tm_id}))
 $(call test-message,segment-name:$(call segment-name,${_tm_id}))
