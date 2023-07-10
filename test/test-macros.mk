@@ -2,14 +2,14 @@
 # This make segment is designed to test macros.mk.
 #-----------------------------------------------------------------------------
 #+
-ifndef _tm_id
-_tm_id := $(call This-Segment-Id)
-_tm_seg := $(call This-Segment-File)
-_tm_name := $(call This-Segment-Name)
-_tm_prv_id := ${SegId}
-$(eval $(call Set-Segment-Context,${_tm_id}))
+ifndef tm_id
+tm_id := $(call This-Segment-Id)
+tm_seg := $(call This-Segment-File)
+tm_name := $(call This-Segment-Name)
+tm_prv_id := ${SegId}
+$(eval $(call Set-Segment-Context,${tm_id}))
 
-$(call Verbose,Make segment: $(call Segment-File,${_tm_id}))
+$(call Verbose,Make segment: $(call Segment-File,${tm_id}))
 
 _test := 0
 
@@ -44,9 +44,9 @@ $(call test-message,This-Segment-Id:$(call This-Segment-Id))
 $(call test-message,This-Segment:$(call This-Segment-File))
 $(call test-message,This-Segment-Name:$(call This-Segment-Name))
 $(call test-message,This-Segment-Path:$(call This-Segment-Path))
-$(call test-message,segment:$(call Segment-File,${_tm_id}))
-$(call test-message,Segment-Path:$(call Segment-Path,${_tm_id}))
-$(call test-message,Segment-Name:$(call Segment-Name,${_tm_id}))
+$(call test-message,segment:$(call Segment-File,${tm_id}))
+$(call test-message,Segment-Path:$(call Segment-Path,${tm_id}))
+$(call test-message,Segment-Name:$(call Segment-Name,${tm_id}))
 
 $(call next-test,Current context.)
 $(call test-message,SegId:$(SegId))
@@ -93,17 +93,22 @@ $(call Must-Be-One-Of,a,2 3)
 test-macros: display-errors display-messages
 endif
 
-ifneq ($(call Is-Goal,help-${_tm_seg}),)
-$(info Help message variable: help_${_tm_name}_msg)
-define help_${_tm_name}_msg
+ifneq ($(call Is-Goal,help-${tm_seg}),)
+$(info Help message variable: help_${tm_name}_msg)
+define help_${tm_name}_msg
 This make segment tests the macros in macros.mk.
 endef
-export help_${_tm_name}_msg
-help-${_tm_seg}:
-> echo "$$help_${_tm_name}_msg" | less
+export help_${tm_name}_msg
+help-${tm_seg}:
+> echo "$$help_${tm_name}_msg" | less
 endif
-$(eval $(call Set-Segment-Context,${_tm_prv_id}))
+$(eval $(call Set-Segment-Context,${tm_prv_id}))
 
 else
-  $(call Add-Message,${_tm_seg} has already been included)
+  ifneq (${tm_seg},$(call This-Segment-File))
+    $(call Signal-Error,\
+    Prefix conflict with $(tm_seg) in $(call This-Segment-File))
+  else
+    $(call Add-Message,${tm_seg} has already been included)
+  endif
 endif

@@ -12,7 +12,10 @@ $(call add-message,Running macro tests.)
 include test/test-macros.mk
 $(call add-message,Macro tests complete.)
 $(call add-message,Testing include of same file.)
+# Test detection of including same file.
 include test/test-macros.mk
+# Test detection of prefix conflict between different files.
+include test/test-conflict.mk
 endif
 
 ifneq ($(filter help,$(Goals)),)

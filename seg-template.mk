@@ -31,6 +31,11 @@ endif
 $(eval $(call Set-Segment-Context,${<u>_prv_id}))
 
 else
-  $(call Add-Message,${<u>_seg} has already been included)
+  ifneq (${<u>_seg},$(call This-Segment-File))
+    $(call Signal-Error,\
+    Prefix conflict with $(<u>_seg) in $(call This-Segment-File))
+  else
+    $(call Add-Message,${<u>_seg} has already been included)
+  endif
 endif
 # -----
