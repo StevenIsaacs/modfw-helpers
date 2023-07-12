@@ -31,6 +31,29 @@ else
 endif
 $(info Running on: ${Platform})
 
+NewLine = nlnl
+
+define Add-Message
+  $(eval MsgList += ${NewLine}${Seg}:$(1))
+  $(info ${Seg}:$(1))
+  $(eval Messages = yes)
+endef
+
+ifdef VERBOSE
+define Verbose
+    $(call Add-Message,Verbose:$(1))
+endef
+# Prepend to recipe lines to echo commands being executed.
+V := @
+endif
+
+define Signal-Error
+  $(eval ErrorList += ${NewLine}${Seg}:$(1))
+  $(eval MsgList += ${NewLine}${Seg}:$(1))
+  $(eval Errors = yes)
+  $(warning Error:${Seg}:$(1))
+endef
+
 define Inc-Var
   $(eval $(1):=$(shell expr $($(1)) + 1))
 endef
@@ -61,23 +84,23 @@ define Set-Segment-Context
   SegN := $(call Segment-Name,$(1))
 endef
 
+define Find-Segment
+  $(eval $(3) := )
+  $(call Verbose,Segment paths:$(2) $(call Segment-Path,${SegId}))
+  $(foreach _p,$(2) $(call Segment-Path,${SegId}),\
+    $(if $(wildcard ${_p}/$(1).mk),\
+      $(eval $(3) := ${_p}/$(1).mk),
+      $(call Verbose,${_p}/$(1).mk not found.)))
+  $(call Verbose,Found segment:${$(3)})
+endef
+
+define Use-Segment
+  $(call Find-Segment,$(1),$(2),_s)
+  $(call Verbose,Using segment:${_s})
+  $(eval include ${_s})
+endef
+
 Is-Goal = $(filter $(1),${Goals})
-
-NewLine = nlnl
-
-define Add-Message
-  $(eval MsgList += ${NewLine}${Seg}:$(1))
-  $(info ${Seg}:$(1))
-  $(eval Messages = yes)
-endef
-
-ifdef VERBOSE
-define Verbose
-    $(call Add-Message,Verbose:$(1))
-endef
-# Prepend to recipe lines to echo commands being executed.
-V := @
-endif
 
 define Add-To-Manifest
   $(call Verbose,Adding $(3) to $(1))
@@ -85,13 +108,6 @@ define Add-To-Manifest
   $(eval $(2) = $(3))
   $(call Verbose,$(2)=$(3))
   $(eval $(1) += $(3))
-endef
-
-define Signal-Error
-  $(eval ErrorList += ${NewLine}${Seg}:$(1))
-  $(eval MsgList += ${NewLine}${Seg}:$(1))
-  $(eval Errors = yes)
-  $(warning Error:${Seg}:$(1))
 endef
 
 #+
@@ -243,6 +259,28 @@ Set-Segment-Context
         SegId   The makefile segment ID for the new context.
         Seg     The makefile segment basename for the new context.
         SegN    The makefile segment name for the new context.
+
+Find-Segment
+    Search a list of directories for a segment and save its path in a variable.
+    The segment can exist in multiple locations and only the last one in the
+    list will be found. If the segment is not found in any of the directories
+    then the current segment directory (Segment-Path) is searched.
+    If the segment cannot be found an error message is added to the error list.
+    Parameters:
+        1 = The segment to find.
+        2 = A list of paths to search.
+        3 = The name of the variable to store the result in.
+
+Use-Segment
+    Use Find-Segment to search a list of directories for a segment and load it
+    if it exists. The segment can exist in multiple locations and only the last
+    one in the list will be loaded. If the segment is not found in any of the
+    directories then the segment is loaded from the current segment directory
+    (Segment-Path).
+    If the segment cannot be found an error message is added to the error list.
+    Parameters:
+        1 = The segment to load.
+        2 = A list of paths to search.
 
 Add-To-Manifest
     Add an item to a manifest variable.
