@@ -95,10 +95,12 @@ define Find-Segment
   $(eval $(2) := )
   $(call Verbose,Segment paths:${SegPaths} $(call Segment-Path,${SegId}))
   $(foreach _p,${SegPaths} $(call Segment-Path,${SegId}),\
+    $(call Verbose,Trying: ${_p});\
     $(if $(wildcard ${_p}/$(1).mk),\
-      $(eval $(2) := ${_p}/$(1).mk),
-      $(call Verbose,${_p}/$(1).mk not found.)))
-  $(call Verbose,Found segment:${$(2)})
+      $(eval $(2) := ${_p}/$(1).mk))))
+  $(if $(2),\
+    $(call Verbose,Found segment:${$(2)}),
+    $(call Verbose,$(1).mk not found.))
 endef
 
 define Use-Segment
