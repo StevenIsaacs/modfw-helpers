@@ -90,19 +90,21 @@ $(call Must-Be-One-Of,a,1 2 3)
 $(call Must-Be-One-Of,a,2 3)
 
 $(call next-test,Use-Segment)
-paths := test/d1 test/d2 test/d3
+seg_paths := test/d1 test/d2 test/d3
 # Segments in the current directory.
 $(call Use-Segment,ts1)
-$(call Use-Segment,ts2,${paths})
+$(call Use-Segment,ts2,seg_paths)
 # Segments in subdirectories.
-$(call Use-Segment,td1,${paths})
-$(call Use-Segment,td2,${paths})
-$(call Use-Segment,td3,${paths})
+$(call Use-Segment,td1,seg_paths)
+$(call Use-Segment,td2,seg_paths)
+$(call Use-Segment,td3,seg_paths)
 # Multiple segments of the same name.
-$(call Use-Segment,tm1,${paths})
-$(call Use-Segment,tm2,${paths})
+$(call Use-Segment,tm1,seg_paths)
+$(call Use-Segment,tm2,seg_paths)
+# A segment in a subdirectory.
+$(call Use-Segment,sd3/tsd3,seg_paths)
 # Does not exist.
-$(call Use-Segment,te1,${paths})
+$(call Use-Segment,te1,seg_paths)
 
 test-macros: display-errors display-messages
 endif

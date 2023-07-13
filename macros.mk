@@ -86,8 +86,8 @@ endef
 
 define Find-Segment
   $(eval $(3) := )
-  $(call Verbose,Segment paths:$(2) $(call Segment-Path,${SegId}))
-  $(foreach _p,$(2) $(call Segment-Path,${SegId}),\
+  $(call Verbose,Segment paths:${$(2)} $(call Segment-Path,${SegId}))
+  $(foreach _p,${$(2)} $(call Segment-Path,${SegId}),\
     $(if $(wildcard ${_p}/$(1).mk),\
       $(eval $(3) := ${_p}/$(1).mk),
       $(call Verbose,${_p}/$(1).mk not found.)))
@@ -268,7 +268,7 @@ Find-Segment
     If the segment cannot be found an error message is added to the error list.
     Parameters:
         1 = The segment to find.
-        2 = A list of paths to search.
+        2 = The name of a variable containing a list of paths to search.
         3 = The name of the variable to store the result in.
 
 Use-Segment
@@ -280,7 +280,7 @@ Use-Segment
     If the segment cannot be found an error message is added to the error list.
     Parameters:
         1 = The segment to load.
-        2 = A list of paths to search.
+        2 = The name of a variable containing a list of paths to search.
 
 Add-To-Manifest
     Add an item to a manifest variable.
