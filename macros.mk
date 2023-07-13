@@ -84,18 +84,25 @@ define Set-Segment-Context
   SegN := $(call Segment-Name,$(1))
 endef
 
+SegPaths :=  $(call Segment-Path,1)
+
+define Add-Segment-Path
+  $(eval SegPaths += $(1))
+  $(call Verbose,Added path(s):$(1))
+endef
+
 define Find-Segment
-  $(eval $(3) := )
-  $(call Verbose,Segment paths:${$(2)} $(call Segment-Path,${SegId}))
-  $(foreach _p,${$(2)} $(call Segment-Path,${SegId}),\
+  $(eval $(2) := )
+  $(call Verbose,Segment paths:${SegPaths} $(call Segment-Path,${SegId}))
+  $(foreach _p,${SegPaths} $(call Segment-Path,${SegId}),\
     $(if $(wildcard ${_p}/$(1).mk),\
-      $(eval $(3) := ${_p}/$(1).mk),
+      $(eval $(2) := ${_p}/$(1).mk),
       $(call Verbose,${_p}/$(1).mk not found.)))
-  $(call Verbose,Found segment:${$(3)})
+  $(call Verbose,Found segment:${$(2)})
 endef
 
 define Use-Segment
-  $(call Find-Segment,$(1),$(2),_s)
+  $(call Find-Segment,$(1),_s)
   $(call Verbose,Using segment:${_s})
   $(eval include ${_s})
 endef
@@ -260,6 +267,14 @@ Set-Segment-Context
         Seg     The makefile segment basename for the new context.
         SegN    The makefile segment name for the new context.
 
+SegPaths = ${SegPaths}
+    The list of paths to search to find or use a segment.
+
+Add-Segment-Path
+    Add one or more path(s) to the list of segment search paths (SegPaths).
+    Parameters:
+        1 = The path(s) to add.
+
 Find-Segment
     Search a list of directories for a segment and save its path in a variable.
     The segment can exist in multiple locations and only the last one in the
@@ -268,8 +283,7 @@ Find-Segment
     If the segment cannot be found an error message is added to the error list.
     Parameters:
         1 = The segment to find.
-        2 = The name of a variable containing a list of paths to search.
-        3 = The name of the variable to store the result in.
+        2 = The name of the variable to store the result in.
 
 Use-Segment
     Use Find-Segment to search a list of directories for a segment and load it
@@ -280,7 +294,6 @@ Use-Segment
     If the segment cannot be found an error message is added to the error list.
     Parameters:
         1 = The segment to load.
-        2 = The name of a variable containing a list of paths to search.
 
 Add-To-Manifest
     Add an item to a manifest variable.
