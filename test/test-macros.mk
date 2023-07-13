@@ -1,7 +1,9 @@
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # This make segment is designed to test macros.mk.
 #-----------------------------------------------------------------------------
-#+
+# The prefix tm must be unique for all files.
+# +++++
+# Preamble
 ifndef tm_id
 tm_id := $(call This-Segment-Id)
 tm_seg := $(call This-Segment-File)
@@ -10,6 +12,7 @@ tm_prv_id := ${SegId}
 $(eval $(call Set-Segment-Context,${tm_id}))
 
 $(call Verbose,Make segment: $(call Segment-File,${tm_id}))
+# -----
 
 _test := 0
 
@@ -110,6 +113,8 @@ $(call Use-Segment,te1)
 test-macros: display-errors display-messages
 endif
 
+# +++++
+# Postamble
 ifneq ($(call Is-Goal,help-${tm_seg}),)
 $(info Help message variable: help_${tm_name}_msg)
 define help_${tm_name}_msg
@@ -128,4 +133,4 @@ else
   else
     $(call Add-Message,${tm_seg} has already been included)
   endif
-endif
+endif # tm_id
