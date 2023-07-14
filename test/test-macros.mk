@@ -42,6 +42,25 @@ endef
 
 ifneq ($(call Is-Goal,test-macros),)
 
+$(call next-test,HELPERS_PATH)
+$(call test-message,macros_id = ${macros_id})
+$(call test-message,HELPERS_PATH = ${HELPERS_PATH})
+
+$(call next-test,Sticky variables.)
+tv1 := tv1
+tv2 := tv2
+$(call test-message,STICKY_PATH = ${STICKY_PATH})
+$(call test-message,StickyVars:${StickyVars})
+$(call Sticky,tv1,tv1)
+$(call test-message,StickyVars:${StickyVars})
+$(call Sticky,tv2,tv2)
+$(call test-message,StickyVars:${StickyVars})
+# Should cause redefinition error.
+$(call Sticky,tv2,xxx)
+$(call test-message,StickyVars:${StickyVars})
+$(foreach _v,${StickyVars},\
+  $(call test-message,Var:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v})))
+
 $(call next-test,Segment identifiers.)
 $(call test-message,This-Segment-Id:$(call This-Segment-Id))
 $(call test-message,This-Segment:$(call This-Segment-File))

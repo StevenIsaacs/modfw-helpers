@@ -1,6 +1,11 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Helper macros for makefiles.
 #----------------------------------------------------------------------------
+ifndef macros_id
+macros_id := $(words ${MAKEFILE_LIST})
+
+HELPERS_PATH ?= $(call Segment-Path,${macros_id})
+
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
 .RECIPEPREFIX := >
@@ -146,11 +151,16 @@ define Must-Be-One-Of
   )
 endef
 
-HELPERS_PATH ?= $(call This-Segment-Path)
-STICKY_PATH ?= /tmp/sticky
+STICKY_PATH ?= /tmp/modfw/sticky
+StickyVars :=
 define Sticky
   $(call Verbose Sticky variable: ${1})
-  $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2)))
+  $(if $(filter $(1),${StickyVars}),\
+    $(call Signal-Error,\
+      Redefinition of sticky variable $(1) ignored.),\
+    $(eval StickyVars += $(1));\
+    $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2)))\
+  )
 endef
 
 define Basenames-In
@@ -349,6 +359,8 @@ Sticky
     Uses sticky.sh to make a variable sticky. If the variable has not been
     defined when this macro is called then the previous value is used. Defining
     the variable will overwrite the previous sticky value.
+    Only the first call to Sticky for a given variable will be accepted.
+    Additional calls will produce a redefinition error.
     WARNING: The variable must be defined at least once.
     Variables used:
         HELPERS_PATH=${HELPERS_PATH}
@@ -401,4 +413,6 @@ export HelpMacrosMsg
 help-macros:
 > @echo "$$HelpMacrosMsg" | less
 
-endif
+endif # help-macros
+
+endif # macros_id
