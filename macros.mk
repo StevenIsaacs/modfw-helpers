@@ -4,7 +4,7 @@
 ifndef macros_id
 macros_id := $(words ${MAKEFILE_LIST})
 
-HELPERS_PATH ?= $(call Segment-Path,${macros_id})
+HELPERS_PATH ?= $(call Get-Segment-Path,${macros_id})
 
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
@@ -65,31 +65,36 @@ endef
 
 This-Segment-Id = $(words ${MAKEFILE_LIST})
 
-This-Segment-File = \
+This-Segment-File = $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})
+
+This-Segment-Basename = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
 This-Segment-Name = \
-  $(subst -,_,$(call This-Segment-File))
+  $(subst -,_,$(call This-Segment-Basename))
 
 This-Segment-Path = \
   $(realpath $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
-Segment-File = \
+Get-Segment-File = $(word $(1),${MAKEFILE_LIST})
+
+Get-Segment-Basename = \
   $(basename $(notdir $(word $(1),${MAKEFILE_LIST})))
 
-Segment-Name = \
-  $(subst -,_,$(call Segment-File,$(1)))
+Get-Segment-Name = \
+  $(subst -,_,$(call Get-Segment-Basename,$(1)))
 
-Segment-Path = \
+Get-Segment-Path = \
   $(realpath $(dir $(word $(1),${MAKEFILE_LIST})))
 
 define Set-Segment-Context
-  SegId := $(1)
-  Seg := $(call Segment-File,$(1))
-  SegN := $(call Segment-Name,$(1))
+  $(eval SegId := $(1))
+  $(eval Seg := $(call Get-Segment-Basename,$(1)))
+  $(eval SegN := $(call Get-Segment-Name,$(1)))
+  $(eval SegF := $(call Get-Segment-File,$(1)))
 endef
 
-SegPaths :=  $(call Segment-Path,1)
+SegPaths :=  $(call Get-Segment-Path,1)
 
 define Add-Segment-Path
   $(eval SegPaths += $(1))
@@ -98,8 +103,9 @@ endef
 
 define Find-Segment
   $(eval $(2) := )
-  $(call Verbose,Segment paths:${SegPaths} $(call Segment-Path,${SegId}))
-  $(foreach _p,${SegPaths} $(call Segment-Path,${SegId}),\
+  $(call Verbose,Locating segment: $(1))
+  $(call Verbose,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegId}))
+  $(foreach _p,${SegPaths} $(call Get-Segment-Path,${SegId}),\
     $(call Verbose,Trying: ${_p});\
     $(if $(wildcard ${_p}/$(1).mk),\
       $(eval $(2) := ${_p}/$(1).mk))))
@@ -112,6 +118,40 @@ define Use-Segment
   $(call Find-Segment,$(1),_s)
   $(call Verbose,Using segment:${_s})
   $(eval include ${_s})
+endef
+
+define Enter-Segment
+  $(eval $(1)_id := $(call This-Segment-Id))
+  $(eval $(call Verbose,Entering segment: $(call Get-Segment-Basename,${$(1)_id})))
+  $(eval $(1)_seg := $(call This-Segment-Basename))
+  $(eval $(1)_name := $(call This-Segment-Name))
+  $(eval $(1)_file := $(call This-Segment-File))
+  $(eval $(1)_prv_id := ${SegId})
+  $(call Set-Segment-Context,${$(1)_id})
+endef
+
+define Exit-Segment
+$(call Verbose,Exiting segment: $(call Get-Segment-Basename,${$(1)_id}))
+$(call Verbose,Checking help: $(call Is-Goal,help-${$(1)_seg}))
+$(if $(call Is-Goal,help-${$(1)_seg}),\
+$(call Verbose,Help message variable: help_${$(1)_name}_msg);\
+$(eval export help_${$(1)_name}_msg);\
+$(call Verbose,Generating help goal: help-${$(1)_seg});\
+$(eval \
+help-${$(1)_seg}:;\
+echo "$$$$help_${$(1)_name}_msg" | less\
+))
+$(eval $(call Set-Segment-Context,${$(1)_prv_id}))
+endef
+
+define Report-Segment-Exists
+  $(call Verbose,\
+    Segment exists: ID = ${$(1)_id}: file = $(call Get-Segment-File,${$(1)_id}))
+  $(eval $(if $(findstring $(call This-Segment-File),$(call Get-Segment-File,${$(1)_id})),
+    $(call Add-Message,\
+      $(call Get-Segment-File,${$(1)_id}) has already been included.),\
+    $(call Signal-Error,\
+      Prefix conflict with $($(1)_seg) in $(call This-Segment-File).)))
 endef
 
 Is-Goal = $(filter $(1),${Goals})
@@ -198,36 +238,6 @@ features.
 .RECIPEPREFIX=${.RECIPEPREFIX}
 SHELL=${SHELL}
 
-Preamble and postamble
-    Makefile segments should use the standard preamble and postamble to avoid
-    inclusion of the same file more than once and to use standardized ID
-    variables.
-
-    Preamble:
-        To avoid name conflicts a unique prefix is required. In this example
-        the unique prefix is indicated by <u>.
-
-        $.ifndef <u>_id
-        <u>_id := $$(call This-Segment-Id)
-        <u>_seg := $$(call This-Segment-File)
-        <u>_name := $$(call This-Segment-Name)
-        <u>_prv_id := $${SegId}
-        $$(eval $$(call Set-Segment-Context,$${<u>_id}))
-
-        $$(call Verbose,Make segment: $$(call Segment-File,$${<u>_id}))
-
-        ....Make segment body....
-
-    Postamble:
-
-        $$(eval $$(call Set-Segment-Context,$${<u>_prv_id}))
-
-        $.else
-        $$(call Add-Message,$${<u>_seg} has already been included)
-        $.endif
-
-    A template for new make segments is provided in seg-template.mk.
-
 Defines the helper macros:
 
 Inc-Var
@@ -243,7 +253,7 @@ Is-Goal
 This-Segment-Id
     Returns the ID of the most recently included makefile segment.
 
-This-Segment-File
+This-Segment-Basename
     Returns the basename of the most recently included makefile segment.
 
 This-Segment-Name
@@ -252,7 +262,7 @@ This-Segment-Name
 This-Segment-Path
     Returns the directory of the most recently included makefile segment.
 
-Segment-File
+Segment-Basename
     Returns the basename of the makefile segment corresponding to ID.
     Parameters:
         1 = ID of the segment.
@@ -274,10 +284,11 @@ Set-Segment-Context
     The context defaults to the top makefile (ID = 1).
     Parameters:
         1 = ID of the segment.
-    Sets:
+    Sets current context variables:
         SegId   The makefile segment ID for the new context.
         Seg     The makefile segment basename for the new context.
         SegN    The makefile segment name for the new context.
+        SegF    The makefile segment file for the new context.
 
 SegPaths = ${SegPaths}
     The list of paths to search to find or use a segment.
@@ -306,6 +317,75 @@ Use-Segment
     If the segment cannot be found an error message is added to the error list.
     Parameters:
         1 = The segment to load.
+
+    The loaded segment is expected to define a new context to be used during
+    its initialization and then to restore the previous context when it has
+    completed initialization. The new segment is also expected to avoid
+    executing the initialization a second time. Helper macros are provided to
+    standardize this process. They are intended to be used at the beginning
+    in a preamble and at the end in a postamble. Unfortunately, make syntax
+    limitations prevent this from being simplified even further.
+
+    Makefile segments should use the standard preamble and postamble to avoid
+    inclusion of the same file more than once and to use standardized ID
+    variables.
+
+    Preamble:
+        To avoid name conflicts a unique prefix is required. In this example
+        the unique prefix is indicated by <u>.
+
+        NOTE: The variable name formats shown in this example are required.
+
+        $.ifndef <u>_id
+        $$(call Enter-Segment,<u>)
+
+        ....Make segment body....
+
+    Postamble:
+        $.ifneq ($(call Is-Goal,help-${<u>_seg}),)
+        $.define help_$${<u>_name}_msg
+        Make segment: $${<u>_seg}.mk
+
+        <make segment help messages>
+
+        Command line goals:
+        help-$${<u>_seg}   Display this help.
+        $.endef
+        $.endif
+
+        $$(call Exit-Segment,tm)
+        $.else # <u>_id exists
+        $$(call Report-Segment-Exists,<u>)
+        $.endif # tm_id
+
+    A template for new make segments is provided in seg-template.mk.
+
+Enter-Segment - Call in the preamble
+    This initializes the context for a new segment and saves information so
+    that the context of the previous segment can be restored in the postamble.
+    Parameters:
+        1 = The prefix to use for segment context variables.
+    Sets the segment specific context variables:
+        <u>_id      The ID for the segment. This is basically the index in
+                    MAKEFILE_LIST for the segment.
+        <u>_seg     The segment name.
+        <u>_name    The name of the segment ('-' replaced with '_').
+        <u>_file    The path and name of the makefile segment.
+        <u>_prv_id  The previous segment ID which is used to restore the
+                    previous context.
+
+Exit-Segment - Call in the postamble.
+    This initializes the help message for the segment and restores the
+    context of the previous segment.
+    Parameters:
+        1 = The prefix to use for the current context variables.
+
+Report-Segment-Exists - Call in the postamble.
+    This handles the case where a segment is being used more than once or
+    the current segment is attempting to use the same prefix as a previously
+    loaded segment.
+    Parameters:
+        1 = The prefix to use for the current context variables.
 
 Add-To-Manifest
     Add an item to a manifest variable.
