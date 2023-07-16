@@ -342,7 +342,7 @@ Use-Segment
         ....Make segment body....
 
     Postamble:
-        $.ifneq ($(call Is-Goal,help-${<u>_seg}),)
+        $.ifneq ($$(call Is-Goal,help-$${<u>_seg}),)
         $.define help_$${<u>_name}_msg
         Make segment: $${<u>_seg}.mk
 
