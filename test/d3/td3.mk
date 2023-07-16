@@ -25,6 +25,6 @@ endef
 endif
 $(call Exit-Segment,td3)
 else
-$(call Report-Segment-Exists,td3)
+$(call Check-Segment-Conflicts,td3)
 endif # td3_id
 # -----

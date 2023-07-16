@@ -144,7 +144,7 @@ echo "$$$$help_${$(1)_name}_msg" | less\
 $(eval $(call Set-Segment-Context,${$(1)_prv_id}))
 endef
 
-define Report-Segment-Exists
+define Check-Segment-Conflicts
   $(call Verbose,\
     Segment exists: ID = ${$(1)_id}: file = $(call Get-Segment-File,${$(1)_id}))
   $(eval $(if $(findstring $(call This-Segment-File),$(call Get-Segment-File,${$(1)_id})),
@@ -355,7 +355,7 @@ Use-Segment
 
         $$(call Exit-Segment,tm)
         $.else # <u>_id exists
-        $$(call Report-Segment-Exists,<u>)
+        $$(call Check-Segment-Conflicts,<u>)
         $.endif # tm_id
 
     A template for new make segments is provided in seg-template.mk.
@@ -380,7 +380,7 @@ Exit-Segment - Call in the postamble.
     Parameters:
         1 = The prefix to use for the current context variables.
 
-Report-Segment-Exists - Call in the postamble.
+Check-Segment-Conflicts - Call in the postamble.
     This handles the case where a segment is being used more than once or
     the current segment is attempting to use the same prefix as a previously
     loaded segment.

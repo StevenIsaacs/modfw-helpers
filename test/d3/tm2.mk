@@ -25,6 +25,6 @@ endef
 endif
 $(call Exit-Segment,tm2)
 else
-$(call Report-Segment-Exists,tm2)
+$(call Check-Segment-Conflicts,tm2)
 endif # tm2_id
 # -----

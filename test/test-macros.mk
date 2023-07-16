@@ -161,6 +161,6 @@ $(call report-seg-context,tm)
 else # tm_id exists
 $(call next-test,ID exists context.)
 $(call report-seg-context,tm)
-$(call Report-Segment-Exists,tm)
+$(call Check-Segment-Conflicts,tm)
 endif # tm_id
 $(call Add-Message,----- test-macros exit. -----)

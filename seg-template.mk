@@ -27,6 +27,6 @@ endif # help goal message.
 
 $(call Exit-Segment,<u>)
 else # <u>_id exists
-$(call Report-Segment-Exists,<u>)
+$(call Check-Segment-Conflicts,<u>)
 endif # <u>_id
 # -----

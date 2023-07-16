@@ -28,7 +28,7 @@ $(call Exit-Segment,tm)
 else # tm_id already defined.
 $(call next-test,ID conflict context.)
 $(call report-seg-context,tm)
-$(call Report-Segment-Exists,tm)
+$(call Check-Segment-Conflicts,tm)
 
 endif
 # -----
