@@ -7,16 +7,20 @@ VERBOSE=1
 
 include macros.mk
 
+$(call Add-Segment-Path,test/d1 test/d2 test/d3)
+
 ifneq ($(findstring test,$(Goals)),)
 $(call add-message,Running macro tests.)
-include test/test-macros.mk
+$(call Use-Segment,test/test-macros)
 $(call add-message,Macro tests complete.)
 $(call add-message,Testing include of same file.)
 # Test detection of including same file.
-include test/test-macros.mk
+$(call Use-Segment,test/test-macros)
 # Test detection of prefix conflict between different files.
-include test/test-conflict.mk
+$(call Use-Segment,test/test-conflict)
 endif
+
+$(call Resolve-Help-Goals)
 
 ifneq ($(filter help,$(Goals)),)
 define _HelpersUsage

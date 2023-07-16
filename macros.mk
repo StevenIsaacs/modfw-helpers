@@ -115,9 +115,9 @@ define Find-Segment
 endef
 
 define Use-Segment
-  $(call Find-Segment,$(1),_s)
-  $(call Verbose,Using segment:${_s})
-  $(eval include ${_s})
+  $(call Find-Segment,$(1),_seg)
+  $(call Verbose,Using segment:${_seg})
+  $(eval include ${_seg})
 endef
 
 define Enter-Segment
@@ -152,6 +152,16 @@ define Check-Segment-Conflicts
       $(call Get-Segment-File,${$(1)_id}) has already been included.),\
     $(call Signal-Error,\
       Prefix conflict with $($(1)_seg) in $(call This-Segment-File).)))
+endef
+
+define Resolve-Help-Goals
+$(call Verbose,Resolving help goals.)
+$(call Verbose,Help goals: $(filter help-%,${Goals})})
+$(foreach _s,$(patsubst help-%,%,$(filter help-%,${Goals})),\
+  $(call Verbose,Resolving help for segment ${_s});\
+  $(if $(filter ${_s}.mk,${MAKEFILE_LIST}),\
+    $(call Verbose,Segment ${_s} already loaded.),\
+    $(call Use-Segment,${_s})))
 endef
 
 Is-Goal = $(filter $(1),${Goals})
@@ -386,6 +396,12 @@ Check-Segment-Conflicts - Call in the postamble.
     loaded segment.
     Parameters:
         1 = The prefix to use for the current context variables.
+
+Resolve-Help-Goals
+    This scans the goals for references to help and then insures the
+    corresponding segment is loaded. This should be called only after all
+    other segments have been loaded (Use-Segment) to avoid problems with
+    variable declaration sequence dependencies.
 
 Add-To-Manifest
     Add an item to a manifest variable.
