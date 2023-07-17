@@ -156,7 +156,7 @@ endef
 
 define Resolve-Help-Goals
 $(call Verbose,Resolving help goals.)
-$(call Verbose,Help goals: $(filter help-%,${Goals})})
+$(call Verbose,Help goals: $(filter help-%,${Goals}))
 $(foreach _s,$(patsubst help-%,%,$(filter help-%,${Goals})),\
   $(call Verbose,Resolving help for segment ${_s});\
   $(if $(filter ${_s}.mk,${MAKEFILE_LIST}),\
