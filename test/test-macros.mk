@@ -127,7 +127,6 @@ $(call Must-Be-One-Of,a,1 2 3)
 $(call Must-Be-One-Of,a,2 3)
 
 $(call next-test,Use-Segment)
-$(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
 $(call next-test,Use-Segment:Segments in the current directory.)
 $(call Use-Segment,ts1)
