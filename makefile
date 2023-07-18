@@ -10,15 +10,21 @@ include macros.mk
 $(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
 ifneq ($(findstring test,$(Goals)),)
-$(call add-message,Running macro tests.)
+$(call Add-Message,Running macro tests.)
 $(call Use-Segment,test/test-macros)
-$(call add-message,Macro tests complete.)
-$(call add-message,Testing include of same file.)
+$(call Add-Message,Macro tests complete.)
+$(call Add-Message,Testing include of same file.)
 # Test detection of including same file.
 $(call Use-Segment,test/test-macros)
 # Test detection of prefix conflict between different files.
 $(call Use-Segment,test/test-conflict)
+# Test sub-make.
+$(info MAKELEVEL = ${MAKELEVEL})
+$(info Filtered: $(filter 0,${MAKELEVEL}))
+ifneq (${MAKELEVEL},0)
+  $(call test-message,Running in sub-make.)
 endif
+endif # Test
 
 $(call Resolve-Help-Goals)
 

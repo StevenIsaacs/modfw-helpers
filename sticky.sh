@@ -11,7 +11,7 @@
 #  3 = Optional default value for the variable.
 __v=(${1//=/ })
 if [ "$2" == "" ]; then
-  echo "Sticky directory must be specified." 1>&2
+  echo "$0: Sticky directory must be specified." 1>&2
   exit 1
 fi
 if [ "${__v[1]}" == "" ]; then
@@ -20,7 +20,7 @@ if [ "${__v[1]}" == "" ]; then
     cat $2/${__v[0]}
   else
     if [ "$3" == "" ]; then
-      echo "Sticky variable ${__v[0]} has not been set." 1>&2
+      echo "$0: Sticky variable ${__v[0]} has not been set." 1>&2
       exit 1
     else
       echo $3

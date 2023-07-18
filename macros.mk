@@ -203,14 +203,24 @@ endef
 
 STICKY_PATH ?= /tmp/modfw/sticky
 StickyVars :=
+$(call Verbose,MAKELEVEL = ${MAKELEVEL})
 define Sticky
-  $(call Verbose Sticky variable: ${1})
+  $(call Verbose,Sticky variable: $(1))
   $(if $(filter $(1),${StickyVars}),\
-    $(call Signal-Error,\
-      Redefinition of sticky variable $(1) ignored.),\
-    $(eval StickyVars += $(1));\
-    $(eval $(1)=$(shell ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2)))\
-  )
+      $(call Signal-Error,\
+        Redefinition of sticky variable $(1) ignored.),\
+      $(eval StickyVars += $(1));\
+      $(if $(filter 0,${MAKELEVEL}),\
+        $(eval $(1)=$(shell \
+          ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
+        $(call Verbose,Sticky variables are read-only in a sub-make.);\
+        $(if ${$(1)},,\
+          $(call Verbose,Reading variable ${(1)});\
+          $(eval $(1)=$(shell \
+            ${HELPERS_PATH}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
+        )\
+      )\
+    )
 endef
 
 define Basenames-In
@@ -457,6 +467,7 @@ Sticky
     the variable will overwrite the previous sticky value.
     Only the first call to Sticky for a given variable will be accepted.
     Additional calls will produce a redefinition error.
+    Sticky variables are read only in a sub-make (MAKELEVEL != 0).
     WARNING: The variable must be defined at least once.
     Variables used:
         HELPERS_PATH=${HELPERS_PATH}

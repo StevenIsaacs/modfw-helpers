@@ -67,6 +67,7 @@ $(call test-message,MAKEFILE_LIST:$(MAKEFILE_LIST))
 endef
 
 ifneq ($(call Is-Goal,test-macros),)
+$(call test-message,Testing macros...)
 
 $(call next-test,HELPERS_PATH)
 $(call test-message,macros_id = ${macros_id})
@@ -81,11 +82,14 @@ tv2 := tv2
 $(call test-message,STICKY_PATH = ${STICKY_PATH})
 $(call test-message,StickyVars:${StickyVars})
 $(call Sticky,tv1,tv1)
+$(call Verbose,Sticky tv1 = ${tv1})
 $(call test-message,StickyVars:${StickyVars})
 $(call Sticky,tv2,tv2)
+$(call Verbose,Sticky tv2 = ${tv2})
 $(call test-message,StickyVars:${StickyVars})
 # Should cause redefinition error.
 $(call Sticky,tv2,xxx)
+$(call Verbose,After second Sticky tv2 = ${tv2})
 $(call test-message,StickyVars:${StickyVars})
 $(foreach _v,${StickyVars},\
   $(call test-message,Var:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v})))
@@ -144,6 +148,37 @@ $(call next-test,Use-Segment:Does not exist.)
 $(call Use-Segment,te1)
 
 test-macros: display-errors display-messages
+> ${MAKE} tv1=subtv1 tv3=subtv3 test-submake
+
+else ifneq ($(call Is-Goal,test-submake),)
+$(call test-message,Testing sub-make...)
+$(call test-message,Before:tv1=${tv1} tv2=${tv2} tv3=${tv3})
+$(call next-test,Sticky variables in a sub-make.)
+$(call test-message,Cannot set sticky variables in a sub-make.)
+$(call test-message,StickyVars:${StickyVars})
+# tv1 should have the value from the command line but not saved.
+$(call Sticky,tv1,tv1)
+$(call Verbose,Sticky tv1 = ${tv1})
+$(call test-message,StickyVars:${StickyVars})
+# tv2 should be the saved value.
+$(call Sticky,tv2,tv2)
+$(call Verbose,Sticky tv2 = ${tv2})
+$(call test-message,StickyVars:${StickyVars})
+$(call test-message,tv3 should not be saved in the sticky directory.)
+$(call Sticky,tv3,tv3)
+$(call Verbose,Sticky tv3 = ${tv3})
+$(call test-message,StickyVars:${StickyVars})
+# Should cause redefinition error.
+$(call Sticky,tv2,xxx)
+$(call Verbose,After second Sticky tv2 = ${tv2})
+$(call test-message,StickyVars:${StickyVars})
+$(call test-message,After:tv1=${tv1} tv2=${tv2} tv3=${tv3})
+$(foreach _v,${StickyVars},\
+  $(call test-message,Var vs file:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v})))
+
+test-submake: display-errors display-messages
+
+# endif # Goal is test-submake
 endif # Goal is test-macros
 
 # +++++
