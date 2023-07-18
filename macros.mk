@@ -6,6 +6,8 @@ macros_id := $(words ${MAKEFILE_LIST})
 
 HELPERS_PATH ?= $(call Get-Segment-Path,${macros_id})
 
+CoreDeps := $(call Get-Segment-File,${macros_id})
+
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
 .RECIPEPREFIX := >
@@ -47,6 +49,14 @@ endef
 ifdef VERBOSE
 define Verbose
     $(call Add-Message,Verbose:$(1))
+endef
+# Prepend to recipe lines to echo commands being executed.
+V := @
+endif
+
+ifdef DEBUG
+define Debug
+    $(call Add-Message,Debug:$(1))
 endef
 # Prepend to recipe lines to echo commands being executed.
 V := @
@@ -98,31 +108,33 @@ SegPaths :=  $(call Get-Segment-Path,1)
 
 define Add-Segment-Path
   $(eval SegPaths += $(1))
-  $(call Verbose,Added path(s):$(1))
+  $(call Debug,Added path(s):$(1))
 endef
 
 define Find-Segment
   $(eval $(2) := )
-  $(call Verbose,Locating segment: $(1))
-  $(call Verbose,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegId}))
+  $(call Debug,Locating segment: $(1))
+  $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegId}))
   $(foreach _p,${SegPaths} $(call Get-Segment-Path,${SegId}),\
-    $(call Verbose,Trying: ${_p});\
+    $(call Debug,Trying: ${_p});\
     $(if $(wildcard ${_p}/$(1).mk),\
       $(eval $(2) := ${_p}/$(1).mk))))
   $(if $(2),\
-    $(call Verbose,Found segment:${$(2)}),
-    $(call Verbose,$(1).mk not found.))
+    $(call Debug,Found segment:${$(2)}),
+    $(call Debug,$(1).mk not found.))
 endef
 
 define Use-Segment
   $(call Find-Segment,$(1),_seg)
-  $(call Verbose,Using segment:${_seg})
+  $(call Debug,Using segment:${_seg})
+  $(eval CoreDeps += ${_seg})
+  $(call Debug,CoreDeps = ${CoreDeps})
   $(eval include ${_seg})
 endef
 
 define Enter-Segment
   $(eval $(1)_id := $(call This-Segment-Id))
-  $(eval $(call Verbose,Entering segment: $(call Get-Segment-Basename,${$(1)_id})))
+  $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${$(1)_id})))
   $(eval $(1)_seg := $(call This-Segment-Basename))
   $(eval $(1)_name := $(call This-Segment-Name))
   $(eval $(1)_file := $(call This-Segment-File))
@@ -131,12 +143,12 @@ define Enter-Segment
 endef
 
 define Exit-Segment
-$(call Verbose,Exiting segment: $(call Get-Segment-Basename,${$(1)_id}))
-$(call Verbose,Checking help: $(call Is-Goal,help-${$(1)_seg}))
+$(call Debug,Exiting segment: $(call Get-Segment-Basename,${$(1)_id}))
+$(call Debug,Checking help: $(call Is-Goal,help-${$(1)_seg}))
 $(if $(call Is-Goal,help-${$(1)_seg}),\
-$(call Verbose,Help message variable: help_${$(1)_name}_msg);\
+$(call Debug,Help message variable: help_${$(1)_name}_msg);\
 $(eval export help_${$(1)_name}_msg);\
-$(call Verbose,Generating help goal: help-${$(1)_seg});\
+$(call Debug,Generating help goal: help-${$(1)_seg});\
 $(eval \
 help-${$(1)_seg}:;\
 echo "$$$$help_${$(1)_name}_msg" | less\
@@ -145,7 +157,7 @@ $(eval $(call Set-Segment-Context,${$(1)_prv_id}))
 endef
 
 define Check-Segment-Conflicts
-  $(call Verbose,\
+  $(call Debug,\
     Segment exists: ID = ${$(1)_id}: file = $(call Get-Segment-File,${$(1)_id}))
   $(eval $(if $(findstring $(call This-Segment-File),$(call Get-Segment-File,${$(1)_id})),
     $(call Add-Message,\
@@ -155,22 +167,22 @@ define Check-Segment-Conflicts
 endef
 
 define Resolve-Help-Goals
-$(call Verbose,Resolving help goals.)
-$(call Verbose,Help goals: $(filter help-%,${Goals}))
+$(call Debug,Resolving help goals.)
+$(call Debug,Help goals: $(filter help-%,${Goals}))
 $(foreach _s,$(patsubst help-%,%,$(filter help-%,${Goals})),\
-  $(call Verbose,Resolving help for segment ${_s});\
+  $(call Debug,Resolving help for segment ${_s});\
   $(if $(filter ${_s}.mk,${MAKEFILE_LIST}),\
-    $(call Verbose,Segment ${_s} already loaded.),\
+    $(call Debug,Segment ${_s} already loaded.),\
     $(call Use-Segment,${_s})))
 endef
 
 Is-Goal = $(filter $(1),${Goals})
 
 define Add-To-Manifest
-  $(call Verbose,Adding $(3) to $(1))
-  $(call Verbose,Var: $(2))
+  $(call Debug,Adding $(3) to $(1))
+  $(call Debug,Var: $(2))
   $(eval $(2) = $(3))
-  $(call Verbose,$(2)=$(3))
+  $(call Debug,$(2)=$(3))
   $(eval $(1) += $(3))
 endef
 
@@ -182,7 +194,7 @@ endef
 #   2 = The module in which it is required.
 #-
 define _require-this
-  $(call Verbose,Requiring: $(1))
+  $(call Debug,Requiring: $(1))
   $(if $(findstring undefined,$(flavor ${1})),\
     $(warning Variable $(1) is not defined); \
     $(call Signal-Error,Variable $(1) must be defined in: $(2))
@@ -190,22 +202,22 @@ define _require-this
 endef
 
 define Require
-  $(call Verbose,Required in: $(1))
+  $(call Debug,Required in: $(1))
   $(foreach v,$(2),$(call _require-this,$(v), $(1)))
 endef
 
 define Must-Be-One-Of
   $(if $(findstring ${$(1)},$(2)),\
-    $(call Verbose,$(1) = ${$(1)} and is a valid option),\
+    $(call Debug,$(1) = ${$(1)} and is a valid option),\
     $(call Signal-Error,Variable $(1) must equal one of: $(2))\
   )
 endef
 
 STICKY_PATH ?= /tmp/modfw/sticky
 StickyVars :=
-$(call Verbose,MAKELEVEL = ${MAKELEVEL})
+$(call Debug,MAKELEVEL = ${MAKELEVEL})
 define Sticky
-  $(call Verbose,Sticky variable: $(1))
+  $(call Debug,Sticky variable: $(1))
   $(if $(filter $(1),${StickyVars}),\
       $(call Signal-Error,\
         Redefinition of sticky variable $(1) ignored.),\
@@ -213,9 +225,9 @@ define Sticky
       $(if $(filter 0,${MAKELEVEL}),\
         $(eval $(1)=$(shell \
           ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
-        $(call Verbose,Sticky variables are read-only in a sub-make.);\
+        $(call Debug,Sticky variables are read-only in a sub-make.);\
         $(if ${$(1)},,\
-          $(call Verbose,Reading variable ${(1)});\
+          $(call Debug,Reading variable ${(1)});\
           $(eval $(1)=$(shell \
             ${HELPERS_PATH}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
         )\
@@ -349,6 +361,11 @@ Use-Segment
     Makefile segments should use the standard preamble and postamble to avoid
     inclusion of the same file more than once and to use standardized ID
     variables.
+
+    Each loaded segment is added to CoreDeps to trigger rebuilds when a
+    a segment is changed. NOTE: All components will be rebuilt in this case
+    because it is unknown if a change in a segment will cause a change in the
+    build output of another segment.
 
     Preamble:
         To avoid name conflicts a unique prefix is required. In this example
