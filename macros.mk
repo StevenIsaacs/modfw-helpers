@@ -1,12 +1,10 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Helper macros for makefiles.
 #----------------------------------------------------------------------------
-ifndef macros_id
-macros_id := $(words ${MAKEFILE_LIST})
+ifndef macrosSegId
+macrosSegId := $(words ${MAKEFILE_LIST})
 
-HELPERS_PATH ?= $(call Get-Segment-Path,${macros_id})
-
-CoreDeps := $(call Get-Segment-File,${macros_id})
+HELPERS_PATH ?= $(call Get-Segment-Path,${macrosSegId})
 
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
@@ -127,43 +125,41 @@ endef
 define Use-Segment
   $(call Find-Segment,$(1),_seg)
   $(call Debug,Using segment:${_seg})
-  $(eval CoreDeps += ${_seg})
-  $(call Debug,CoreDeps = ${CoreDeps})
   $(eval include ${_seg})
 endef
 
 define Enter-Segment
-  $(eval $(1)_id := $(call This-Segment-Id))
-  $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${$(1)_id})))
-  $(eval $(1)_seg := $(call This-Segment-Basename))
-  $(eval $(1)_name := $(call This-Segment-Name))
-  $(eval $(1)_file := $(call This-Segment-File))
-  $(eval $(1)_prv_id := ${SegId})
-  $(call Set-Segment-Context,${$(1)_id})
+  $(eval $(1)SegId := $(call This-Segment-Id))
+  $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${$(1)SegId})))
+  $(eval $(1)Seg := $(call This-Segment-Basename))
+  $(eval $(1)SegN := $(call This-Segment-Name))
+  $(eval $(1)SegF := $(call This-Segment-File))
+  $(eval $(1)PrvSegId := ${SegId})
+  $(call Set-Segment-Context,${$(1)SegId})
 endef
 
 define Exit-Segment
-$(call Debug,Exiting segment: $(call Get-Segment-Basename,${$(1)_id}))
-$(call Debug,Checking help: $(call Is-Goal,help-${$(1)_seg}))
-$(if $(call Is-Goal,help-${$(1)_seg}),\
-$(call Debug,Help message variable: help_${$(1)_name}_msg);\
-$(eval export help_${$(1)_name}_msg);\
-$(call Debug,Generating help goal: help-${$(1)_seg});\
+$(call Debug,Exiting segment: $(call Get-Segment-Basename,${$(1)SegId}))
+$(call Debug,Checking help: $(call Is-Goal,help-${$(1)Seg}))
+$(if $(call Is-Goal,help-${$(1)Seg}),\
+$(call Debug,Help message variable: help_${$(1)SegN}_msg);\
+$(eval export help_${$(1)SegN}_msg);\
+$(call Debug,Generating help goal: help-${$(1)Seg});\
 $(eval \
-help-${$(1)_seg}:;\
-echo "$$$$help_${$(1)_name}_msg" | less\
+help-${$(1)Seg}:;\
+echo "$$$$help_${$(1)SegN}_msg" | less\
 ))
-$(eval $(call Set-Segment-Context,${$(1)_prv_id}))
+$(eval $(call Set-Segment-Context,${$(1)PrvSegId}))
 endef
 
 define Check-Segment-Conflicts
   $(call Debug,\
-    Segment exists: ID = ${$(1)_id}: file = $(call Get-Segment-File,${$(1)_id}))
-  $(eval $(if $(findstring $(call This-Segment-File),$(call Get-Segment-File,${$(1)_id})),
+    Segment exists: ID = ${$(1)SegId}: file = $(call Get-Segment-File,${$(1)SegId}))
+  $(eval $(if $(findstring $(call This-Segment-File),$(call Get-Segment-File,${$(1)SegId})),
     $(call Add-Message,\
-      $(call Get-Segment-File,${$(1)_id}) has already been included.),\
+      $(call Get-Segment-File,${$(1)SegId}) has already been included.),\
     $(call Signal-Error,\
-      Prefix conflict with $($(1)_seg) in $(call This-Segment-File).)))
+      Prefix conflict with $($(1)Seg) in $(call This-Segment-File).)))
 endef
 
 define Resolve-Help-Goals
@@ -264,11 +260,19 @@ ifneq ($(findstring help-macros,${Goals}),)
 define HelpMacrosMsg
 Make segment: macros.mk
 
-Sets make variables to simplify editing rules in some editors which
-don't handle tab characters very well. Also to enable some bash specific
-features.
+Must be defined by the caller:
+DefaultGoal = ${DefaultGoal}
+    This sets .DEFAULT_GOAL only if no other goals have been set. Normally,
+    this should be set to a help goal so that help will be displayed when
+    no command line goals are specified.
+
+Defines:
 .RECIPEPREFIX=${.RECIPEPREFIX}
+    macros.mk sets make variables to simplify editing rules in some editors
+    which don't handle tab characters very well.
+
 SHELL=${SHELL}
+    Also to enable some bash specific features.
 
 Defines the helper macros:
 
@@ -362,7 +366,7 @@ Use-Segment
     inclusion of the same file more than once and to use standardized ID
     variables.
 
-    Each loaded segment is added to CoreDeps to trigger rebuilds when a
+    Each loaded segment is added to SegDeps to trigger rebuilds when a
     a segment is changed. NOTE: All components will be rebuilt in this case
     because it is unknown if a change in a segment will cause a change in the
     build output of another segment.
@@ -373,27 +377,27 @@ Use-Segment
 
         NOTE: The variable name formats shown in this example are required.
 
-        $.ifndef <u>_id
+        $.ifndef <u>SegId
         $$(call Enter-Segment,<u>)
 
         ....Make segment body....
 
     Postamble:
-        $.ifneq ($$(call Is-Goal,help-$${<u>_seg}),)
-        $.define help_$${<u>_name}_msg
-        Make segment: $${<u>_seg}.mk
+        $.ifneq ($$(call Is-Goal,help-$${<u>Seg}),)
+        $.define help_$${<u>SegN}_msg
+        Make segment: $${<u>Seg}.mk
 
         <make segment help messages>
 
         Command line goals:
-        help-$${<u>_seg}   Display this help.
+        help-$${<u>Seg}   Display this help.
         $.endef
         $.endif
 
         $$(call Exit-Segment,tm)
-        $.else # <u>_id exists
+        $.else # <u>SegId exists
         $$(call Check-Segment-Conflicts,<u>)
-        $.endif # tm_id
+        $.endif # tmSegId
 
     A template for new make segments is provided in seg-template.mk.
 
@@ -403,12 +407,13 @@ Enter-Segment - Call in the preamble
     Parameters:
         1 = The prefix to use for segment context variables.
     Sets the segment specific context variables:
-        <u>_id      The ID for the segment. This is basically the index in
+        <u>SegId    The ID for the segment. This is basically the index in
                     MAKEFILE_LIST for the segment.
-        <u>_seg     The segment name.
-        <u>_name    The name of the segment ('-' replaced with '_').
-        <u>_file    The path and name of the makefile segment.
-        <u>_prv_id  The previous segment ID which is used to restore the
+        <u>Seg      The segment name.
+        <u>SegN     The name of the segment ('-' replaced with '_').
+        <u>SegF     The path and name of the makefile segment. This can be
+                    used as part of a dependency list.
+        <u>PrvSegId The previous segment ID which is used to restore the
                     previous context.
 
 Exit-Segment - Call in the postamble.
@@ -539,4 +544,4 @@ help-macros:
 
 endif # help-macros
 
-endif # macros_id
+endif # macrosSegId

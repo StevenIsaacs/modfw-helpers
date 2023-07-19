@@ -6,7 +6,7 @@
 $(call Add-Message,+++++ test-conflict entry. +++++)
 # +++++
 # Preamble
-ifndef tm_id
+ifndef tmSegId
 $(call Enter-Segment,tm)
 # -----
 
@@ -14,9 +14,9 @@ $(call Enter-Segment,tm)
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${tm_seg}),)
-$(call Add-Message,Declaring help message for ${tm_seg}.)
-define help_${tm_name}_msg
+ifneq ($(call Is-Goal,help-${tmSeg}),)
+$(call Add-Message,Declaring help message for ${tmSeg}.)
+define help_${tmSegN}_msg
 This make segment is designed to test detection of a prefix conflict between
 two or more files. Displaying this help should not be possible because this
 file uses the same prefix as test-macros.mk.
@@ -25,7 +25,7 @@ endif
 
 $(call Exit-Segment,tm)
 
-else # tm_id already defined.
+else # tmSegId already defined.
 $(call next-test,ID conflict context.)
 $(call report-seg-context,tm)
 $(call Check-Segment-Conflicts,tm)

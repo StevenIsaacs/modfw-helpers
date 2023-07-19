@@ -4,7 +4,7 @@
 # The prefix td3 must be unique for all files.
 # +++++
 # Preamble
-ifndef td3_id
+ifndef td3SegId
 $(call Enter-Segment,td3)
 # -----
 
@@ -12,19 +12,19 @@ $(call Add-Message,td3:Path:$(call This-Segment-Path))
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${td3_seg}),)
-$(call test-message,Help message variable: help_${td3_name}_msg)
-define help_${td3_name}_msg
-Make segment: ${td3_seg}.mk
+ifneq ($(call Is-Goal,help-${td3Seg}),)
+$(call test-message,Help message variable: help_${td3SegN}_msg)
+define help_${td3SegN}_msg
+Make segment: ${td3Seg}.mk
 
 This segment is in the helpers directory and is intended for test only.
 
 Command line goals:
-  help-${td3_seg}   Display this help.
+  help-${td3Seg}   Display this help.
 endef
 endif
 $(call Exit-Segment,td3)
 else
 $(call Check-Segment-Conflicts,td3)
-endif # td3_id
+endif # td3SegId
 # -----

@@ -12,6 +12,7 @@ $(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
 ifneq ($(findstring test,$(Goals)),)
 $(call Add-Message,Running macro tests.)
+$(call Add-Message,macrosSegId: ${macrosSegId})
 $(call Use-Segment,test/test-macros)
 $(call Add-Message,Macro tests complete.)
 $(call Add-Message,Testing include of same file.)

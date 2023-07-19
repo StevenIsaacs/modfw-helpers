@@ -5,7 +5,7 @@
 # +++++
 # Preamble
 $(call Add-Message,+++++ test-macros entry. +++++)
-ifndef tm_id
+ifndef tmSegId
 $(call Enter-Segment,tm)
 # -----
 
@@ -45,11 +45,11 @@ $(call test-message,SegId = $(SegId))
 $(call test-message,Seg = $(Seg))
 $(call test-message,SegN = $(SegN))
 $(call test-message,SegF = $(SegF))
-$(call test-message,tm_id = ${$(1)_id})
-$(call test-message,tm_prv_id = ${$(1)_prv_id})
-$(call test-message,tm_seg = ${$(1)_seg})
-$(call test-message,tm_name = ${$(1)_name})
-$(call test-message,tm_file = ${$(1)_file})
+$(call test-message,tmSegId = ${$(1)SegId})
+$(call test-message,tmPrvSegId = ${$(1)PrvSegId})
+$(call test-message,tmSeg = ${$(1)Seg})
+$(call test-message,tmSegN = ${$(1)SegN})
+$(call test-message,tmSegF = ${$(1)SegF})
 $(call test-message,\
  Get-Segment-File:$(call Get-Segment-File,$(call This-Segment-Id)))
 $(call test-message,\
@@ -70,7 +70,7 @@ ifneq ($(call Is-Goal,test-macros),)
 $(call test-message,Testing macros...)
 
 $(call next-test,HELPERS_PATH)
-$(call test-message,macros_id = ${macros_id})
+$(call test-message,macrosSegId = ${macrosSegId})
 $(call test-message,HELPERS_PATH = ${HELPERS_PATH})
 
 $(call next-test,Segment identifiers.)
@@ -183,18 +183,18 @@ endif # Goal is test-macros
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${tm_seg}),)
-define help_${tm_name}_msg
+ifneq ($(call Is-Goal,help-${tmSeg}),)
+define help_${tmSegN}_msg
 This make segment tests the macros in macros.mk.
 endef
-$(call test-message,help_${tm_name}_msg = ${help_${tm_name}_msg})
+$(call test-message,help_${tmSegN}_msg = ${help_${tmSegN}_msg})
 endif
 $(call Exit-Segment,tm)
 $(call next-test,Restored context.)
 $(call report-seg-context,tm)
-else # tm_id exists
+else # tmSegId exists
 $(call next-test,ID exists context.)
 $(call report-seg-context,tm)
 $(call Check-Segment-Conflicts,tm)
-endif # tm_id
+endif # tmSegId
 $(call Add-Message,----- test-macros exit. -----)
