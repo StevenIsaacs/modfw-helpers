@@ -6,6 +6,9 @@ helpersSegId := $(words ${MAKEFILE_LIST})
 
 HELPERS_PATH ?= $(call Get-Segment-Path,${helpersSegId})
 
+# These are helper functions for shell scripts (Bash).
+HELPER_FUNCTIONS := ${HELPERS_PATH}/modfw-functions.sh
+
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
 .RECIPEPREFIX := >
@@ -457,6 +460,12 @@ Add-Message
 
 Verbose
     Displays the message if VERBOSE has been defined. All verbose messages are
+    automatically added to the message list.
+    Parameters:
+        1 = The message to display.
+
+Debug
+    Displays the message if DEBUG has been defined. All debug messages are
     automatically added to the message list.
     Parameters:
         1 = The message to display.
