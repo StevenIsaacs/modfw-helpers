@@ -20,7 +20,7 @@ endif
 Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
 $(info Goals: ${Goals})
 
-# Special target to force another target.
+# Special goal to force another goal.
 FORCE:
 
 # Some behavior depends upon which platform.
@@ -522,20 +522,22 @@ Directories-In
     Parameters:
         1 = The path to the directory.
 
-Special targets:
+Special goals:
 show-%
     Display the value of any variable.
 
 display-messages
-    This target displays a list of accumulated messages if defined.
+    This goal displays a list of accumulated messages if defined.
 
 display-errors
-    This target displays a list of accumulated errors if defined.
+    This goal displays a list of accumulated errors if defined.
 
 Defines:
     Platform = $(Platform)
         The platform (OS) on which make is running. This can be one of:
         Microsoft, Linux, or OsX.
+    Errors = ${Errors}
+        If not empty then errors have been reported.
 endef
 
 export HelpMacrosMsg
