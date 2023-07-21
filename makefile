@@ -6,18 +6,18 @@ DefaultGoal = help
 VERBOSE=1
 DEBUG=1
 
-include macros.mk
+include helpers.mk
 
 $(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
 ifneq ($(findstring test,$(Goals)),)
-$(call Add-Message,Running macro tests.)
-$(call Add-Message,macrosSegId: ${macrosSegId})
-$(call Use-Segment,test/test-macros)
+$(call Add-Message,Running helpers tests.)
+$(call Add-Message,helpersSegId: ${helpersSegId})
+$(call Use-Segment,test/test-helpers)
 $(call Add-Message,Macro tests complete.)
 $(call Add-Message,Testing include of same file.)
 # Test detection of including same file.
-$(call Use-Segment,test/test-macros)
+$(call Use-Segment,test/test-helpers)
 # Test detection of prefix conflict between different files.
 $(call Use-Segment,test/test-conflict)
 # Test sub-make.

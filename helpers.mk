@@ -1,10 +1,10 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Helper macros for makefiles.
 #----------------------------------------------------------------------------
-ifndef macrosSegId
-macrosSegId := $(words ${MAKEFILE_LIST})
+ifndef helpersSegId
+helpersSegId := $(words ${MAKEFILE_LIST})
 
-HELPERS_PATH ?= $(call Get-Segment-Path,${macrosSegId})
+HELPERS_PATH ?= $(call Get-Segment-Path,${helpersSegId})
 
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
@@ -256,9 +256,9 @@ display-errors:
 show-%:
 > @echo '$*=$($*)'
 
-ifneq ($(findstring help-macros,${Goals}),)
-define HelpMacrosMsg
-Make segment: macros.mk
+ifneq ($(findstring help-helpers,${Goals}),)
+define HelpHelpersMsg
+Make segment: helpers.mk
 
 Must be defined by the caller:
 DefaultGoal = ${DefaultGoal}
@@ -540,10 +540,10 @@ Defines:
         If not empty then errors have been reported.
 endef
 
-export HelpMacrosMsg
-help-macros:
-> @echo "$$HelpMacrosMsg" | less
+export HelpHelpersMsg
+help-helpers:
+> @echo "$$HelpHelpersMsg" | less
 
-endif # help-macros
+endif # help-helpers
 
-endif # macrosSegId
+endif # helpersSegId
