@@ -140,12 +140,14 @@ $(call Use-Segment,td1)
 $(call Use-Segment,td2)
 $(call Use-Segment,td3)
 $(call next-test,Use-Segment:Multiple segments of the same name.)
-$(call Use-Segment,thlprs1)
-$(call Use-Segment,thlprs2)
+$(call Use-Segment,tm1)
+$(call Use-Segment,tm2)
 $(call next-test,Use-Segment:A segment in a subdirectory.)
 $(call Use-Segment,sd3/tsd3)
 $(call next-test,Use-Segment:Does not exist.)
 $(call Use-Segment,te1)
+$(call next-test,Use-Segment:Full segment path (no find).)
+$(call Use-Segment,test/ts3.mk)
 
 test-helpers: display-errors display-messages
 > ${MAKE} tv1=subtv1 tv3=subtv3 test-submake

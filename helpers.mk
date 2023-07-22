@@ -66,8 +66,8 @@ V := @
 endif
 
 define Signal-Error
-  $(eval ErrorList += ${NewLine}${Seg}:$(1))
-  $(eval MsgList += ${NewLine}${Seg}:$(1))
+  $(eval ErrorList += ${NewLine}Error:${Seg}:$(1))
+  $(eval MsgList += ${NewLine}Error:${Seg}:$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
 endef
@@ -122,15 +122,19 @@ define Find-Segment
     $(call Debug,Trying: ${_p});\
     $(if $(wildcard ${_p}/$(1).mk),\
       $(eval $(2) := ${_p}/$(1).mk))))
-  $(if $(2),\
+  $(if ${$(2)},\
     $(call Debug,Found segment:${$(2)}),
-    $(call Debug,$(1).mk not found.))
+    $(call Signal-Error,$(1).mk not found.))
 endef
 
 define Use-Segment
-  $(call Find-Segment,$(1),_seg)
-  $(call Debug,Using segment:${_seg})
-  $(eval include ${_seg})
+  $(if $(findstring .mk,$(1)),\
+    $(call Debug,Including segment:${1});\
+    $(eval include $(1)),\
+    $(call Find-Segment,$(1),_seg);\
+    $(call Debug,Using segment:${_seg});\
+    $(eval include ${_seg})\
+  )
 endef
 
 define Enter-Segment
@@ -363,8 +367,10 @@ Find-Segment
         2 = The name of the variable to store the result in.
 
 Use-Segment
-    Use Find-Segment to search a list of directories for a segment and load it
-    if it exists. The segment can exist in multiple locations and only the last
+    If the segment contains .mk then a valid path to the segment is assumed and
+    the segment is loaded directly. Otherwise, Find-Segment is used to search a
+    list of directories for a segment and the segment is loaded it if it
+    exists. The segment can exist in multiple locations and only the last
     one in the list will be loaded. If the segment is not found in any of the
     directories then the segment is loaded from the current segment directory
     (Segment-Path).
