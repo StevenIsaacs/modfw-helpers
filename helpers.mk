@@ -14,6 +14,8 @@ HELPER_FUNCTIONS := ${HELPERS_PATH}/modfw-functions.sh
 .RECIPEPREFIX := >
 SHELL = /bin/bash
 
+DefaultGoal = help
+
 $(info Goal: ${MAKECMDGOALS})
 ifeq (${MAKECMDGOALS},)
   $(info No goal was specified -- defaulting to: ${DefaultGoal}.)
@@ -243,6 +245,9 @@ define Directories-In
   $(notdir ${d}))
 endef
 
+ProjectPath = $(realpath $(dir $(realpath $(firstword ${MAKEFILE_LIST}))))
+ProjectName := $(notdir ${ProjectPath})
+
 # Context defaults to the top makefile.
 $(eval $(call Set-Segment-Context,1))
 
@@ -270,12 +275,22 @@ DefaultGoal = ${DefaultGoal}
     no command line goals are specified.
 
 Defines:
-.RECIPEPREFIX=${.RECIPEPREFIX}
+.RECIPEPREFIX = ${.RECIPEPREFIX}
     macros.mk sets make variables to simplify editing rules in some editors
     which don't handle tab characters very well.
 
-SHELL=${SHELL}
+SHELL = ${SHELL}
     Also to enable some bash specific features.
+
+DefaultGoal = ${DefaultGoal}
+    The goal when no goals are specified on the command line. This defaults
+    to displaying the main makefile help.
+
+ProjectPath = ${ProjectPath}
+    The full path to the project directory.
+
+ProjectName = ${ProjectName}
+    The name is the last directory in the ProjectPath.
 
 Defines the helper macros:
 

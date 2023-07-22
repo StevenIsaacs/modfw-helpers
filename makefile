@@ -2,11 +2,13 @@
 # helpers - A set of helper scripts and utilities designed to be used by
 # other projects.
 #----------------------------------------------------------------------------
-DefaultGoal = help
 VERBOSE=1
 DEBUG=1
 
 include helpers.mk
+
+$(call Add-Message,ProjectPath: ${ProjectPath})
+$(call Add-Message,ProjectName: ${ProjectName})
 
 $(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
