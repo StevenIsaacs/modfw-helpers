@@ -240,6 +240,20 @@ define Sticky
     )
 endef
 
+Equal := =
+$(call Debug,Equal:${Equal})
+_empty :=
+Space := ${_empty} ${_empty}
+$(call Debug,Space:-${Space}-)
+define Redefine-Sticky
+  $(eval _v := $(firstword $(subst =,$(Space),$(1))))
+  $(call Debug,Redefine-Sticky:Redefining:$(1))
+  $(call Debug,Resetting var:${_v})
+  $(eval StickyVars := $(filter-out ${_v},${StickyVars}))
+  $(call Debug,Redefine-Sticky:StickyVars:${StickyVars})
+  $(call Sticky,$(1))
+endef
+
 define Basenames-In
   $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
 endef
@@ -541,6 +555,11 @@ Sticky
         $$(call Sticky,<var>[=],<default>)
             Restores the previously saved <value> or sets <var> equal to
             <default>. The variable is not saved in this case.
+
+Redefine-Sticky
+    Redefine a sticky variable that has been previously set.
+    Parameters:
+        1 = Variable name[=<value>]
 
 Basenames-In
     Get the basenames of all the files in a directory matching a glob pattern.
