@@ -40,6 +40,14 @@ NOTE: This help is displayed if no goal is specified.
 
 This make file is used to build and/or test helper functions, scripts and,
 utilities.
+
+Goals:
+    test-helpers
+        Test the helper macros.
+    test-conflicts
+        Test ID conflicts among segments. This is also executed by
+        test-helpers.
+
 endef
 
 export _HelpersUsage
