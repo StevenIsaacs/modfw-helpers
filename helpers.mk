@@ -228,12 +228,12 @@ define Sticky
         Redefinition of sticky variable $(1) ignored.),\
       $(eval StickyVars += $(1));\
       $(if $(filter 0,${MAKELEVEL}),\
-        $(eval $(1)=$(shell \
+        $(eval $(1):=$(shell \
           ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
         $(call Debug,Sticky variables are read-only in a sub-make.);\
         $(if ${$(1)},,\
           $(call Debug,Reading variable ${(1)});\
-          $(eval $(1)=$(shell \
+          $(eval $(1):=$(shell \
             ${HELPERS_PATH}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
         )\
       )\
