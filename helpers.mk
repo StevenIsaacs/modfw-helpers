@@ -258,7 +258,8 @@ define Overridable
       Overridable variable $(1) has already been declared.),\
     $(eval OverridableVars += $(1));\
     $(if $(filter $(origin $(1)),undefined),\
-      $(eval $(1) := $(2))\
+      $(eval $(1) := $(2)),\
+      $(call Debug,Var $(1) has override value: ${$(1)})\
       )\
     )
 endef
