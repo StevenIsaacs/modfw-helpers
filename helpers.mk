@@ -251,6 +251,18 @@ define Redefine-Sticky
   $(call Sticky,$(1))
 endef
 
+OverridableVars :=
+define Overridable
+  $(if $(filter $(1),${OverridableVars}),\
+    $(call Signal-Error,\
+      Overridable variable $(1) has already been declared.),\
+    $(eval OverridableVars += $(1));\
+    $(if $(filter $(origin $(1)),undefined),\
+      $(eval $(1) := $(2))\
+      )\
+    )
+endef
+
 define Basenames-In
   $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
 endef
@@ -561,6 +573,15 @@ Redefine-Sticky
     Redefine a sticky variable that has been previously set.
     Parameters:
         1 = Variable name[=<value>]
+
+Overridable
+    Declare a variable which may be overridden. This mostly makes it obvious
+    which variables are intended to be overridable. The variable is declared
+    as a simply expanded variable only if it has not been previously defined.
+    An overridable variable can be declared only once.
+    Parameters:
+        1 = The variable name.
+        2 = The value.
 
 Basenames-In
     Get the basenames of all the files in a directory matching a glob pattern.

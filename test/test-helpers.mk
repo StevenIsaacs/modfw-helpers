@@ -51,13 +51,13 @@ $(call test-message,thlprsSeg = ${$(1)Seg})
 $(call test-message,thlprsSegN = ${$(1)SegN})
 $(call test-message,thlprsSegF = ${$(1)SegF})
 $(call test-message,\
- Get-Segment-File:$(call Get-Segment-File,$(call This-Segment-Id)))
+Get-Segment-File:$(call Get-Segment-File,$(call This-Segment-Id)))
 $(call test-message,\
- Get-Segment-Basename:$(call Get-Segment-Basename,$(call This-Segment-Id)))
+Get-Segment-Basename:$(call Get-Segment-Basename,$(call This-Segment-Id)))
 $(call test-message,\
- Get-Segment-Name:$(call Get-Segment-Name,$(call This-Segment-Id)))
+Get-Segment-Name:$(call Get-Segment-Name,$(call This-Segment-Id)))
 $(call test-message,\
- Get-Segment-Path:$(call Get-Segment-Path,$(call This-Segment-Id)))
+Get-Segment-Path:$(call Get-Segment-Path,$(call This-Segment-Id)))
 $(call test-message,This-Segment-Id:$(call This-Segment-Id))
 $(call test-message,This-Segment-File:$(call This-Segment-File))
 $(call test-message,This-Segment-Basename:$(call This-Segment-Basename))
@@ -153,6 +153,18 @@ $(call next-test,Use-Segment:Does not exist.)
 $(call Use-Segment,te1)
 $(call next-test,Use-Segment:Full segment path (no find).)
 $(call Use-Segment,test/ts3.mk)
+
+$(call next-test,Test overridable variables.)
+$(call test-message,Declaring ov1 as overridable.)
+$(call Overridable,ov1,ov1_val)
+$(call test-message,ov1:$(ov1))
+ov2 := ov2_original
+$(call Overridable,ov2,ov2_val)
+$(call test-message,ov2:$(ov2))
+# Should trigger an error message because 0v2 is already declared.
+$(call Overridable,ov2,ov2_new_val)
+$(call test-message,ov2:$(ov2))
+$(call test-message,Overridables: $(OverridableVars))
 
 test-helpers: display-errors display-messages
 > ${MAKE} tv1=subtv1 tv3=subtv3 test-submake
