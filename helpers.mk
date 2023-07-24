@@ -578,7 +578,8 @@ Overridable
     Declare a variable which may be overridden. This mostly makes it obvious
     which variables are intended to be overridable. The variable is declared
     as a simply expanded variable only if it has not been previously defined.
-    An overridable variable can be declared only once.
+    An overridable variable can be declared only once. To override the variable
+    assign a value BEFORE Overridable is called.
     Parameters:
         1 = The variable name.
         2 = The value.
