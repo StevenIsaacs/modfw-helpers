@@ -42,6 +42,8 @@ endif
 $(info Running on: ${Platform})
 
 NewLine = nlnl
+_empty :=
+Space := ${_empty} ${_empty}
 
 define Add-Message
   $(eval MsgList += ${NewLine}${Seg}:$(1))
@@ -240,11 +242,6 @@ define Sticky
     )
 endef
 
-Equal := =
-$(call Debug,Equal:${Equal})
-_empty :=
-Space := ${_empty} ${_empty}
-$(call Debug,Space:-${Space}-)
 define Redefine-Sticky
   $(eval _v := $(firstword $(subst =,$(Space),$(1))))
   $(call Debug,Redefine-Sticky:Redefining:$(1))
@@ -483,6 +480,10 @@ Add-To-Manifest
 
 NewLine
     Use this macro to insert new lines into multiline messages.
+
+Space
+    This is intended to be used in substitution patterns where a space is
+    required.
 
 Add-Message
     Use this macro to add a message to a list of messages to be displayed
