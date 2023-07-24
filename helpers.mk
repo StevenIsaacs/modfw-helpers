@@ -291,6 +291,9 @@ display-errors:
 show-%:
 > @echo '$*=$($*)'
 
+origin-%:
+> @echo 'Origin:$*=$(origin $*)'
+
 ifneq ($(findstring help-helpers,${Goals}),)
 define HelpHelpersMsg
 Make segment: helpers.mk
@@ -597,6 +600,11 @@ Directories-In
 Special goals:
 show-%
     Display the value of any variable.
+
+origin-%
+    Display the origin of a variable. The result can be any of the
+    values described in section 8.11 of the GNU make documentation
+    (https://www.gnu.org/software/make/manual/html_node/Origin-Function.html).
 
 display-messages
     This goal displays a list of accumulated messages if defined.
