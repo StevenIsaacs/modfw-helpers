@@ -2,8 +2,8 @@
 # helpers - A set of helper scripts and utilities designed to be used by
 # other projects.
 #----------------------------------------------------------------------------
-VERBOSE=1
-DEBUG=1
+#VERBOSE=1
+#DEBUG=1
 
 include helpers.mk
 

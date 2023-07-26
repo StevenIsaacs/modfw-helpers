@@ -51,21 +51,22 @@ define Add-Message
   $(eval Messages = yes)
 endef
 
-ifdef VERBOSE
+_V:=n
+ifneq (${VERBOSE},)
 define Verbose
     $(call Add-Message,Verbose:$(1))
 endef
-# Prepend to recipe lines to echo commands being executed.
-V := @
+_V:=v
 endif
 
-ifdef DEBUG
+ifneq (${DEBUG},)
 define Debug
     $(call Add-Message,Debug:$(1))
 endef
-# Prepend to recipe lines to echo commands being executed.
-V := @
+_V:=vp
 endif
+
+MAKEFLAGS += --debug=${_V}
 
 define Signal-Error
   $(eval ErrorList += ${NewLine}Error:${Seg}:$(1))
