@@ -274,8 +274,8 @@ define Directories-In
   $(notdir ${d}))
 endef
 
-ProjectPath = $(realpath $(dir $(realpath $(firstword ${MAKEFILE_LIST}))))
-ProjectName := $(notdir ${ProjectPath})
+WorkingPath = $(realpath $(dir $(realpath $(firstword ${MAKEFILE_LIST}))))
+WorkingName := $(notdir ${WorkingPath})
 
 # Context defaults to the top makefile.
 $(eval $(call Set-Segment-Context,1))
@@ -318,11 +318,11 @@ DefaultGoal = ${DefaultGoal}
     The goal when no goals are specified on the command line. This defaults
     to displaying the main makefile help.
 
-ProjectPath = ${ProjectPath}
+WorkingPath = ${WorkingPath}
     The full path to the project directory.
 
-ProjectName = ${ProjectName}
-    The name is the last directory in the ProjectPath.
+WorkingName = ${WorkingName}
+    The name is the last directory in the WorkingPath.
 
 Defines the helper macros:
 

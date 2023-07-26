@@ -7,8 +7,8 @@ DEBUG=1
 
 include helpers.mk
 
-$(call Add-Message,ProjectPath: ${ProjectPath})
-$(call Add-Message,ProjectName: ${ProjectName})
+$(call Add-Message,WorkingPath: ${WorkingPath})
+$(call Add-Message,WorkingName: ${WorkingName})
 
 $(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
