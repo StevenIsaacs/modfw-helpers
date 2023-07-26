@@ -220,11 +220,12 @@ define Must-Be-One-Of
   )
 endef
 
-STICKY_PATH ?= /tmp/modfw/sticky
+STICKY_PATH ?= ~/.modfw/sticky
 StickyVars :=
 $(call Debug,MAKELEVEL = ${MAKELEVEL})
 define Sticky
   $(call Debug,Sticky variable: $(1))
+  $(call Debug,Stick path: ${STICKY_PATH})
   $(if $(filter $(1),${StickyVars}),\
       $(call Signal-Error,\
         Redefinition of sticky variable $(1) ignored.),\
