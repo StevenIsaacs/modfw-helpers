@@ -3,6 +3,7 @@
 #----------------------------------------------------------------------------
 ifndef helpersSegId
 helpersSegId := $(words ${MAKEFILE_LIST})
+Seg := helpers
 
 HELPERS_PATH ?= $(call Get-Segment-Path,${helpersSegId})
 
@@ -13,33 +14,6 @@ HELPER_FUNCTIONS := ${HELPERS_PATH}/modfw-functions.sh
 # in make files very well. This also slightly improves readability.
 .RECIPEPREFIX := >
 SHELL = /bin/bash
-
-DefaultGoal = help
-
-$(info Goal: ${MAKECMDGOALS})
-ifeq (${MAKECMDGOALS},)
-  $(info No goal was specified -- defaulting to: ${DefaultGoal}.)
-  .DEFAULT_GOAL := $(DefaultGoal)
-endif
-
-Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
-$(info Goals: ${Goals})
-
-# Special goal to force another goal.
-FORCE:
-
-# Some behavior depends upon which platform.
-ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
-  Platform = Microsoft
-else ifeq ($(shell echo $$(expr substr $$(uname -s) 1 5)),Linux)
-  Platform = Linux
-else ifeq ($(shell uname),Darwin)
-# Detecting OS X is untested.
-  Platform = OsX
-else
-  $(error Unable to identify platform)
-endif
-$(info Running on: ${Platform})
 
 NewLine = nlnl
 _empty :=
@@ -70,14 +44,41 @@ endef
 _V:=vp
 endif
 
-MAKEFLAGS += --debug=${_V}
-
 define Signal-Error
   $(eval ErrorList += ${NewLine}ERR:${Seg}:$(1))
   $(call _Format-Message,ERR,${Seg}:$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
 endef
+
+DefaultGoal = help
+
+$(call Add-Message,Goal: ${MAKECMDGOALS})
+ifeq (${MAKECMDGOALS},)
+  $(call Add-Message,No goal was specified -- defaulting to: ${DefaultGoal}.)
+  .DEFAULT_GOAL := $(DefaultGoal)
+endif
+
+Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
+$(call Add-Message,Goals: ${Goals})
+
+# Special goal to force another goal.
+FORCE:
+
+# Some behavior depends upon which platform.
+ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
+  Platform = Microsoft
+else ifeq ($(shell echo $$(expr substr $$(uname -s) 1 5)),Linux)
+  Platform = Linux
+else ifeq ($(shell uname),Darwin)
+# Detecting OS X is untested.
+  Platform = OsX
+else
+  $(call Signal-Error,Unable to identify platform)
+endif
+$(call Add-Message,Running on: ${Platform})
+
+MAKEFLAGS += --debug=${_V}
 
 define Inc-Var
   $(eval $(1):=$(shell expr $($(1)) + 1))
