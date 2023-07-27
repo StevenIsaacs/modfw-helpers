@@ -223,7 +223,6 @@ endef
 
 STICKY_PATH ?= ~/.modfw/sticky
 StickyVars :=
-$(call Debug,MAKELEVEL = ${MAKELEVEL})
 define Sticky
   $(call Debug,Sticky variable: $(1))
   $(call Debug,Stick path: ${STICKY_PATH})
@@ -277,6 +276,9 @@ endef
 
 WorkingPath = $(realpath $(dir $(realpath $(firstword ${MAKEFILE_LIST}))))
 WorkingName := $(notdir ${WorkingPath})
+
+$(call Debug,MAKELEVEL = ${MAKELEVEL})
+$(call Debug,MAKEFLAGS = ${MAKEFLAGS})
 
 # Context defaults to the top makefile.
 $(eval $(call Set-Segment-Context,1))
