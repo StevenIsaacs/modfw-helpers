@@ -58,14 +58,14 @@ endef
 _V:=n
 ifneq (${VERBOSE},)
 define Verbose
-  $(call _Format-Message,VBS,$(1))
+  $(call _Format-Message,vbs,$(1))
 endef
 _V:=v
 endif
 
 ifneq (${DEBUG},)
 define Debug
-  $(call _Format-Message,DBG,$(1))
+  $(call _Format-Message,dbg,$(1))
 endef
 _V:=vp
 endif
