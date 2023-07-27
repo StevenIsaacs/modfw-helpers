@@ -277,6 +277,8 @@ endef
 WorkingPath = $(realpath $(dir $(realpath $(firstword ${MAKEFILE_LIST}))))
 WorkingName := $(notdir ${WorkingPath})
 
+$(eval $(call Set-Segment-Context,$(call This-Segment-Id)))
+
 $(call Debug,MAKELEVEL = ${MAKELEVEL})
 $(call Debug,MAKEFLAGS = ${MAKEFLAGS})
 
