@@ -2,19 +2,9 @@
 # Helper macros for makefiles.
 #----------------------------------------------------------------------------
 ifndef helpersSegId
-helpersSegId := $(words ${MAKEFILE_LIST})
-Seg := helpers
 
-HELPERS_PATH ?= $(call Get-Segment-Path,${helpersSegId})
-
-# These are helper functions for shell scripts (Bash).
-HELPER_FUNCTIONS := ${HELPERS_PATH}/modfw-functions.sh
-
-# Changing the prefix because some editors, like vscode, don't handle tabs
-# in make files very well. This also slightly improves readability.
-.RECIPEPREFIX := >
-SHELL = /bin/bash
-
+#++++++++++++++
+# For messages.
 NewLine = nlnl
 _empty :=
 Space := ${_empty} ${_empty}
@@ -44,44 +34,22 @@ endef
 _V:=vp
 endif
 
+MAKEFLAGS += --debug=${_V}
+
 define Signal-Error
   $(eval ErrorList += ${NewLine}ERR:${Seg}:$(1))
   $(call _Format-Message,ERR,${Seg}:$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
 endef
-
-DefaultGoal = help
-
-$(call Add-Message,Goal: ${MAKECMDGOALS})
-ifeq (${MAKECMDGOALS},)
-  $(call Add-Message,No goal was specified -- defaulting to: ${DefaultGoal}.)
-  .DEFAULT_GOAL := $(DefaultGoal)
-endif
-
-Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
-$(call Add-Message,Goals: ${Goals})
-
-# Special goal to force another goal.
-FORCE:
-
-# Some behavior depends upon which platform.
-ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
-  Platform = Microsoft
-else ifeq ($(shell echo $$(expr substr $$(uname -s) 1 5)),Linux)
-  Platform = Linux
-else ifeq ($(shell uname),Darwin)
-# Detecting OS X is untested.
-  Platform = OsX
-else
-  $(call Signal-Error,Unable to identify platform)
-endif
-$(call Add-Message,Running on: ${Platform})
-
-MAKEFLAGS += --debug=${_V}
+#--------------
 
 define Inc-Var
   $(eval $(1):=$(shell expr $($(1)) + 1))
+endef
+
+define Dec-Var
+  $(eval $(1):=$(shell expr $($(1)) - 1))
 endef
 
 This-Segment-Id = $(words ${MAKEFILE_LIST})
@@ -112,6 +80,7 @@ define Set-Segment-Context
   $(eval SegId := $(1))
   $(eval Seg := $(call Get-Segment-Basename,$(1)))
   $(eval SegN := $(call Get-Segment-Name,$(1)))
+  $(eval SegP := $(call Get-Segment-Path,$(1)))
   $(eval SegF := $(call Get-Segment-File,$(1)))
 endef
 
@@ -150,6 +119,7 @@ define Enter-Segment
   $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${$(1)SegId})))
   $(eval $(1)Seg := $(call This-Segment-Basename))
   $(eval $(1)SegN := $(call This-Segment-Name))
+  $(eval $(1)SegP := $(call This-Segment-Path))
   $(eval $(1)SegF := $(call This-Segment-File))
   $(eval $(1)PrvSegId := ${SegId})
   $(call Set-Segment-Context,${$(1)SegId})
@@ -179,6 +149,19 @@ define Check-Segment-Conflicts
     Prefix conflict with $($(1)Seg) in $(call This-Segment-File).)))
 endef
 
+#++++++++++++++
+# Goal management.
+DefaultGoal ?= help
+
+$(call Add-Message,Goal: ${MAKECMDGOALS})
+ifeq (${MAKECMDGOALS},)
+  $(call Add-Message,No goal was specified -- defaulting to: ${DefaultGoal}.)
+  .DEFAULT_GOAL := $(DefaultGoal)
+endif
+
+Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
+$(call Add-Message,Goals: ${Goals})
+
 define Resolve-Help-Goals
 $(call Debug,Resolving help goals.)
 $(call Debug,Help goals: $(filter help-%,${Goals}))
@@ -198,7 +181,10 @@ define Add-To-Manifest
   $(call Debug,$(2)=$(3))
   $(eval $(1) += $(3))
 endef
+#--------------
 
+#++++++++++++++
+# Variable handling.
 #+
 # This private macro is used to verify a single variable exists.
 # If the variable is empty then an error message is appended to ErrorList.
@@ -237,12 +223,12 @@ define Sticky
   $(eval StickyVars += $(1));\
   $(if $(filter 0,${MAKELEVEL}),\
     $(eval $(1):=$(shell \
-    ${HELPERS_PATH}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
+    ${helpersSegP}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
     $(call Debug,Sticky:Variables are read-only in a sub-make.);\
     $(if ${$(1)},,\
     $(call Debug,Sticky:Reading variable ${(1)});\
     $(eval $(1):=$(shell \
-      ${HELPERS_PATH}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
+      ${helpersSegP}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
     )\
   )\
   )
@@ -279,7 +265,10 @@ define Overridable
     )\
   )
 endef
+#--------------
 
+#++++++++++++++
+# Directories and files.
 define Basenames-In
   $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
 endef
@@ -288,17 +277,47 @@ define Directories-In
   $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
   $(notdir ${d}))
 endef
+#--------------
+# Set SegId to the segment that included helpers so that the previous segment
+# set by Enter-Segment and used by Exit-Segment will have a valid value.
+_i := $(call This-Segment-Id)
+$(call Dec-Var,_i)
+SegId := ${_i}
+$(call Debug,Included from: SegId = ${SegId})
 
-WorkingPath = $(realpath $(dir $(realpath $(firstword ${MAKEFILE_LIST}))))
-WorkingName := $(notdir ${WorkingPath})
+$(call Enter-Segment,helpers)
 
-$(eval $(call Set-Segment-Context,$(call This-Segment-Id)))
+# These are helper functions for shell scripts (Bash).
+HELPER_FUNCTIONS := ${helpersSegP}/modfw-functions.sh
+
+# Changing the prefix because some editors, like vscode, don't handle tabs
+# in make files very well. This also slightly improves readability.
+.RECIPEPREFIX := >
+SHELL = /bin/bash
+
+# The directory containing the makefile.
+WorkingPath = $(call Get-Segment-Path,1)
+WorkingDir = $(notdir ${WorkingPath})
+WorkingName := $(subst -,_,${WorkingDir})
+
+# Special goal to force another goal.
+FORCE:
+
+# Some behavior depends upon which platform.
+ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
+  Platform = Microsoft
+else ifeq ($(shell echo $$(expr substr $$(uname -s) 1 5)),Linux)
+  Platform = Linux
+else ifeq ($(shell uname),Darwin)
+# Detecting OS X is untested.
+  Platform = OsX
+else
+  $(call Signal-Error,Unable to identify platform)
+endif
+$(call Add-Message,Running on: ${Platform})
 
 $(call Debug,MAKELEVEL = ${MAKELEVEL})
 $(call Debug,MAKEFLAGS = ${MAKEFLAGS})
-
-# Context defaults to the top makefile.
-$(eval $(call Set-Segment-Context,1))
 
 display-messages:
 > @if [ -n '${MsgList}' ]; then \
@@ -316,17 +335,22 @@ show-%:
 origin-%:
 > @echo 'Origin:$*=$(origin $*)'
 
-ifneq ($(findstring help-helpers,${Goals}),)
-define HelpHelpersMsg
+ifneq ($(call Is-Goal,help-${helpersSeg}),)
+define help_${helpersSegN}_msg
 Make segment: helpers.mk
 
-Must be defined by the caller:
+Optionally defined before including helpers:
 DefaultGoal = ${DefaultGoal}
-  This sets .DEFAULT_GOAL only if no other goals have been set. Normally,
-  this should be set to a help goal so that help will be displayed when
-  no command line goals are specified.
+  This sets .DEFAULT_GOAL only if no other goals have been set and defaults
+  to help. The primary makefile should provide this help goal to display
+  a help message when no command line goals are specified. This can be
+  overridden by defining this variable before including the helpers.
 
 Defines:
+HELPER_FUNCTIONS = ${HELPER_FUNCTIONS}
+  The path to the bash script helper functions. This is intended to be used
+  by bash shell scripts.
+
 .RECIPEPREFIX = ${.RECIPEPREFIX}
   macros.mk sets make variables to simplify editing rules in some editors
   which don't handle tab characters very well.
@@ -334,22 +358,27 @@ Defines:
 SHELL = ${SHELL}
   Also to enable some bash specific features.
 
-DefaultGoal = ${DefaultGoal}
-  The goal when no goals are specified on the command line. This defaults
-  to displaying the main makefile help.
-
 WorkingPath = ${WorkingPath}
   The full path to the project directory.
 
-WorkingName = ${WorkingName}
+WorkingDir = ${WorkingDir}
   The name is the last directory in the WorkingPath.
+
+WorkingName = ${WorkingName}
+  The WorkingDir converted to a string which can be used as part of a variable
+  name.
 
 Defines the helper macros:
 
 Inc-Var
   Increment the value of a variable by 1.
   Parameters:
-    1 = The name of the variable to Inc-Var.
+    1 = The name of the variable to increment.
+
+Dec-Var
+  Decrement the value of a variable by 1.
+  Parameters:
+    1 = The name of the variable to decrement.
 
 Is-Goal
   Returns the goal if it is a member of the list of goals.
@@ -394,6 +423,7 @@ Set-Segment-Context
     SegId   The makefile segment ID for the new context.
     Seg   The makefile segment basename for the new context.
     SegN  The makefile segment name for the new context.
+    SegP  The path to the makefile segment for the new context.
     SegF  The makefile segment file for the new context.
 
 SegPaths = ${SegPaths}
@@ -481,12 +511,17 @@ Enter-Segment - Call in the preamble
   Sets the segment specific context variables:
     <u>SegId  The ID for the segment. This is basically the index in
           MAKEFILE_LIST for the segment.
-    <u>Seg    The segment name.
-    <u>SegN   The name of the segment ('-' replaced with '_').
-    <u>SegF   The path and name of the makefile segment. This can be
-          used as part of a dependency list.
-    <u>PrvSegId The previous segment ID which is used to restore the
-          previous context.
+    <u>Seg
+      The segment name.
+    <u>SegN
+      The name of the segment ('-' replaced with '_').
+    <u>SegP
+      The path to the makefile segment.
+    <u>SegF
+      The path and name of the makefile segment. This can be used as part of a
+      dependency list.
+    <u>PrvSegId
+      The previous segment ID which is used to restore the previous context.
 
 Exit-Segment - Call in the postamble.
   This initializes the help message for the segment and restores the
@@ -567,14 +602,14 @@ Sticky
   A sticky variable is persistent and needs to be defined on the command line
   at least once or have a default value as an argument.
   Uses sticky.sh to make a variable sticky. If the variable has not been
-  defined when this macro is called then the previous value is used. Defining
+  declared when this macro is called then the previous value is used. Defining
   the variable will overwrite the previous sticky value.
   Only the first call to Sticky for a given variable will be accepted.
   Additional calls will produce a redefinition error.
   Sticky variables are read only in a sub-make (MAKELEVEL != 0).
   WARNING: The variable must be defined at least once.
   Variables used:
-    HELPERS_PATH=${HELPERS_PATH}
+    helpersSegP=${helpersSegP}
       The path to the helpers directory. Defaults to the directory
       containing this makefile segment.
     STICKY_PATH=${STICKY_PATH}
@@ -641,11 +676,10 @@ Defines:
   Errors = ${Errors}
     If not empty then errors have been reported.
 endef
-
-export HelpHelpersMsg
-help-helpers:
-> @echo "$$HelpHelpersMsg" | less
-
-endif # help-helpers
-
+endif # help goal
+$(call Debug,This-Segment-Id:$(call This-Segment-Id))
+$(call Debug,${SegN}SegID:${${SegN}SegID})
+$(call Exit-Segment,helpers)
+else # Already loaded.
+$(call Check-Segment-Conflicts,helpers)
 endif # helpersSegId
