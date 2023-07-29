@@ -52,6 +52,8 @@ define Dec-Var
   $(eval $(1):=$(shell expr $($(1)) - 1))
 endef
 
+To-Name = $(subst -,_,$(1))
+
 This-Segment-Id = $(words ${MAKEFILE_LIST})
 
 This-Segment-File = $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})
@@ -379,6 +381,9 @@ Dec-Var
   Decrement the value of a variable by 1.
   Parameters:
     1 = The name of the variable to decrement.
+
+To-Name
+  Convert string to a variable name compatible format.
 
 Is-Goal
   Returns the goal if it is a member of the list of goals.
