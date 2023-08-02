@@ -143,8 +143,8 @@ function run_and_ignore {
 }
 
 function confirm () {
-  read -r -p "${1:-Are you sure? [y/N]} " response
-  case $response in
+  read -r -p "${1:-Are you sure? [y/N]} "
+  case $REPLY in
     [yY][eE][sS]|[yY])
       true
       ;;
