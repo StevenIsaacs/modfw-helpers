@@ -44,6 +44,8 @@ define Signal-Error
 endef
 #--------------
 
+#++++++++++++++
+# Variable handling.
 define Inc-Var
   $(eval $(1):=$(shell expr $($(1)) + 1))
 endef
@@ -54,6 +56,90 @@ endef
 
 To-Name = $(subst -,_,$(1))
 
+#+
+# This private macro is used to verify a single variable exists.
+# If the variable is empty then an error message is appended to ErrorList.
+# Parameters:
+#   1 = The name of the variable.
+#   2 = The module in which it is required.
+#-
+define _require-this
+  $(call Debug,Requiring: $(1))
+  $(if $(findstring undefined,$(flavor ${1})),\
+  $(warning Variable $(1) is not defined); \
+  $(call Signal-Error,Variable $(1) must be defined in: $(2))
+  )
+endef
+
+define Require
+  $(call Debug,Required in: $(1))
+  $(foreach v,$(2),$(call _require-this,$(v), $(1)))
+endef
+
+define Must-Be-One-Of
+  $(if $(findstring ${$(1)},$(2)),\
+  $(call Debug,$(1) = ${$(1)} and is a valid option),\
+  $(call Signal-Error,Variable $(1) must equal one of: $(2))\
+  )
+endef
+
+STICKY_PATH ?= ~/.modfw/sticky
+StickyVars :=
+define Sticky
+  $(call Debug,Sticky:Var:$(1))
+  $(call Debug,Sticky:Path: ${STICKY_PATH})
+  $(if $(filter $(1),${StickyVars}),\
+  $(call Signal-Error,\
+    Sticky:Redefinition of sticky variable $(1) ignored.),\
+  $(eval StickyVars += $(1));\
+  $(if $(filter 0,${MAKELEVEL}),\
+    $(eval $(1):=$(shell \
+    ${helpersSegP}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
+    $(call Debug,Sticky:Variables are read-only in a sub-make.);\
+    $(if ${$(1)},,\
+    $(call Debug,Sticky:Reading variable ${(1)});\
+    $(eval $(1):=$(shell \
+      ${helpersSegP}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
+    )\
+  )\
+  )
+endef
+
+define Redefine-Sticky
+  $(eval _v := $(firstword $(subst =,$(Space),$(1))))
+  $(call Debug,Redefine-Sticky:Redefining:$(1))
+  $(call Debug,Redefine-Sticky:Resetting var:${_v})
+  $(eval StickyVars := $(filter-out ${_v},${StickyVars}))
+  $(call Debug,Redefine-Sticky:StickyVars:${StickyVars})
+  $(call Sticky,$(1))
+endef
+
+define Remove-Sticky
+  $(if $(filter $(1),${StickyVars}),\
+  $(call Debug,Remove-Sticky:Removing sticky variable: $(1));\
+  $(eval StickyVars := $(filter-out $(1),${StickyVars}));\
+  $(eval undefine $(1));\
+  $(shell rm ${STICKY_PATH}/$(1)),\
+  $(call Debug,Remove-Sticky:Var $(1) has not been defined.)\
+  )
+endef
+
+OverridableVars :=
+define Overridable
+  $(if $(filter $(1),${OverridableVars}),\
+  $(call Signal-Error,\
+    Overridable:Var $(1) has already been declared.),\
+  $(eval OverridableVars += $(1));\
+  $(if $(filter $(origin $(1)),undefined),\
+    $(eval $(1) := $(2)),\
+    $(call Debug,Overridable:Var $(1) has override value: ${$(1)})\
+    )\
+  )
+endef
+#--------------
+
+#++++++++++++++
+# Makefile segment handling.
 This-Segment-Id = $(words ${MAKEFILE_LIST})
 
 This-Segment-File = $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})
@@ -150,6 +236,7 @@ define Check-Segment-Conflicts
   $(call Signal-Error,\
     Prefix conflict with $($(1)Seg) in $(call This-Segment-File).)))
 endef
+#--------------
 
 #++++++++++++++
 # Goal management.
@@ -186,90 +273,6 @@ endef
 #--------------
 
 #++++++++++++++
-# Variable handling.
-#+
-# This private macro is used to verify a single variable exists.
-# If the variable is empty then an error message is appended to ErrorList.
-# Parameters:
-#   1 = The name of the variable.
-#   2 = The module in which it is required.
-#-
-define _require-this
-  $(call Debug,Requiring: $(1))
-  $(if $(findstring undefined,$(flavor ${1})),\
-  $(warning Variable $(1) is not defined); \
-  $(call Signal-Error,Variable $(1) must be defined in: $(2))
-  )
-endef
-
-define Require
-  $(call Debug,Required in: $(1))
-  $(foreach v,$(2),$(call _require-this,$(v), $(1)))
-endef
-
-define Must-Be-One-Of
-  $(if $(findstring ${$(1)},$(2)),\
-  $(call Debug,$(1) = ${$(1)} and is a valid option),\
-  $(call Signal-Error,Variable $(1) must equal one of: $(2))\
-  )
-endef
-
-STICKY_PATH ?= ~/.modfw/sticky
-StickyVars :=
-define Sticky
-  $(call Debug,Sticky:Var:$(1))
-  $(call Debug,Sticky:Path: ${STICKY_PATH})
-  $(if $(filter $(1),${StickyVars}),\
-  $(call Signal-Error,\
-    Sticky:Redefinition of sticky variable $(1) ignored.),\
-  $(eval StickyVars += $(1));\
-  $(if $(filter 0,${MAKELEVEL}),\
-    $(eval $(1):=$(shell \
-    ${helpersSegP}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
-    $(call Debug,Sticky:Variables are read-only in a sub-make.);\
-    $(if ${$(1)},,\
-    $(call Debug,Sticky:Reading variable ${(1)});\
-    $(eval $(1):=$(shell \
-      ${helpersSegP}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
-    )\
-  )\
-  )
-endef
-
-define Redefine-Sticky
-  $(eval _v := $(firstword $(subst =,$(Space),$(1))))
-  $(call Debug,Redefine-Sticky:Redefining:$(1))
-  $(call Debug,Redefine-Sticky:Resetting var:${_v})
-  $(eval StickyVars := $(filter-out ${_v},${StickyVars}))
-  $(call Debug,Redefine-Sticky:StickyVars:${StickyVars})
-  $(call Sticky,$(1))
-endef
-
-define Remove-Sticky
-  $(if $(filter $(1),${StickyVars}),\
-  $(call Debug,Remove-Sticky:Removing sticky variable: $(1));\
-  $(eval StickyVars := $(filter-out $(1),${StickyVars}));\
-  $(eval undefine $(1));\
-  $(shell rm ${STICKY_PATH}/$(1)),\
-  $(call Debug,Remove-Sticky:Var $(1) has not been defined.)\
-  )
-endef
-
-OverridableVars :=
-define Overridable
-  $(if $(filter $(1),${OverridableVars}),\
-  $(call Signal-Error,\
-    Overridable:Var $(1) has already been declared.),\
-  $(eval OverridableVars += $(1));\
-  $(if $(filter $(origin $(1)),undefined),\
-    $(eval $(1) := $(2)),\
-    $(call Debug,Overridable:Var $(1) has override value: ${$(1)})\
-    )\
-  )
-endef
-#--------------
-
-#++++++++++++++
 # Directories and files.
 define Basenames-In
   $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
@@ -280,6 +283,14 @@ define Directories-In
   $(notdir ${d}))
 endef
 #--------------
+
+#++++++++++++++
+# Other helpers.
+define Confirm
+  $(filter $(2),$(shell read -r -p "$(1) - Yes = $(2): "; echo $$REPLY))
+endef
+#--------------
+
 # Set SegId to the segment that included helpers so that the previous segment
 # set by Enter-Segment and used by Exit-Segment will have a valid value.
 _i := $(call This-Segment-Id)
@@ -658,6 +669,14 @@ Directories-In
   Get a list of directories in a directory. The path is stripped.
   Parameters:
     1 = The path to the directory.
+
+Confirm
+  Prompts the user for a yes or no response. If the response matches the
+  positive response then the positive response is returned. Otherwise an
+  empty value is returned.
+  Parameters:
+    1 = The prompt for the response.
+    2 = The expected positive response.
 
 Special goals:
 show-%

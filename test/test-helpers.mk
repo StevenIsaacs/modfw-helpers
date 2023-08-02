@@ -166,6 +166,12 @@ $(call Overridable,ov2,ov2_new_val)
 $(call test-message,ov2:$(ov2))
 $(call test-message,Overridables: $(OverridableVars))
 
+$(call next-test,Confirmations)
+_r = $(call Confirm,Enter positive response.,y)
+$(call test-message,Confirm (positive): ${_r})
+_r = $(call Confirm,Enter negative response.,y)
+$(call test-message,Confirm (negative): ${_r})
+
 test-helpers: display-errors display-messages
 > ${MAKE} tv1=subtv1 tv3=subtv3 test-submake
 
