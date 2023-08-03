@@ -38,7 +38,7 @@ MAKEFLAGS += --debug=${_V}
 
 define Signal-Error
   $(eval ErrorList += ${NewLine}ERR:${Seg}:$(1))
-  $(call _Format-Message,ERR,${Seg}:$(1))
+  $(call _Format-Message,ERR,$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
 endef
