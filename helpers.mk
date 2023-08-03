@@ -313,7 +313,7 @@ WorkingDir = $(notdir ${WorkingPath})
 WorkingName := $(subst -,_,${WorkingDir})
 
 # Where sticky variables are initially stored.
-STICKY_PATH ?= ${WorkingDir}/.modfw/sticky
+STICKY_PATH ?= ${WorkingPath}/.modfw/sticky
 
 # Special goal to force another goal.
 FORCE:
