@@ -19,6 +19,10 @@ define Add-Message
   $(call _Format-Message,...,$(1))
 endef
 
+define Warn
+  $(call __Format-Message,WRN,$(1))
+endef
+
 _V:=n
 ifneq (${VERBOSE},)
 define Verbose
@@ -278,8 +282,8 @@ define Basenames-In
 endef
 
 define Directories-In
-  $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
-  $(notdir ${d}))
+  $(strip $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
+  $(notdir ${d})))
 endef
 #--------------
 
@@ -584,27 +588,37 @@ Add-Message
   by the display-messages goal.
   Messages are prefixed with the variable Segment which is set by the
   calling segment.
-  NOTE: This is NOT intended to be used as part of a rule.
+  NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message.
 
+Warn
+  Display a warning message. Warning messages are prefixed with WRN.
+  NOTE: This is NOT intended to be used as part of a recipe.
+  Parameters:
+    1 = The message to display.
+
 Verbose
   Displays the message if VERBOSE has been defined. All verbose messages are
-  automatically added to the message list.
+  automatically added to the message list. Verbose messages are prefixed with
+  vbs.
+  NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
 
 Debug
   Displays the message if DEBUG has been defined. All debug messages are
-  automatically added to the message list.
+  automatically added to the message list. Debug messages are prefixed with
+  dbg.
+  NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
 
 Signal-Error
   Use this macro to issue an error message as a warning and signal a
   delayed error exit. The messages can be displayed using the display-errors
-  goal.
-  NOTE: This is NOT intended to be used as part of a rule.
+  goal. Error messages are prefixed with ERR.
+  NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The error message.
 
