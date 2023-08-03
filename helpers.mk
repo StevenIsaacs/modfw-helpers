@@ -286,7 +286,11 @@ endef
 #++++++++++++++
 # Other helpers.
 define Confirm
-  $(filter $(2),$(shell read -r -p "$(1) - Yes = $(2): "; echo $$REPLY))
+$(strip $(filter $(2),$(shell read -r -p "$(1) [$(2)|N]: "; echo $$REPLY)))
+endef
+
+define Pause
+  $(shell read -r -p "Press Enter to continue...")
 endef
 #--------------
 
@@ -679,6 +683,9 @@ Confirm
   Parameters:
     1 = The prompt for the response.
     2 = The expected positive response.
+
+Pause
+  Wait until the Enter key is pressed.
 
 Special goals:
 show-%
