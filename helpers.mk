@@ -83,7 +83,6 @@ define Must-Be-One-Of
   )
 endef
 
-STICKY_PATH ?= ~/.modfw/sticky
 StickyVars :=
 define Sticky
   $(call Debug,Sticky:Var:$(1))
@@ -312,6 +311,9 @@ SHELL = /bin/bash
 WorkingPath = $(call Get-Segment-Path,1)
 WorkingDir = $(notdir ${WorkingPath})
 WorkingName := $(subst -,_,${WorkingDir})
+
+# Where sticky variables are initially stored.
+STICKY_PATH ?= ${WorkingDir}/.modfw/sticky
 
 # Special goal to force another goal.
 FORCE:
