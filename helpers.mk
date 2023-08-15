@@ -239,6 +239,50 @@ define Check-Segment-Conflicts
   $(call Signal-Error,\
     Prefix conflict with $($(1)Seg) in $(call This-Segment-File).)))
 endef
+
+define Gen-Segment
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# $(1): $(2)
+#----------------------------------------------------------------------------
+# The prefix $(3) must be unique for all files.
+# The format of all the $(3) based names is required.
+# +++++
+# Preamble
+$.ifndef $(3)SegId
+$$(call Enter-Segment,$(3))
+# -----
+
+# Add variables, macros, goals, and recipes here.
+
+# +++++
+# Postamble
+# Define help only if needed.
+$.ifneq ($$(call Is-Goal,help-$${$(3)Seg}),)
+$.define help_$${$(3)SegN}_msg
+Make segment: $${$(3)Seg}.mk
+
+Project specific configs for the project: ${PROJECT}
+
+# Add help messages here.
+
+Defines:
+  # Describe each variable or macro.
+
+Command line goals:
+  # Describe additional goals provided by the segment.
+  help-$${$(3)Seg}
+    Display this help.
+$.endef
+$.endif # help goal message.
+
+$$(call Exit-Segment,$(3))
+$.else # $(3)SegId exists
+$$(call Check-Segment-Conflicts,$(3))
+$.endif # $(3)SegId
+# -----
+
+endef
+
 #--------------
 
 #++++++++++++++
@@ -359,6 +403,8 @@ origin-%:
 > @echo 'Origin:$*=$(origin $*)'
 
 ifneq ($(call Is-Goal,help-${helpersSeg}),)
+_SampleSeg = $(call Gen-Segment,This is a sample segment,sample-seg,sample_seg)
+
 define help_${helpersSegN}_msg
 Make segment: helpers.mk
 
@@ -499,35 +545,8 @@ Use-Segment
   because it is unknown if a change in a segment will cause a change in the
   build output of another segment.
 
-  Preamble:
-    To avoid name conflicts a unique prefix is required. In this example
-    the unique prefix is indicated by <u>.
-
-    NOTE: The variable name formats shown in this example are required.
-
-    $.ifndef <u>SegId
-    $$(call Enter-Segment,<u>)
-
-    ....Make segment body....
-
-  Postamble:
-    $.ifneq ($$(call Is-Goal,help-$${<u>Seg}),)
-    $.define help_$${<u>SegN}_msg
-    Make segment: $${<u>Seg}.mk
-
-    <make segment help messages>
-
-    Command line goals:
-    help-$${<u>Seg}   Display this help.
-    $.endef
-    $.endif
-
-    $$(call Exit-Segment,tm)
-    $.else # <u>SegId exists
-    $$(call Check-Segment-Conflicts,<u>)
-    $.endif # tmSegId
-
-  A template for new make segments is provided in seg-template.mk.
+  A template for new make segments can be generated using the Gen-Segment
+  macro (below).
 
 Enter-Segment - Call in the preamble
   This initializes the context for a new segment and saves information so
@@ -561,6 +580,18 @@ Check-Segment-Conflicts - Call in the postamble.
   loaded segment.
   Parameters:
     1 = The prefix to use for the current context variables.
+
+Gen-Segment - Generate a segment file.
+  This generates a segment file template which can then be customized for a
+  project.
+  Parameters:
+    1 = A one line description.
+    2 = The segment.
+    3 = The segment name.
+  For example,
+  $$(call Gen-Segment,This is a sample segment,sample-seg,sample_seg)
+  generates:
+$(call Gen-Segment,This is a sample segment,sample-seg,sample_seg)
 
 Resolve-Help-Goals
   This scans the goals for references to help and then insures the
