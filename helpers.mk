@@ -8,6 +8,7 @@ ifndef helpersSegId
 NewLine = nlnl
 _empty :=
 Space := ${_empty} ${_empty}
+D := $
 
 define _Format-Message
   $(eval MsgList += ${NewLine}$(strip $(1)):${Seg}:$(strip $(2)))
@@ -242,14 +243,14 @@ endef
 
 define Gen-Segment
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# $(1): $(2)
+# $(strip $(1))
 #----------------------------------------------------------------------------
-# The prefix $(3) must be unique for all files.
-# The format of all the $(3) based names is required.
+# The prefix $(2) must be unique for all files.
+# The format of all the $(2) based names is required.
 # +++++
 # Preamble
-$.ifndef $(3)SegId
-$$(call Enter-Segment,$(3))
+$.ifndef $(2)SegId
+$$(call Enter-Segment,$(2))
 # -----
 
 # Add variables, macros, goals, and recipes here.
@@ -257,11 +258,11 @@ $$(call Enter-Segment,$(3))
 # +++++
 # Postamble
 # Define help only if needed.
-$.ifneq ($$(call Is-Goal,help-$${$(3)Seg}),)
-$.define help_$${$(3)SegN}_msg
-Make segment: $${$(3)Seg}.mk
+$.ifneq ($$(call Is-Goal,help-$${$(2)Seg}),)
+$.define help_$${$(2)SegN}_msg
+Make segment: $${$(2)Seg}.mk
 
-Project specific configs for the project: ${PROJECT}
+# Place overview here.
 
 # Add help messages here.
 
@@ -270,15 +271,15 @@ Defines:
 
 Command line goals:
   # Describe additional goals provided by the segment.
-  help-$${$(3)Seg}
+  help-$${$(2)Seg}
     Display this help.
 $.endef
 $.endif # help goal message.
 
-$$(call Exit-Segment,$(3))
-$.else # $(3)SegId exists
-$$(call Check-Segment-Conflicts,$(3))
-$.endif # $(3)SegId
+$$(call Exit-Segment,$(2))
+$.else # $(2)SegId exists
+$$(call Check-Segment-Conflicts,$(2))
+$.endif # $(2)SegId
 # -----
 
 endef
@@ -586,12 +587,11 @@ Gen-Segment - Generate a segment file.
   project.
   Parameters:
     1 = A one line description.
-    2 = The segment.
-    3 = The segment name.
+    2 = The segment name.
   For example,
-  $$(call Gen-Segment,This is a sample segment,sample-seg,sample_seg)
+  $$(call Gen-Segment,This is a sample segment.,sample_seg)
   generates:
-$(call Gen-Segment,This is a sample segment,sample-seg,sample_seg)
+$(call Gen-Segment,This is a sample segment.,sample_seg)
 
 Resolve-Help-Goals
   This scans the goals for references to help and then insures the
@@ -613,6 +613,10 @@ NewLine
 Space
   This is intended to be used in substitution patterns where a space is
   required.
+
+D
+  This is a dollar sign and is intended to be used in macros that expand
+  to bash command lines which include references to environment variables.
 
 Add-Message
   Use this macro to add a message to a list of messages to be displayed
