@@ -245,11 +245,11 @@ define Gen-Segment
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # $(strip $(1))
 #----------------------------------------------------------------------------
-# The prefix $(2) must be unique for all files.
-# The format of all the $(2) based names is required.
+# The prefix $(call To-Name,$(2)) must be unique for all files.
+# The format of all the $(call To-Name,$(2)) based names is required.
 # +++++
 # Preamble
-$.ifndef $(2)SegId
+$.ifndef $(call To-Name,$(2))SegId
 $$(call Enter-Segment,$(2))
 # -----
 
@@ -258,9 +258,9 @@ $$(call Enter-Segment,$(2))
 # +++++
 # Postamble
 # Define help only if needed.
-$.ifneq ($$(call Is-Goal,help-$${$(2)Seg}),)
-$.define help_$${$(2)SegN}_msg
-Make segment: $${$(2)Seg}.mk
+$.ifneq ($$(call Is-Goal,help-$${$(call To-Name,$(2))Seg}),)
+$.define help_$${$(call To-Name,$(2))SegN}_msg
+Make segment: $${$(call To-Name,$(2))Seg}.mk
 
 # Place overview here.
 
@@ -271,15 +271,15 @@ Defines:
 
 Command line goals:
   # Describe additional goals provided by the segment.
-  help-$${$(2)Seg}
+  help-$${$(call To-Name,$(2))Seg}
     Display this help.
 $.endef
 $.endif # help goal message.
 
 $$(call Exit-Segment,$(2))
-$.else # $(2)SegId exists
+$.else # $(call To-Name,$(2))SegId exists
 $$(call Check-Segment-Conflicts,$(2))
-$.endif # $(2)SegId
+$.endif # $(call To-Name,$(2))SegId
 # -----
 
 endef
@@ -587,7 +587,8 @@ Gen-Segment - Generate a segment file.
   project.
   Parameters:
     1 = A one line description.
-    2 = The segment name.
+    2 = The segment file name. This is properly converted to name the
+        segment specific variables.
   For example,
   $$(call Gen-Segment,This is a sample segment.,sample_seg)
   generates:
