@@ -8,7 +8,7 @@ ifndef helpersSegId
 NewLine = nlnl
 _empty :=
 Space := ${_empty} ${_empty}
-D := $
+Dlr := $
 
 define _Format-Message
   $(eval MsgList += ${NewLine}$(strip $(1)):${Seg}:$(strip $(2)))
@@ -614,7 +614,7 @@ Space
   This is intended to be used in substitution patterns where a space is
   required.
 
-D
+Dlr
   This is a dollar sign and is intended to be used in macros that expand
   to bash command lines which include references to environment variables.
 
