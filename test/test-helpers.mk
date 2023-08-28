@@ -1,12 +1,12 @@
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # This make segment is designed to test macros.mk.
 #-----------------------------------------------------------------------------
-# The prefix thlprs must be unique for all files.
+# The prefix $(call This-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-$(call Add-Message,+++++ test-helpers entry. +++++)
-ifndef thlprsSegId
-$(call Enter-Segment,thlprs)
+$(call Add-Message,+++++ $(call This-Segment-Basename) entry. +++++)
+ifndef $(call This-Segment-Basename)SegId
+$(call Enter-Segment)
 # -----
 
 _test := 0
@@ -19,7 +19,7 @@ _test := 0
 #   1 =     The message to display.
 #-
 define test-message
-$(call Add-Message,Test:$(_test)=$(1))
+$(call Add-Message,Test:$(_test)=$(strip $(1)))
 endef
 
 #+
@@ -37,44 +37,45 @@ endef
 
 #+
 # Display the current context and the context for a segment.
-# Parameters:
-#  1 = The prefix for the segment.
 #-
 define report-seg-context
-$(call test-message,SegId = $(SegId))
-$(call test-message,Seg = $(Seg))
-$(call test-message,SegN = $(SegN))
-$(call test-message,SegF = $(SegF))
-$(call test-message,thlprsSegId = ${$(1)SegId})
-$(call test-message,thlprsPrvSegId = ${$(1)PrvSegId})
-$(call test-message,thlprsSeg = ${$(1)Seg})
-$(call test-message,thlprsSegN = ${$(1)SegN})
-$(call test-message,thlprsSegF = ${$(1)SegF})
+$(call test-message,SegId = ${SegId})
+$(call test-message,Seg = ${Seg})
+$(call test-message,SegV = ${SegV})
+$(call test-message,SegF = ${SegF})
+$(call test-message,${Seg}SegId = ${${Seg}SegId})
+$(call test-message,${Seg}PrvSegId = ${${Seg}PrvSegId})
+$(call test-message,${Seg}Seg = ${${Seg}Seg})
+$(call test-message,${Seg}SegV = ${${Seg}SegV})
+$(call test-message,${Seg}SegF = ${${Seg}SegF})
 $(call test-message,\
 Get-Segment-File:$(call Get-Segment-File,$(call This-Segment-Id)))
 $(call test-message,\
 Get-Segment-Basename:$(call Get-Segment-Basename,$(call This-Segment-Id)))
 $(call test-message,\
-Get-Segment-Name:$(call Get-Segment-Name,$(call This-Segment-Id)))
+Get-Segment-Var:$(call Get-Segment-Var,$(call This-Segment-Id)))
 $(call test-message,\
 Get-Segment-Path:$(call Get-Segment-Path,$(call This-Segment-Id)))
 $(call test-message,This-Segment-Id:$(call This-Segment-Id))
 $(call test-message,This-Segment-File:$(call This-Segment-File))
 $(call test-message,This-Segment-Basename:$(call This-Segment-Basename))
-$(call test-message,This-Segment-Name:$(call This-Segment-Name))
+$(call test-message,This-Segment-Var:$(call This-Segment-Var))
 $(call test-message,This-Segment-Path:$(call This-Segment-Path))
 $(call test-message,MAKEFILE_LIST:$(MAKEFILE_LIST))
 endef
 
+$(call next-test,Current context.)
+$(call report-seg-context)
+
 ifneq ($(call Is-Goal,test-helpers),)
 $(call test-message,Testing helpers...)
 
-$(call next-test,HELPERS_PATH)
+$(call next-test,$(SHELL) HELPER_FUNCTIONS)
 $(call test-message,helpersSegId = ${helpersSegId})
-$(call test-message,HELPERS_PATH = ${HELPERS_PATH})
+$(call test-message,HELPER_FUNCTIONS = ${HELPER_FUNCTIONS})
 
 $(call next-test,Segment identifiers.)
-$(call report-seg-context,thlprs)
+$(call report-seg-context)
 
 $(call next-test,Sticky variables.)
 tv1 := tv1
@@ -146,7 +147,7 @@ $(call Use-Segment,td2)
 $(call Use-Segment,td3)
 $(call next-test,Use-Segment:Multiple segments of the same name.)
 $(call Use-Segment,tm1)
-$(call Use-Segment,tm2)
+$(call Use-Segment,test/d2/tm1)
 $(call next-test,Use-Segment:A segment in a subdirectory.)
 $(call Use-Segment,sd3/tsd3)
 $(call next-test,Use-Segment:Does not exist.)
@@ -219,18 +220,18 @@ endif # Goal is test-helpers
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${thlprsSeg}),)
-define help_${thlprsSegN}_msg
-This make segment tests the macros in macros.mk.
+ifneq ($(call Is-Goal,help-${Seg}),)
+define help_${SegV}_msg
+This make segment tests the macros in helpers.mk.
 endef
-$(call test-message,help_${thlprsSegN}_msg = ${help_${thlprsSegN}_msg})
+$(call test-message,help_${SegV}_msg = ${help_${SegV}_msg})
 endif
-$(call Exit-Segment,thlprs)
+$(call Exit-Segment)
 $(call next-test,Restored context.)
-$(call report-seg-context,thlprs)
-else # thlprsSegId exists
+$(call report-seg-context)
+else # SegId exists
 $(call next-test,ID exists context.)
-$(call report-seg-context,thlprs)
-$(call Check-Segment-Conflicts,thlprs)
-endif # thlprsSegId
-$(call Add-Message,----- test-helpers exit. -----)
+$(call report-seg-context)
+$(call Check-Segment-Conflicts)
+endif # SegId
+$(call Add-Message,----- $(call This-Segment-Basename) exit. -----)

@@ -8,20 +8,22 @@
 include helpers.mk
 
 $(call Add-Message,WorkingPath: ${WorkingPath})
-$(call Add-Message,WorkingName: ${WorkingName})
+$(call Add-Message,WorkingVar: ${WorkingVar})
 
 $(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
 ifneq ($(findstring test,$(Goals)),)
 $(call Add-Message,Running helpers tests.)
 $(call Add-Message,helpersSegId: ${helpersSegId})
-$(call Use-Segment,test/test-helpers)
+$(call Add-Segment-Path,test)
+$(call Use-Segment,test-helpers)
 $(call Add-Message,Macro tests complete.)
 $(call Add-Message,Testing include of same file.)
-# Test detection of including same file.
+# Test detection of including same file. This uses the path rather than
+# relying upon the search path.
 $(call Use-Segment,test/test-helpers)
 # Test detection of prefix conflict between different files.
-$(call Use-Segment,test/test-conflict)
+$(call Use-Segment,test-conflict)
 # Test sub-make.
 $(info MAKELEVEL = ${MAKELEVEL})
 $(info Filtered: $(filter 0,${MAKELEVEL}))

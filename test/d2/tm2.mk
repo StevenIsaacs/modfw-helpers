@@ -1,30 +1,30 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # For test only.
 #----------------------------------------------------------------------------
-# The prefix tm2 must be unique for all files.
+# The prefix $(call This-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-ifndef tm2SegId
-$(call Enter-Segment,tm2)
+ifndef $(call This-Segment-Basename)SegId
+$(call Enter-Segment)
 # -----
 
-$(call Add-Message,tm2:Path:$(call This-Segment-Path))
+$(call Add-Message,${Seg}:Path:$(call This-Segment-Path))
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${tm2Seg}),)
-$(call test-message,Help message variable: help_${tm2SegN}_msg)
-define help_${tm2SegN}_msg
-Make segment: ${tm2Seg}.mk
+ifneq ($(call Is-Goal,help-${Seg}),)
+$(call test-message,Help message variable: help_${SegV}_msg)
+define help_${SegV}_msg
+Make segment: ${Seg}.mk
 
 This segment is in the helpers directory and is intended for test only.
 
 Command line goals:
-  help-${tm2Seg}   Display this help.
+  help-${Seg}   Display this help.
 endef
 endif
-$(call Exit-Segment,tm2)
+$(call Exit-Segment)
 else
-$(call Check-Segment-Conflicts,tm2)
-endif # tm2SegId
+$(call Check-Segment-Conflicts)
+endif # SegId
 # -----

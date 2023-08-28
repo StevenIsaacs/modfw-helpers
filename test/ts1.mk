@@ -1,30 +1,30 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # For test only.
 #----------------------------------------------------------------------------
-# The prefix ts1 must be unique for all files.
+# The prefix $(call This-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-ifndef ts1SegId
-$(call Enter-Segment,ts1)
+ifndef $(call This-Segment-Basename)SegId
+$(call Enter-Segment)
 # -----
 
-$(call Add-Message,ts1:Path:$(call This-Segment-Path))
+$(call Add-Message,${Seg}:Path:$(call This-Segment-Path))
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${ts1Seg}),)
-$(call test-message,Help message variable: help_${ts1SegN}_msg)
-define help_${ts1SegN}_msg
-Make segment: ${ts1Seg}.mk
+ifneq ($(call Is-Goal,help-${Seg}),)
+$(call test-message,Help message variable: help_${SegV}_msg)
+define help_${SegV}_msg
+Make segment: ${Seg}.mk
 
 This segment is in the helpers directory and is intended for test only.
 
 Command line goals:
-  help-${ts1Seg}   Display this help.
+  help-${Seg}   Display this help.
 endef
 endif
-$(call Exit-Segment,ts1)
+$(call Exit-Segment)
 else
-$(call Check-Segment-Conflicts,ts1)
-endif # ts1SegId
+$(call Check-Segment-Conflicts)
+endif # SegId
 # -----

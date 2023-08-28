@@ -5,8 +5,8 @@
 # The format of all the <u> based names is required.
 # +++++
 # Preamble
-ifndef <u>SegId
-$(call Enter-Segment,<u>)
+ifndef $(call This-Segment-Basename)SegId
+$(call Enter-Segment)
 # -----
 
 <segment body here>
@@ -15,7 +15,7 @@ $(call Enter-Segment,<u>)
 # Postamble
 # Define help only if needed.
 ifneq ($(call Is-Goal,help-${<u>Seg}),)
-define help_${<u>SegN}_msg
+define help_${<u>SegV}_msg
 Make segment: ${<u>Seg}.mk
 
 <make segment help messages>
@@ -25,8 +25,8 @@ Command line goals:
 endef
 endif # help goal message.
 
-$(call Exit-Segment,<u>)
+$(call Exit-Segment)
 else # <u>SegId exists
-$(call Check-Segment-Conflicts,<u>)
+$(call Check-Segment-Conflicts)
 endif # <u>SegId
 # -----
