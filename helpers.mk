@@ -259,6 +259,9 @@ $.ifndef $$(call This-Segment-Basename)SegId
 $$(call Enter-Segment)
 # -----
 
+# The primary goal for the segment.
+$(2)
+
 # Add variables, macros, goals, and recipes here.
 
 # +++++
@@ -419,7 +422,6 @@ origin-%:
 > @echo 'Origin:$*=$(origin $*)'
 
 ifneq ($(call Is-Goal,help-${helpersSeg}),)
-_SampleSeg = $(call Gen-Segment,This is a sample segment,sample-seg,sample_seg)
 
 define help_${helpersSegV}_msg
 Make segment: helpers.mk
@@ -662,12 +664,14 @@ Gen-Segment - Generate a segment file.
   developer.
   Parameters:
     1 = A one line description.
-    2 = The basename of the makefile segment. This is also used to prefix any
-        segment specific variables.
+    2 = An optional goal and dependencies for the segment. This should be
+        a string formatted as: <goal>: <dependencies>
+        If <dependencies> is a variable then it should be escaped so that it
+        is not expanded when the segment is generated.
   For example,
-  $$(call Gen-Segment,This is a sample segment.,sample_seg)
+  $$(call Gen-Segment,This is a sample segment.,sample-seg: $$$${deps})
   generates:
-$(call Gen-Segment,This is a sample segment.,sample_seg)
+$(call Gen-Segment,This is a sample segment.,sample-seg: $${deps})
 
 +++++ Make goals or targets
 
