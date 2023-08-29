@@ -224,11 +224,12 @@ $(call Debug,Exiting segment: ${Seg})
 $(call Debug,Checking help: $(call Is-Goal,help-${Seg}))
 $(if $(call Is-Goal,help-${Seg}),\
 $(call Debug,Help message variable: help_${SegV}_msg);\
-$(eval export help_${SegV}_msg);\
+$(eval hlp${SegV} := $$(call help_${SegV}_msg)):\
+$(eval export hlp${SegV});\
 $(call Debug,Generating help goal: help-${Seg});\
 $(eval \
 help-${Seg}:;\
-echo "$$$$help_${${Seg}SegV}_msg" | less\
+echo "$$$$hlp${SegV}" | less\
 ))
 $(eval $(call Set-Segment-Context,${${Seg}PrvSegId}))
 endef
