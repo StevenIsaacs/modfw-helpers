@@ -59,7 +59,7 @@ define Dec-Var
   $(eval $(1):=$(shell expr $($(1)) - 1))
 endef
 
-To-Shell-Var = $(subst -,_,$(1))
+To-Shell-Var = _$(subst -,_,$(1))
 
 #+
 # This private macro is used to verify a single variable exists.
