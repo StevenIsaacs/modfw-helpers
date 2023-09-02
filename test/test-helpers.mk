@@ -130,7 +130,7 @@ $(call next-test,Require)
 a := 1
 b := 2
 c := 3
-$(call Require,test,a b c d)
+$(call Require,a b c d)
 
 $(call next-test,Must-Be-One-Of)
 $(call Must-Be-One-Of,a,1 2 3)

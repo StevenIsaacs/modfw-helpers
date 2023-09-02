@@ -72,13 +72,13 @@ define _require-this
   $(call Debug,Requiring: $(1))
   $(if $(findstring undefined,$(flavor ${1})),\
   $(warning Variable $(1) is not defined); \
-  $(call Signal-Error,Variable $(1) must be defined in: $(2))
+  $(call Signal-Error,${Seg} requires variable $(1) must be defined.)
   )
 endef
 
 define Require
-  $(call Debug,Required in: $(1))
-  $(foreach v,$(2),$(call _require-this,$(v), $(1)))
+  $(call Debug,Required in: ${Seg})
+  $(foreach v,$(1),$(call _require-this,$(v)))
 endef
 
 define Must-Be-One-Of
@@ -534,7 +534,7 @@ Overridable
   which variables are intended to be overridable. The variable is declared
   as a simply expanded variable only if it has not been previously defined.
   An overridable variable can be declared only once. To override the variable
-  assign a value BEFORE Overridable is called.
+  assign a value BEFORE Overridable is called or on the make command line.
   Parameters:
     1 = The variable name.
     2 = The value.
