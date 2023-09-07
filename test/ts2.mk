@@ -8,7 +8,7 @@ ifndef $(call This-Segment-Basename)SegId
 $(call Enter-Segment)
 # -----
 
-$(call Add-Message,${Seg}:Path:$(call This-Segment-Path))
+$(call Info,${Seg}:Path:$(call This-Segment-Path))
 
 # +++++
 # Postamble

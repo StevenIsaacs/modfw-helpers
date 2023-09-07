@@ -4,7 +4,7 @@
 # The prefix $(call This-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-$(call Add-Message,+++++ $(call This-Segment-Basename) entry. +++++)
+$(call Info,+++++ $(call This-Segment-Basename) entry. +++++)
 ifndef $(call This-Segment-Basename)SegId
 $(call Enter-Segment)
 # -----
@@ -19,7 +19,7 @@ _test := 0
 #   1 =     The message to display.
 #-
 define test-message
-$(call Add-Message,Test:$(_test)=$(strip $(1)))
+$(call Info,Test:$(_test)=$(strip $(1)))
 endef
 
 #+
@@ -31,7 +31,7 @@ endef
 #-
 define next-test
 $(call Inc-Var,_test)
-$(call Add-Message,$(NewLine))
+$(call Info,$(NewLine))
 $(call test-message,Test number: ${_test} $(1))
 endef
 
@@ -234,4 +234,4 @@ $(call next-test,ID exists context.)
 $(call report-seg-context)
 $(call Check-Segment-Conflicts)
 endif # SegId
-$(call Add-Message,----- $(call This-Segment-Basename) exit. -----)
+$(call Info,----- $(call This-Segment-Basename) exit. -----)

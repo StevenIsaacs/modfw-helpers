@@ -16,7 +16,7 @@ define _Format-Message
   $(eval Messages = yes)
 endef
 
-define Add-Message
+define Info
   $(call _Format-Message,...,$(1))
 endef
 
@@ -242,7 +242,7 @@ define Check-Segment-Conflicts
   $(eval \
     $(if $(findstring \
       $(call This-Segment-File),$(call Get-Segment-File,${${__s}SegId})),
-        $(call Add-Message,\
+        $(call Info,\
         $(call Get-Segment-File,${${__s}SegId}) has already been included.),\
     $(call Signal-Error,\
       Prefix conflict with $(${__s}Seg) in $(call This-Segment-File).)))
@@ -380,7 +380,7 @@ FORCE:
 DefaultGoal ?= help
 
 ifeq (${MAKECMDGOALS},)
-  $(call Add-Message,No goal was specified -- defaulting to: ${DefaultGoal}.)
+  $(call Info,No goal was specified -- defaulting to: ${DefaultGoal}.)
   .DEFAULT_GOAL := $(DefaultGoal)
 else
   .DEFAULT_GOAL :=
@@ -388,7 +388,7 @@ endif
 
 Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
 
-$(call Add-Message,Goals: ${Goals})
+$(call Info,Goals: ${Goals})
 
 # Some behavior depends upon which platform.
 ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
@@ -401,7 +401,7 @@ else ifeq ($(shell uname),Darwin)
 else
   $(call Signal-Error,Unable to identify platform)
 endif
-$(call Add-Message,Running on: ${Platform})
+$(call Info,Running on: ${Platform})
 
 $(call Debug,MAKELEVEL = ${MAKELEVEL})
 $(call Debug,MAKEFLAGS = ${MAKEFLAGS})
@@ -709,7 +709,7 @@ Dlr
   This is a dollar sign and is intended to be used in macros that expand
   to bash command lines which include references to environment variables.
 
-Add-Message
+Info
   Use this macro to add a message to a list of messages to be displayed
   by the display-messages goal.
   Messages are prefixed with the variable Segment which is set by the

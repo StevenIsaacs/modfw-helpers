@@ -7,18 +7,18 @@
 
 include helpers.mk
 
-$(call Add-Message,WorkingPath: ${WorkingPath})
-$(call Add-Message,WorkingVar: ${WorkingVar})
+$(call Info,WorkingPath: ${WorkingPath})
+$(call Info,WorkingVar: ${WorkingVar})
 
 $(call Add-Segment-Path,test/d1 test/d2 test/d3)
 
 ifneq ($(findstring test,$(Goals)),)
-$(call Add-Message,Running helpers tests.)
-$(call Add-Message,helpersSegId: ${helpersSegId})
+$(call Info,Running helpers tests.)
+$(call Info,helpersSegId: ${helpersSegId})
 $(call Add-Segment-Path,test)
 $(call Use-Segment,test-helpers)
-$(call Add-Message,Macro tests complete.)
-$(call Add-Message,Testing include of same file.)
+$(call Info,Macro tests complete.)
+$(call Info,Testing include of same file.)
 # Test detection of including same file. This uses the path rather than
 # relying upon the search path.
 $(call Use-Segment,test/test-helpers)
