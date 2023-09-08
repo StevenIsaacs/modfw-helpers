@@ -93,12 +93,13 @@ $(call Sticky,tv2,xxx)
 $(call Verbose,After second Sticky tv2 = ${tv2})
 $(call test-message,StickyVars:${StickyVars})
 # Using assignment in call.
-$(call Sticky,tv3=tv3v)
+$(call Sticky,tv3=tv3_v)
 # Redefine the previous error variable.
 $(call Redefine-Sticky,tv2=xxx)
 $(call Verbose,After redefined Sticky tv2 = ${tv2})
 $(call test-message,StickyVars:${StickyVars})
 
+$(call test-message,StickyVars:Var:<var>=<val>:<saved>)
 $(foreach _v,${StickyVars},\
   $(call test-message,Var:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v})))
 
