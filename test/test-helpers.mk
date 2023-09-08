@@ -78,8 +78,8 @@ $(call next-test,Segment identifiers.)
 $(call report-seg-context)
 
 $(call next-test,Sticky variables.)
-tv1 := tv1
-tv2 := tv2
+tv1 := tv1_v
+tv2 := tv2_v
 $(call test-message,STICKY_PATH = ${STICKY_PATH})
 $(call test-message,StickyVars:${StickyVars})
 $(call Sticky,tv1,tv1)
@@ -92,6 +92,8 @@ $(call test-message,StickyVars:${StickyVars})
 $(call Sticky,tv2,xxx)
 $(call Verbose,After second Sticky tv2 = ${tv2})
 $(call test-message,StickyVars:${StickyVars})
+# Using assignment in call.
+$(call Sticky,tv3=tv3v)
 # Redefine the previous error variable.
 $(call Redefine-Sticky,tv2=xxx)
 $(call Verbose,After redefined Sticky tv2 = ${tv2})

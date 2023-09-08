@@ -90,30 +90,37 @@ endef
 
 StickyVars :=
 define Sticky
-  $(call Debug,Sticky:Var:$(1))
+  $(eval _spl := $(subst =,${Space},$(1)))
+  $(eval _sp := $(word 1,${_spl}))
+  $(call Debug,Sticky:Var:${_sp})
+  $(eval _sv := $(word 2,${_spl}))
+  $(call Debug,Sticky:Value:${_sv})
+  $(if ${_sv},,\
+    $(eval _sv := ${${_sp}}))
+  $(call Debug,Sticky:New value:${_sv})
   $(call Debug,Sticky:Path: ${STICKY_PATH})
   $(if $(filter $(1),${StickyVars}),\
   $(call Signal-Error,\
-    Sticky:Redefinition of sticky variable $(1) ignored.),\
-  $(eval StickyVars += $(1));\
+    Sticky:Redefinition of sticky variable ${_sp} ignored.),\
+  $(eval StickyVars += ${_sp});\
   $(if $(filter 0,${MAKELEVEL}),\
-    $(eval $(1):=$(shell \
-    ${helpersSegP}/sticky.sh $(1)=${$(1)} ${STICKY_PATH} $(2))),\
+    $(eval ${_sp}:=$(shell \
+      ${helpersSegP}/sticky.sh ${_sp}=${_sv} ${STICKY_PATH} $(2))),\
     $(call Debug,Sticky:Variables are read-only in a sub-make.);\
-    $(if ${$(1)},,\
-    $(call Debug,Sticky:Reading variable ${(1)});\
-    $(eval $(1):=$(shell \
-      ${helpersSegP}/sticky.sh $(1)= ${STICKY_PATH} $(2))),\
+    $(if ${${_sp}},,\
+    $(call Debug,Sticky:Reading variable ${${_sp}});\
+    $(eval ${_sp}:=$(shell \
+      ${helpersSegP}/sticky.sh ${_sp}= ${STICKY_PATH} $(2))),\
     )\
   )\
   )
 endef
 
 define Redefine-Sticky
-  $(eval _v := $(firstword $(subst =,$(Space),$(1))))
+  $(eval _rs := $(firstword $(subst =,${Space},$(1))))
   $(call Debug,Redefine-Sticky:Redefining:$(1))
-  $(call Debug,Redefine-Sticky:Resetting var:${_v})
-  $(eval StickyVars := $(filter-out ${_v},${StickyVars}))
+  $(call Debug,Redefine-Sticky:Resetting var:${_rs})
+  $(eval StickyVars := $(filter-out ${_rs},${StickyVars}))
   $(call Debug,Redefine-Sticky:StickyVars:${StickyVars})
   $(call Sticky,$(1))
 endef
