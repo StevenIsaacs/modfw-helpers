@@ -21,7 +21,7 @@ define Info
 endef
 
 define Warn
-  $(call __Format-Message,WRN,$(1))
+  $(call _Format-Message,WRN,$(1))
 endef
 
 _V:=n
@@ -70,9 +70,8 @@ To-Shell-Var = _$(subst -,_,$(1))
 #-
 define _require-this
   $(call Debug,Requiring: $(1))
-  $(if $(findstring undefined,$(flavor ${1})),\
-  $(warning Variable $(1) is not defined); \
-  $(call Signal-Error,${Seg} requires variable $(1) must be defined.)
+  $(if $(findstring undefined,$(flavor ${1})),
+    $(call Signal-Error,${Seg} requires variable $(1) must be defined.)
   )
 endef
 
@@ -81,11 +80,15 @@ define Require
   $(foreach v,$(1),$(call _require-this,$(v)))
 endef
 
-define Must-Be-One-Of
-  $(if $(findstring ${$(1)},$(2)),\
-  $(call Debug,$(1) = ${$(1)} and is a valid option),\
-  $(call Signal-Error,Variable $(1) must equal one of: $(2))\
+define _mbof
+  $(if $(filter ${$(1)},$(2)),
+    $(call Debug,$(1)=${$(1)} and is a valid option) 1,
+    $(call Signal-Error,Variable $(1)=${$(1)} must equal one of: $(2))
   )
+endef
+
+define Must-Be-One-Of
+$(strip $(call _mbof,$(1),$(2)))
 endef
 
 StickyVars :=

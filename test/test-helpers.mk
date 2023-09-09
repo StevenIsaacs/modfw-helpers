@@ -23,6 +23,28 @@ $(call Info,Test:$(_test)=$(strip $(1)))
 endef
 
 #+
+# Issue a test passed message.
+# Uses:
+#   _test   The current test number.
+# Parameters:
+#   1 =     The message to display.
+#-
+define PASS
+$(call Info,PASS:$(_test)=$(strip $(1)))
+endef
+
+#+
+# Issue a test failed message.
+# Uses:
+#   _test   The current test number.
+# Parameters:
+#   1 =     The message to display.
+#-
+define FAIL
+$(call Signal-Error,FAIL:$(_test)=$(strip $(1)))
+endef
+
+#+
 # Advance to the next test.
 # Uses:
 #   _test   The current test number.
@@ -136,8 +158,27 @@ c := 3
 $(call Require,a b c d)
 
 $(call next-test,Must-Be-One-Of)
-$(call Must-Be-One-Of,a,1 2 3)
-$(call Must-Be-One-Of,a,2 3)
+_pat := 1 2 3
+$(call test-message,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
+ifeq ($(call Must-Be-One-Of,a,${_pat}),)
+  $(call FAIL,Is NOT one.)
+else
+  $(call PASS,Is one.)
+endif
+_pat := 2 3
+$(call test-message,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
+ifeq ($(call Must-Be-One-Of,a,${_pat}),)
+  $(call PASS,Is NOT one.)
+else
+  $(call FAIL,Is one.)
+endif
+_pat := 21 3
+$(call test-message,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
+ifeq ($(call Must-Be-One-Of,a,${_pat}),)
+  $(call PASS,Is NOT one.)
+else
+  $(call FAIL,Is one.)
+endif
 
 $(call next-test,Use-Segment)
 
