@@ -381,8 +381,10 @@ WorkingPath = $(call Get-Segment-Path,1)
 WorkingDir = $(notdir ${WorkingPath})
 WorkingVar := $(call To-Shell-Var,${WorkingDir})
 
-# Where sticky variables are initially stored.
-STICKY_PATH ?= ${WorkingPath}/.modfw/sticky
+# For storing sticky options in a known location.
+DEFAULT_STICKY_PATH := ${WorkingPath}/.${WorkingDir}/sticky
+
+STICKY_PATH := ${DEFAULT_STICKY_PATH}
 
 # Special goal to force another goal.
 FORCE:
