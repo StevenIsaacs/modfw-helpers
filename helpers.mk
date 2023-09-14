@@ -12,7 +12,10 @@ Dlr := $
 
 define _Format-Message
   $(eval MsgList += ${NewLine}$(strip $(1)):${Seg}:$(strip $(2)))
-  $(info $(strip $(1)):${Seg}:$(strip $(2)))
+  $(if ${QUIET},
+  ,
+    $(info $(strip $(1)):${Seg}:$(strip $(2)))
+  )
   $(eval Messages = yes)
 endef
 
@@ -759,6 +762,10 @@ Signal-Error
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The error message.
+
+If QUIET is not empty then all messages except error messages are suppressed.
+They are still added to the message list and can still be displayed using
+the display-messages goal.
 
 +++++ Paths and file names
 
