@@ -1,8 +1,7 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # <purpose for this segment>
 #----------------------------------------------------------------------------
-# The prefix <u> must be unique for all files.
-# The format of all the <u> based names is required.
+# The prefix $(call This-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
 ifndef $(call This-Segment-Basename)SegId
@@ -14,14 +13,14 @@ $(call Enter-Segment)
 # +++++
 # Postamble
 # Define help only if needed.
-ifneq ($(call Is-Goal,help-${<u>Seg}),)
-define help_${<u>SegV}_msg
-Make segment: ${<u>Seg}.mk
+ifneq ($(call Is-Goal,help-${Seg}),)
+define help_${SegV}_msg
+Make segment: ${Seg}.mk
 
 <make segment help messages>
 
 Command line goals:
-  help-${<u>Seg}   Display this help.
+  help-${Seg}   Display this help.
 endef
 endif # help goal message.
 
