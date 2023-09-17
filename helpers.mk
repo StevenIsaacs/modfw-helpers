@@ -263,18 +263,18 @@ endef
 
 define Gen-Segment
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# $(strip $(1))
+# $(strip $(2))
 #----------------------------------------------------------------------------
-# The prefix $$(call This-Segment-Basename) must be unique for all files.
-# The format of all the $$(call This-Segment-Basename) based names is required.
+# The prefix $(1) must be unique for all files.
+# The format of all the $(1) based names is required.
 # +++++
 # Preamble
-$.ifndef $$(call This-Segment-Basename)SegId
+$.ifndef $(1)SegId
 $$(call Enter-Segment)
 # -----
 
 # The primary goal for the segment.
-$(2)
+$(3)
 
 # Add variables, macros, goals, and recipes here.
 
@@ -679,15 +679,17 @@ Gen-Segment - Generate a segment file.
   This generates a segment file template which can then be customized by the
   developer.
   Parameters:
-    1 = A one line description.
-    2 = An optional goal and dependencies for the segment. This should be
-        a string formatted as: <goal>: <dependencies>
+    1 = The segment name. This is used to name the segment file, associated
+        variable and, specific goals.
+    2 = A one line description.
+    3 = An optional goal and list of dependencies for the segment. This should
+        be a string formatted as: <goal>: <dependencies>
         If <dependencies> is a variable then it should be escaped so that it
         is not expanded when the segment is generated.
   For example,
-  $$(call Gen-Segment,This is a sample segment.,sample-seg: $$$${deps})
+  $$(call Gen-Segment,sample-seg,This is a sample segment.,seg_goal: $$$${deps})
   generates:
-$(call Gen-Segment,This is a sample segment.,sample-seg: $${deps})
+$(call Gen-Segment,sample-seg,This is a sample segment.,seg_goal: $${deps})
 
 +++++ Make goals or targets
 
