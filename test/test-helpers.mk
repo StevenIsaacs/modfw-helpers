@@ -155,7 +155,22 @@ $(call next-test,Require)
 a := 1
 b := 2
 c := 3
-$(call Require,a b c d)
+r := $(call Require,a b c d)
+ifeq (${r},)
+  $(call FAIL,Require: Returned an empty string -- should have returned d.)
+else
+  ifeq (${r},d)
+    $(call PASS,Require: Returned -${r}-.)
+  else
+    $(call FAIL,Require: Returned -${r}- -- should have been d.)
+  endif
+endif
+r := $(call Require,a b c)
+ifeq (${r},)
+  $(call PASS,Require: Returned an empty string as it should.)
+else
+  $(call FAIL,Require: Returned -${r}- -- should have been empty.)
+endif
 
 $(call next-test,Must-Be-One-Of)
 _pat := 1 2 3

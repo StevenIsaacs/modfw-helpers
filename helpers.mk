@@ -64,23 +64,19 @@ endef
 
 To-Shell-Var = _$(subst -,_,$(1))
 
-#+
-# This private macro is used to verify a single variable exists.
-# If the variable is empty then an error message is appended to ErrorList.
-# Parameters:
-#   1 = The name of the variable.
-#   2 = The module in which it is required.
-#-
-define _require-this
-  $(call Debug,Requiring: $(1))
-  $(if $(findstring undefined,$(flavor ${1})),
-    $(call Signal-Error,${Seg} requires variable $(1) must be defined.)
-  )
-endef
-
 define Require
+$(strip \
   $(call Debug,Required in: ${Seg})
-  $(foreach v,$(1),$(call _require-this,$(v)))
+  $(eval _r :=)
+  $(foreach _v,$(1),
+    $(call Debug,Requiring: ${_v})
+    $(if $(findstring undefined,$(flavor ${_v})),
+      $(eval _r += ${_v})
+      $(call Signal-Error,${Seg} requires variable ${_v} must be defined.)
+    )
+  )
+  ${_r}
+)
 endef
 
 define _mbof
@@ -335,12 +331,14 @@ endef
 #++++++++++++++
 # Directories and files.
 define Basenames-In
-  $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f})))
+  $(sort $(foreach f,$(wildcard $(1)),$(basename $(notdir ${f}))))
 endef
 
 define Directories-In
-  $(strip $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
-  $(notdir ${d})))
+  $(sort \
+    $(strip $(foreach d,$(shell find $(1) -mindepth 1 -maxdepth 1 -type d),\
+    $(notdir ${d})))
+  )
 endef
 #--------------
 
@@ -484,29 +482,39 @@ Inc-Var
   Increment the value of a variable by 1.
   Parameters:
     1 = The name of the variable to increment.
+  Returns:
+    The value of the variable incremented by 1.
 
 Dec-Var
   Decrement the value of a variable by 1.
   Parameters:
     1 = The name of the variable to decrement.
+  Returns:
+    The value of the variable decremented by 1.
 
 To-Shell-Var
   Convert string to a format which can be used as a shell (${SHELL}) variable
   name.
   Parameters:
     1 = The string to convert to a variable name.
+  Returns:
+    A string which can be used as the name of a shell variable.
 
 Require
   Use this macro to verify variables are set.
   Parameters:
     1 = The make file segment.
     2 = A list of required variables.
+  Returns:
+    A list of undefined variables.
 
 Must-Be-One-Of
   Verify a variable has a valid value. If not then issue a warning.
   Parameters:
-    1 = Variable name
+    1 = The name to verify is in the list.
     2 = List of valid values.
+  Returns:
+    A non-empty string if the name is a member of the list.
 
 Sticky
   A sticky variable is persistent and needs to be defined on the command line
