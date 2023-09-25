@@ -14,6 +14,7 @@ if [ "$2" == "" ]; then
   echo "$0: Sticky directory must be specified." 1>&2
   exit 1
 fi
+mkdir -p $2
 if [ "${__v[1]}" == "" ]; then
   # The variable should have been previously set.
   if [ -f $2/${__v[0]} ]; then
@@ -23,12 +24,13 @@ if [ "${__v[1]}" == "" ]; then
       echo "$0: Sticky variable ${__v[0]} has not been set." 1>&2
       exit 1
     else
+      # Use the default value.
+      echo $3 > $2/${__v[0]}
       echo $3
     fi
   fi
 else
   # Set the variable.
-  mkdir -p $2
   echo ${__v[1]} > $2/${__v[0]}
   echo ${__v[1]}
 fi
