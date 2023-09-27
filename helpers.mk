@@ -354,7 +354,7 @@ define Pause
 endef
 
 define Return-Code
-  $(lastword $(1))
+  $(if $(filter 0,$(lastword $(1))),,$(lastword $(1)))
 endef
 
 define Run
