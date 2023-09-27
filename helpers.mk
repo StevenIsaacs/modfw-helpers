@@ -269,10 +269,10 @@ $.ifndef $(1)SegId
 $$(call Enter-Segment)
 # -----
 
+$$(call Info,New segment: Add variables, macros, goals, and recipes here.)
+
 # The primary goal for the segment.
 $(3)
-
-# Add variables, macros, goals, and recipes here.
 
 # +++++
 # Postamble
@@ -340,6 +340,7 @@ define Directories-In
     $(notdir ${d})))
   )
 endef
+
 #--------------
 
 #++++++++++++++
@@ -351,6 +352,15 @@ endef
 define Pause
   $(shell read -r -p "Press Enter to continue...")
 endef
+
+define Return-Code
+  $(lastword $(1))
+endef
+
+define Run
+  $(shell $(1) 2>&1;echo $$?)
+endef
+
 #--------------
 
 # Set SegId to the segment that included helpers so that the previous segment
@@ -801,6 +811,23 @@ Confirm
 
 Pause
   Wait until the Enter key is pressed.
+
+Return-Code
+  Returns the return code (last line) of the output produced by Run. This can
+  then be used in a conditional.
+  Parameter:
+    1 = The previously captured console output.
+  Returns:
+    The return code.
+
+Run
+  Run a shell command and return the error code.
+  Parameters:
+    1 = The command to run. This can be multiple commands separated by
+        semicolons (;) or AND (&&) OR (||) conditionals.
+  Returns:
+    The console output with the return code appended as the last line. Use
+    Return-Code to retrieve only the return code from the output.
 
 Special goals:
 show-%

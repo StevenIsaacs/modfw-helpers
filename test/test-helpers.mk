@@ -96,6 +96,16 @@ $(call next-test,$(SHELL) HELPER_FUNCTIONS)
 $(call test-message,helpersSegId = ${helpersSegId})
 $(call test-message,HELPER_FUNCTIONS = ${HELPER_FUNCTIONS})
 
+$(call next-test,Running shell commands.)
+_o := $(call Run,ls /tmp)
+$(call test-message,Run output = ${_o})
+_r := $(call Return-Code,${_o})
+$(call test-message,Run return code: ${_r})
+_o := $(call Run,ls crap)
+$(call test-message,Run output = ${_o})
+_r := $(call Return-Code,${_o})
+$(call test-message,Run return code: ${_r})
+
 $(call next-test,Segment identifiers.)
 $(call report-seg-context)
 
