@@ -8,6 +8,7 @@ ifndef helpersSegId
 NewLine = nlnl
 _empty :=
 Space := ${_empty} ${_empty}
+Comma := ,
 Dlr := $
 
 define _Format-Message
@@ -44,11 +45,30 @@ endif
 
 MAKEFLAGS += --debug=${_V}
 
+Error_Handler :=
+# This is a semaphore which is ued to avoid recursive calls to an installed
+# error handler. If the variable is equal to 1 then a call to the error handler
+# is safe.
+Error_Safe := 1
+
+define Set-Error-Handler
+  $(eval Error_Handler := $(1))
+endef
+
 define Signal-Error
   $(eval ErrorList += ${NewLine}ERR:${Seg}:$(1))
   $(call _Format-Message,ERR,$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
+  $(and ${Error_Handler},$(filter ${Error_Safe},1),
+    $(eval Error_Safe := )
+    $(call Debug,Calling ${Error_Handler}.)
+    $(call Debug,Message:$(1).)
+    $(call ${Error_Handler},$(1))
+    $(eval Error_Safe := 1)
+  ,
+    $(call Warn,Recursive call to Signal-Error -- handler not called.)
+  )
 endef
 #--------------
 
@@ -153,17 +173,17 @@ endef
 
 #++++++++++++++
 # Makefile segment handling.
-This-Segment-Id = $(words ${MAKEFILE_LIST})
+Last-Segment-Id = $(words ${MAKEFILE_LIST})
 
-This-Segment-File = $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})
+Last-Segment-File = $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})
 
-This-Segment-Basename = \
+Last-Segment-Basename = \
   $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
-This-Segment-Var = \
-  $(subst -,_,$(call This-Segment-Basename))
+Last-Segment-Var = \
+  $(subst -,_,$(call Last-Segment-Basename))
 
-This-Segment-Path = \
+Last-Segment-Path = \
   $(realpath $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
 
 Get-Segment-File = $(word $(1),${MAKEFILE_LIST})
@@ -216,12 +236,12 @@ define Set-Segment-Context
 endef
 
 define Enter-Segment
-  $(eval __s := $(call This-Segment-Basename))
-  $(eval ${__s}SegId := $(call This-Segment-Id))
+  $(eval __s := $(call Last-Segment-Basename))
+  $(eval ${__s}SegId := $(call Last-Segment-Id))
   $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${${__s}SegId})))
-  $(eval ${__s}Seg := $(call This-Segment-Basename))
-  $(eval ${__s}SegP := $(call This-Segment-Path))
-  $(eval ${__s}SegF := $(call This-Segment-File))
+  $(eval ${__s}Seg := $(call Last-Segment-Basename))
+  $(eval ${__s}SegP := $(call Last-Segment-Path))
+  $(eval ${__s}SegF := $(call Last-Segment-File))
   $(eval ${__s}SegV := $(call To-Shell-Var,${__s}))
   $(eval ${__s}PrvSegId := ${SegId})
   $(call Set-Segment-Context,${${__s}SegId})
@@ -245,16 +265,16 @@ endef
 
 # Assumes the context is set to the exiting segment.
 define Check-Segment-Conflicts
-  $(eval __s := $(call This-Segment-Basename))
+  $(eval __s := $(call Last-Segment-Basename))
   $(call Debug,\
   Segment exists: ID = ${${__s}SegId}: file = $(call Get-Segment-File,${${__s}SegId}))
   $(eval \
     $(if $(findstring \
-      $(call This-Segment-File),$(call Get-Segment-File,${${__s}SegId})),
+      $(call Last-Segment-File),$(call Get-Segment-File,${${__s}SegId})),
         $(call Info,\
         $(call Get-Segment-File,${${__s}SegId}) has already been included.),\
     $(call Signal-Error,\
-      Prefix conflict with $(${__s}Seg) in $(call This-Segment-File).)))
+      Prefix conflict with $(${__s}Seg) in $(call Last-Segment-File).)))
 endef
 
 define Gen-Segment
@@ -296,9 +316,9 @@ $.endef
 $.endif # help goal message.
 
 $$(call Exit-Segment)
-$.else # $$(call This-Segment-Basename)SegId exists
+$.else # $$(call Last-Segment-Basename)SegId exists
 $$(call Check-Segment-Conflicts)
-$.endif # $$(call This-Segment-Basename)SegId
+$.endif # $$(call Last-Segment-Basename)SegId
 # -----
 
 endef
@@ -365,7 +385,7 @@ endef
 
 # Set SegId to the segment that included helpers so that the previous segment
 # set by Enter-Segment and used by Exit-Segment will have a valid value.
-_i := $(call This-Segment-Id)
+_i := $(call Last-Segment-Id)
 $(call Dec-Var,_i)
 # Initialize the top level context.
 $(call Set-Segment-Context,${_i})
@@ -574,16 +594,16 @@ Overridable
 
 +++++ Makefile segment handling.
 
-This-Segment-Id
+Last-Segment-Id
   Returns the ID of the most recently included makefile segment.
 
-This-Segment-Basename
+Last-Segment-Basename
   Returns the basename of the most recently included makefile segment.
 
-This-Segment-Var
+Last-Segment-Var
   Returns the name of the most recently included makefile segment.
 
-This-Segment-Path
+Last-Segment-Path
   Returns the directory of the most recently included makefile segment.
 
 Segment-Basename
@@ -775,13 +795,33 @@ Debug
   Parameters:
     1 = The message to display.
 
+Set-Error-Handler
+  Install a callback handler for when Signal-Error is called.
+  The error handler should support one parameter which will be the error
+  message.
+  WARNING: An error handler should not do any thing that could in turn  trigger
+  and error. Doing so could result in a fatal infinite loop. To help mitigate
+  this problem the variable Error_Safe is used as a semaphore. If the variable
+  is empty then the error handler will NOT be called.
+  Parameters:
+    1 = The name of the macro to call when an error occurs. To disable the
+        current handler do not pass this parameter or pass an empty value.
+
 Signal-Error
   Use this macro to issue an error message as a warning and signal a
   delayed error exit. The messages can be displayed using the display-errors
   goal. Error messages are prefixed with ERR.
+  If an error handler is connected (see Set-Error-Handler) and the
+  Error_Safe variable is equal to 1 then the error handler is called with the
+  error message as the first parameter.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The error message.
+  Uses:
+    Error_Handler = ${Error_Handler}
+      The name of the macro to call when an error occurs.
+    Error_Safe = ${Error_Safe}
+      The handler is called only when this is equal to 1.
 
 If QUIET is not empty then all messages except error messages are suppressed.
 They are still added to the message list and can still be displayed using
@@ -818,7 +858,8 @@ Return-Code
   Parameter:
     1 = The previously captured console output.
   Returns:
-    The return code.
+    If the return code equals 0 then nothing is returned. Otherwise, the
+    return code is returned.
 
 Run
   Run a shell command and return the error code.
@@ -846,7 +887,7 @@ display-errors
 
 endef
 endif # help goal
-$(call Debug,This-Segment-Id:$(call This-Segment-Id))
+$(call Debug,Last-Segment-Id:$(call Last-Segment-Id))
 $(call Debug,${Seg}SegID:${${Seg}SegID})
 $(call Exit-Segment)
 else # Already loaded.

@@ -21,7 +21,7 @@ $(call Info,Macro tests complete.)
 $(call Info,Testing include of same file.)
 # Test detection of including same file. This uses the path rather than
 # relying upon the search path.
-$(call Use-Segment,test/test-helpers)
+$(call Use-Segment,${helpersSegP}/test/test-helpers.mk)
 # Test detection of prefix conflict between different files.
 $(call Use-Segment,test-conflict)
 # Test sub-make.
