@@ -378,7 +378,8 @@ define Return-Code
 endef
 
 define Run
-  $(shell $(1) 2>&1;echo $$?)
+  $(call Debug,Run:$(2))
+  $(eval $(1) := $(shell $(2) 2>&1;echo $$?))
 endef
 
 #--------------
@@ -864,7 +865,8 @@ Return-Code
 Run
   Run a shell command and return the error code.
   Parameters:
-    1 = The command to run. This can be multiple commands separated by
+    1 = The name of a variable to store the output in.
+    2 = The command to run. This can be multiple commands separated by
         semicolons (;) or AND (&&) OR (||) conditionals.
   Returns:
     The console output with the return code appended as the last line. Use
