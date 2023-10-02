@@ -34,7 +34,7 @@ define FAIL
   $(eval FailedL += ${SuiteID}:${TestC})
 endef
 
-define Next-Test
+define Next-Suite
 $(call Inc-Var,SuiteID)
 $(call Info,$(NewLine))
 $(call Test-Info,++++ $(1) ++++)
@@ -151,7 +151,7 @@ endef
 ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,Testing helpers...)
 
-  $(call Next-Test,Signal-Error callback.)
+  $(call Next-Suite,Signal-Error callback.)
   define error-handler
     $(call Test-Info,error-handler:$(1))
   endef
@@ -168,14 +168,14 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Set-Error-Handler)
   $(call Signal-Error,Error handler removed.)
 
-  $(call Next-Test,Current context.)
+  $(call Next-Suite,Current context.)
   $(call Report-Seg-Context)
 
-  $(call Next-Test,$(SHELL) HELPER_FUNCTIONS)
+  $(call Next-Suite,$(SHELL) HELPER_FUNCTIONS)
   $(call Test-Info,helpersSegId = ${helpersSegId})
   $(call Test-Info,HELPER_FUNCTIONS = ${HELPER_FUNCTIONS})
 
-  $(call Next-Test,Running shell commands.)
+  $(call Next-Suite,Running shell commands.)
   _o := $(call Run,ls test)
   $(call Test-Info,Run output = ${_o})
   _r := $(call Return-Code,${_o})
@@ -186,10 +186,10 @@ ifneq ($(call Is-Goal,test-helpers),)
   _r := $(call Return-Code,${_o})
   $(call Test-Info,Run return code: ${_r})
 
-  $(call Next-Test,Segment identifiers.)
+  $(call Next-Suite,Segment identifiers.)
   $(call Report-Seg-Context)
 
-  $(call Next-Test,Sticky variables.)
+  $(call Next-Suite,Sticky variables.)
   tv1 := tv1_v
   tv2 := tv2_v
   $(call Test-Info,STICKY_PATH = ${STICKY_PATH})
@@ -215,7 +215,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(foreach _v,${StickyVars},\
     $(call Test-Info,Var:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v})))
 
-  $(call Next-Test,Expect_Vars)
+  $(call Next-Suite,Expect_Vars)
   v1 := v1_val
   v2 := v2_val
   v3 := v3_val
@@ -223,7 +223,7 @@ ifneq ($(call Is-Goal,test-helpers),)
 
   $(call Expect-Vars,v1:v1_val v2:v2_val v3:v3_val v4:v4_val)
 
-  $(call Next-Test,Expect-List)
+  $(call Next-Suite,Expect-List)
   $(call Test-Info,The list being verified can be longer than the expect list.)
   $(call Expect-List,one two three four,one two three four five)
   $(call Test-Info,Same lists.)
@@ -233,7 +233,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Expect-String,This should pass.,This should pass.)
   $(call Expect-String,This should fail.,This should FAIL.)
 
-  $(call Next-Test,Add-To-Manifest)
+  $(call Next-Suite,Add-To-Manifest)
   $(call Add-To-Manifest,l1,null,one)
   $(call Test-Info,List: l1=${l1})
   $(call Add-To-Manifest,l1,null,two)
@@ -246,7 +246,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,Var: l2_e2=${l2_e1})
   $(call Test-Info,Var: null=${null})
 
-  $(call Next-Test,Signal-Error)
+  $(call Next-Suite,Signal-Error)
   $(call Signal-Error,Error one.)
   $(info ErrorList: ${ErrorList})
   $(call Signal-Error,Error two.)
@@ -259,7 +259,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(info ErrorList: ${ErrorList})
   $(call show-errors)
 
-  $(call Next-Test,Require)
+  $(call Next-Suite,Require)
   a := 1
   b := 2
   c := 3
@@ -280,7 +280,7 @@ ifneq ($(call Is-Goal,test-helpers),)
     $(call FAIL,Require: Returned -${r}- -- should have been empty.)
   endif
 
-  $(call Next-Test,Must-Be-One-Of)
+  $(call Next-Suite,Must-Be-One-Of)
   _pat := 1 2 3
   $(call Test-Info,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
   ifeq ($(call Must-Be-One-Of,a,${_pat}),)
@@ -303,26 +303,26 @@ ifneq ($(call Is-Goal,test-helpers),)
     $(call FAIL,Is one.)
   endif
 
-  $(call Next-Test,Use-Segment)
+  $(call Next-Suite,Use-Segment)
 
-  $(call Next-Test,Use-Segment:Segments in the current directory.)
+  $(call Next-Suite,Use-Segment:Segments in the current directory.)
   $(call Use-Segment,ts1)
   $(call Use-Segment,ts2)
-  $(call Next-Test,Use-Segment:Segments in subdirectories.)
+  $(call Next-Suite,Use-Segment:Segments in subdirectories.)
   $(call Use-Segment,td1)
   $(call Use-Segment,td2)
   $(call Use-Segment,td3)
-  $(call Next-Test,Use-Segment:Multiple segments of the same name.)
+  $(call Next-Suite,Use-Segment:Multiple segments of the same name.)
   $(call Use-Segment,tm1)
   $(call Use-Segment,test/d2/tm1)
-  $(call Next-Test,Use-Segment:A segment in a subdirectory.)
+  $(call Next-Suite,Use-Segment:A segment in a subdirectory.)
   $(call Use-Segment,sd3/tsd3)
-  $(call Next-Test,Use-Segment:Does not exist.)
+  $(call Next-Suite,Use-Segment:Does not exist.)
   $(call Use-Segment,te1)
-  $(call Next-Test,Use-Segment:Full segment path (no find).)
+  $(call Next-Suite,Use-Segment:Full segment path (no find).)
   $(call Use-Segment,${SegP}/ts3.mk)
 
-  $(call Next-Test,Test overridable variables.)
+  $(call Next-Suite,Test overridable variables.)
   $(call Test-Info,Declaring ov1 as overridable.)
   $(call Overridable,ov1,ov1_val)
   $(call Test-Info,ov1:$(ov1))
@@ -334,7 +334,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,ov2:$(ov2))
   $(call Test-Info,Overridables: $(OverridableVars))
 
-  $(call Next-Test,Confirmations)
+  $(call Next-Suite,Confirmations)
   _r := $(call Confirm,Enter positive response.,y)
   $(call Test-Info,Response = "${_r}")
   ifeq (${_r},y)
@@ -357,7 +357,7 @@ test-helpers: display-errors display-messages
 else ifneq ($(call Is-Goal,test-submake),)
   $(call Test-Info,Testing sub-make...)
   $(call Test-Info,Before:tv1=${tv1} tv2=${tv2} tv3=${tv3})
-  $(call Next-Test,Sticky variables in a sub-make.)
+  $(call Next-Suite,Sticky variables in a sub-make.)
   $(call Test-Info,Cannot set sticky variables in a sub-make.)
   $(call Test-Info,StickyVars:${StickyVars})
   # tv1 should have the value from the command line but not saved.
@@ -422,7 +422,7 @@ PASS
   Parameters:
     1 = The message to display.
   Uses:
-    SuiteID  The current test suite.
+    SuiteID The current test suite.
     TestC   Is incremented.
     PassedC Is incremented.
     PassedL SuiteID is appended to this list.
@@ -437,7 +437,7 @@ FAIL
     FailedC Is incremented.
     FailedL SuiteID is appended to this list.
 
-Next-Test
+Next-Suite
   Advance to the next test suite.
   Parameters:
     1 = A message describing the test.
@@ -491,10 +491,10 @@ endef
 $(call Test-Info,help_${SegV}_msg = ${help_${SegV}_msg})
 endif
 $(call Exit-Segment)
-$(call Next-Test,Restored context.)
+$(call Next-Suite,Restored context.)
 $(call Report-Seg-Context)
 else # SegId exists
-$(call Next-Test,ID exists context.)
+$(call Next-Suite,ID exists context.)
 $(call Report-Seg-Context)
 $(call Check-Segment-Conflicts)
 endif # SegId
