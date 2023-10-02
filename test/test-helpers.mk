@@ -175,6 +175,26 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,helpersSegId = ${helpersSegId})
   $(call Test-Info,HELPER_FUNCTIONS = ${HELPER_FUNCTIONS})
 
+  _o := 0
+  $(call Test-Info,Return-Code:Checking: ${_o})
+  # No exception.
+  _r := $(call Return-Code,${_o})
+  $(call Expect-Vars,_r:)
+  _o := This is 0
+  $(call Test-Info,Return-Code:Checking: ${_o})
+  _r := $(call Return-Code,${_o})
+  $(call Expect-Vars,_r:)
+  # Exception.
+  _o := 128
+  $(call Test-Info,Return-Code:Checking: ${_o})
+  _r := $(call Return-Code,${_o})
+  $(call Expect-Vars,_r:128)
+
+  _o := Exception is 128
+  $(call Test-Info,Return-Code:Checking: ${_o})
+  _r := $(call Return-Code,${_o})
+  $(call Expect-Vars,_r:128)
+
   $(call Next-Suite,Running shell commands.)
   $(call Run._o,ls test)
   $(call Test-Info,Run output = ${_o})
