@@ -67,6 +67,7 @@ define Expect-Vars
 endef
 
 define Expect-List
+  $(call Debug,Expect-List:Expecting:($(1)) Actual:($(2)))
   $(eval _i := 0)
   $(eval _ex := )
   $(foreach _w,$(1),
@@ -81,11 +82,16 @@ define Expect-List
     $(call Test-Info,Expect-List:Lists do not match.)
     $(foreach _i,${_ex},
       $(call FAIL,\
-        Expected:$(word ${_i},$(1)) Found:$(word ${_i},$(2)))
+        Expected:($(word ${_i},$(1))) Found:($(word ${_i},$(2))))
     )
   ,
     $(call PASS,Lists match.)
   )
+endef
+
+define Expect-String
+  $(call Debug,Expect-String:Expecting:($(1)) Actual:($(2)))
+  $(call Expect-List,$(1),$(2))
 endef
 
 #+
@@ -224,6 +230,8 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Expect-List,one two three four,one two three four)
   $(call Test-Info,Lists do not match.)
   $(call Expect-List,one two three four,one Two three Four)
+  $(call Expect-String,This should pass.,This should pass.)
+  $(call Expect-String,This should fail.,This should FAIL.)
 
   $(call Next-Test,Add-To-Manifest)
   $(call Add-To-Manifest,l1,null,one)
@@ -460,6 +468,12 @@ Expect-List
   Parameters:
     1 = The expected list.
     2 = The list to verify.
+
+Expect-String
+  A synonym for Expect-List for clarity when checking strings.
+  Parameters:
+    1 = The expected string,
+    2 = The string to verify.
 
 Report-Seg-Context
   Displays a series of messages for the current segment context as defined by
