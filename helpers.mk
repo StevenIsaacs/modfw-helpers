@@ -11,38 +11,18 @@ Space := ${_empty} ${_empty}
 Comma := ,
 Dlr := $
 
-ifdef DEBUG
 Macro_Stack :=
 
-define Enter-Macro
-  $(if $(filter $(1),${Macro_Stack}),
-    $(call Warn,Recursive call to $(1) detected.)
-  )
-  $(eval Macro_Stack += $(1))
-endef
-
-define Exit-Macro
-  $(eval \
-    Macro_Stack := $(filter-out $(lastword ${Macro_Stack}),${Macro_Stack})
-  )
-endef
-
-endif
-
 define _Format-Message
-  $(if $(and ${DEBUG},${Macro_Stack}),
-    $(eval MsgList += ${NewLine}Trace:${Macro_Stack})
-  )
-  $(eval MsgList += ${NewLine}$(strip $(1)):${Seg}:$(strip $(2)))
+  $(eval \
+    MsgList += \
+    ${NewLine}$(strip $(1)):${Seg}:$(lastword ${Macro_Stack}):$(strip $(2)))
   $(if ${QUIET},
   ,
     $(if $(filter $(lastword $(2)),${NewLine}),
       $(info )
     )
-    $(if $(and ${DEBUG},${Macro_Stack}),
-      $(info Trace:${Macro_Stack})
-    )
-    $(info $(strip $(1)):${Seg}${Macro_Stack}:$(strip $(2)))
+    $(info $(strip $(1)):${Seg}:$(lastword ${Macro_Stack}):$(strip $(2)))
   )
   $(eval Messages = yes)
 endef
@@ -69,6 +49,26 @@ define Debug
 endef
 _V:=vp
 endif
+
+define Enter-Macro
+  $(if $(filter $(1),${Macro_Stack}),
+    $(call Warn,Recursive call to $(1) detected.)
+  )
+  $(eval Macro_Stack += $(1))
+  $(if ${DEBUG},
+    $(call _Format-Message,trc,${Macro_Stack})
+  )
+endef
+
+define Exit-Macro
+  $(if ${DEBUG},
+    $(call _Format-Message,trc,Exiting macro.)
+  )
+  $(eval \
+    Macro_Stack := $(filter-out $(lastword ${Macro_Stack}),${Macro_Stack})
+  )
+endef
+
 
 MAKEFLAGS += --debug=${_V}
 
@@ -879,17 +879,10 @@ Signal-Error
     Error_Safe = ${Error_Safe}
       The handler is called only when this is equal to 1.
 
-If QUIET is not empty then all messages except error messages are suppressed.
-They are still added to the message list and can still be displayed using
-the display-messages goal.
-
-+++++ Debug support
-
-When DEBUG is defined the following macros are defined.
-
 Macro_Stack
   This is a special variable containing the list of macros which have been
-  entered using Enter-Macro.
+  entered using Enter-Macro. The last item on the stack is emitted with all
+  messages.
 
 Enter-Macro
   Adds a macro name to the Macro_Stack. This should be called as the first
@@ -900,6 +893,17 @@ Enter-Macro
 Exit-Macro
   Removes the last macro name from the Macro_Stack. This should be called as
   the last line of the macro.
+
+If QUIET is not empty then all messages except error messages are suppressed.
+They are still added to the message list and can still be displayed using
+the display-messages goal.
+
++++++ Debug support
+
+When DEBUG is defined macro call trace messages are emitted. These are
+prefixed with trc.
+
+When DEBUG is defined the following macros are defined:
 
 Debug
   Emit a debugging message. All debug messages are automatically added to the
