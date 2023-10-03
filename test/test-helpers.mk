@@ -148,6 +148,42 @@ define Report-Test-Summary
   $(call Test-Info,Failed tests:${FailedL})
 endef
 
+# NOTE: This required DEBUG to be defined.
+ifneq (${DEBUG},)
+  ifneq ($(call Is-Goal,test-stack),)
+    $(call Test-Info,Testing the macro stack.)
+    define m-3
+      $(call Enter-Macro,m-3)
+      $(call Test-Info,Macro entered,)
+      $(call Exit-Macro)
+      $(call Test-Info,Macro exited.)
+    endef
+
+    define m-2
+      $(call Enter-Macro,m-2)
+      $(call Test-Info,Macro entered,)
+      $(call m-3)
+      $(call Exit-Macro)
+      $(call Test-Info,Macro exited.)
+    endef
+
+    define m-1
+      $(call Enter-Macro,m-1)
+      $(call Test-Info,Macro entered,)
+      $(call m-2)
+      $(call Exit-Macro)
+      $(call Test-Info,Macro exited.)
+    endef
+
+    $(call Debug,Calling m-1.)
+    $(call m-1)
+
+test-stack: display-errors display-messages
+
+  endif
+
+endif
+
 ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,Testing helpers...)
 
@@ -178,7 +214,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   _o := 0
   $(call Test-Info,Return-Code:Checking: ${_o})
   # No exception.
-  _r := $(call Return-Code,${_o})
+  _r := $(call Return-Code,0)
   $(call Expect-Vars,_r:)
   _o := This is 0
   $(call Test-Info,Return-Code:Checking: ${_o})

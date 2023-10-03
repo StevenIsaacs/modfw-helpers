@@ -11,11 +11,38 @@ Space := ${_empty} ${_empty}
 Comma := ,
 Dlr := $
 
+ifdef DEBUG
+Macro_Stack :=
+
+define Enter-Macro
+  $(if $(filter $(1),${Macro_Stack}),
+    $(call Warn,Recursive call to $(1) detected.)
+  )
+  $(eval Macro_Stack += $(1))
+endef
+
+define Exit-Macro
+  $(eval \
+    Macro_Stack := $(filter-out $(lastword ${Macro_Stack}),${Macro_Stack})
+  )
+endef
+
+endif
+
 define _Format-Message
+  $(if $(and ${DEBUG},${Macro_Stack}),
+    $(eval MsgList += ${NewLine}Trace:${Macro_Stack})
+  )
   $(eval MsgList += ${NewLine}$(strip $(1)):${Seg}:$(strip $(2)))
   $(if ${QUIET},
   ,
-    $(info $(strip $(1)):${Seg}:$(strip $(2)))
+    $(if $(filter $(lastword $(2)),${NewLine}),
+      $(info )
+    )
+    $(if $(and ${DEBUG},${Macro_Stack}),
+      $(info Trace:${Macro_Stack})
+    )
+    $(info $(strip $(1)):${Seg}${Macro_Stack}:$(strip $(2)))
   )
   $(eval Messages = yes)
 endef
@@ -85,6 +112,7 @@ endef
 To-Shell-Var = _$(subst -,_,$(1))
 
 define Require
+$(call Enter-Macro,Require)
 $(strip \
   $(call Debug,Required in: ${Seg})
   $(eval _r :=)
@@ -97,6 +125,7 @@ $(strip \
   )
   ${_r}
 )
+$(call Exit-Macro)
 endef
 
 define _mbof
@@ -107,11 +136,14 @@ define _mbof
 endef
 
 define Must-Be-One-Of
+$(call Enter-Macro,Must-Be-One-Of)
 $(strip $(call _mbof,$(1),$(2)))
+$(call Exit-Macro)
 endef
 
 StickyVars :=
 define Sticky
+  $(call Enter-Macro,Sticky)
   $(eval _spl := $(subst =,${Space},$(1)))
   $(eval _sp := $(word 1,${_spl}))
   $(call Debug,Sticky:Var:${_sp})
@@ -136,18 +168,22 @@ define Sticky
     )\
   )\
   )
+  $(call Exit-Macro)
 endef
 
 define Redefine-Sticky
+  $(call Enter-Macro,Redefine-Sticky)
   $(eval _rs := $(firstword $(subst =,${Space},$(1))))
   $(call Debug,Redefine-Sticky:Redefining:$(1))
   $(call Debug,Redefine-Sticky:Resetting var:${_rs})
   $(eval StickyVars := $(filter-out ${_rs},${StickyVars}))
   $(call Debug,Redefine-Sticky:StickyVars:${StickyVars})
   $(call Sticky,$(1))
+  $(call Exit-Macro)
 endef
 
 define Remove-Sticky
+  $(call Enter-Macro,Remove-Sticky)
   $(if $(filter $(1),${StickyVars}),\
   $(call Debug,Remove-Sticky:Removing sticky variable: $(1));\
   $(eval StickyVars := $(filter-out $(1),${StickyVars}));\
@@ -155,10 +191,12 @@ define Remove-Sticky
   $(shell rm ${STICKY_PATH}/$(1)),\
   $(call Debug,Remove-Sticky:Var $(1) has not been defined.)\
   )
+  $(call Exit-Macro)
 endef
 
 OverridableVars :=
 define Overridable
+  $(call Enter-Macro,Overridable)
   $(if $(filter $(1),${OverridableVars}),\
   $(call Signal-Error,\
     Overridable:Var $(1) has already been declared.),\
@@ -168,6 +206,7 @@ define Overridable
     $(call Debug,Overridable:Var $(1) has override value: ${$(1)})\
     )\
   )
+  $(call Exit-Macro)
 endef
 #--------------
 
@@ -200,11 +239,14 @@ Get-Segment-Path = \
 SegPaths :=  $(call Get-Segment-Path,1)
 
 define Add-Segment-Path
+  $(call Enter-Macro,Add-Segment-Path)
   $(eval SegPaths += $(1))
   $(call Debug,Added path(s):$(1))
+  $(call Exit-Macro)
 endef
 
 define Find-Segment
+  $(call Enter-Macro,Find-Segment)
   $(eval $(2) := )
   $(call Debug,Locating segment: $(1))
   $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegId}))
@@ -215,9 +257,11 @@ define Find-Segment
   $(if ${$(2)},\
   $(call Debug,Found segment:${$(2)}),
   $(call Signal-Error,$(1).mk not found.))
+  $(call Exit-Macro)
 endef
 
 define Use-Segment
+  $(call Enter-Macro,Use-Segment)
   $(if $(findstring .mk,$(1)),\
   $(call Debug,Including segment:${1});\
   $(eval include $(1)),\
@@ -225,17 +269,21 @@ define Use-Segment
   $(call Debug,Using segment:${_seg});\
   $(eval include ${_seg})\
   )
+  $(call Exit-Macro)
 endef
 
 define Set-Segment-Context
+  $(call Enter-Macro,Set-Segment-Context)
   $(eval SegId := $(1))
   $(eval Seg := $(call Get-Segment-Basename,$(1)))
   $(eval SegP := $(call Get-Segment-Path,$(1)))
   $(eval SegF := $(call Get-Segment-File,$(1)))
   $(eval SegV := $(call To-Shell-Var,${Seg}))
+  $(call Exit-Macro)
 endef
 
 define Enter-Segment
+  $(call Enter-Macro,Enter-Segment)
   $(eval __s := $(call Last-Segment-Basename))
   $(eval ${__s}SegId := $(call Last-Segment-Id))
   $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${${__s}SegId})))
@@ -245,10 +293,12 @@ define Enter-Segment
   $(eval ${__s}SegV := $(call To-Shell-Var,${__s}))
   $(eval ${__s}PrvSegId := ${SegId})
   $(call Set-Segment-Context,${${__s}SegId})
+  $(call Exit-Macro)
 endef
 
 # Assumes the context is set to the exiting segment.
 define Exit-Segment
+  $(call Enter-Macro,Exit-Segment)
 $(call Debug,Exiting segment: ${Seg})
 $(call Debug,Checking help: $(call Is-Goal,help-${Seg}))
 $(if $(call Is-Goal,help-${Seg}),\
@@ -261,10 +311,12 @@ help-${Seg}:;\
 echo "$$$$hlp${SegV}" | less\
 ))
 $(eval $(call Set-Segment-Context,${${Seg}PrvSegId}))
+$(call Exit-Macro)
 endef
 
 # Assumes the context is set to the exiting segment.
 define Check-Segment-Conflicts
+  $(call Enter-Macro,Check-Segment-Conflicts)
   $(eval __s := $(call Last-Segment-Basename))
   $(call Debug,\
   Segment exists: ID = ${${__s}SegId}: file = $(call Get-Segment-File,${${__s}SegId}))
@@ -275,6 +327,7 @@ define Check-Segment-Conflicts
         $(call Get-Segment-File,${${__s}SegId}) has already been included.),\
     $(call Signal-Error,\
       Prefix conflict with $(${__s}Seg) in $(call Last-Segment-File).)))
+  $(call Exit-Macro)
 endef
 
 define Gen-Segment
@@ -328,6 +381,7 @@ endef
 #++++++++++++++
 # Goal management.
 define Resolve-Help-Goals
+  $(call Enter-Macro,Resolve-Help-Goals)
 $(call Debug,Resolving help goals.)
 $(call Debug,Help goals: $(filter help-%,${Goals}))
 $(foreach _s,$(patsubst help-%,%,$(filter help-%,${Goals})),\
@@ -335,16 +389,19 @@ $(foreach _s,$(patsubst help-%,%,$(filter help-%,${Goals})),\
   $(if $(filter ${_s}.mk,${MAKEFILE_LIST}),\
   $(call Debug,Segment ${_s} already loaded.),\
   $(call Use-Segment,${_s})))
+$(call Exit-Macro)
 endef
 
 Is-Goal = $(filter $(1),${Goals})
 
 define Add-To-Manifest
+  $(call Enter-Macro,Add-To-Manifest)
   $(call Debug,Adding $(3) to $(1))
   $(call Debug,Var: $(2))
   $(eval $(2) = $(3))
   $(call Debug,$(2)=$(3))
   $(eval $(1) += $(3))
+  $(call Exit-Macro)
 endef
 #--------------
 
@@ -378,8 +435,10 @@ define Return-Code
 endef
 
 define Run
+  $(call Enter-Macro,Run)
   $(call Debug,Run:$(2))
   $(eval $(1) := $(shell $(2) 2>&1;echo $$?))
+  $(cal Exit-Macro)
 endef
 
 #--------------
@@ -754,22 +813,26 @@ Add-To-Manifest
 
 +++++ Strings and messaging
 
-NewLine
+NewLine = ${NewLine}
   Use this macro to insert new lines into multiline messages.
 
-Space
+Space = ${Space}
   This is intended to be used in substitution patterns where a space is
   required.
 
-Dlr
+Dlr = ${Dlr}
   This is a dollar sign and is intended to be used in macros that expand
   to bash command lines which include references to environment variables.
+
+Comma = ${Comma}
+  This is a comma and is intended to be used in macros that expand to strings
+  which would otherwise confuse the makefile parser.
 
 Info
   Use this macro to add a message to a list of messages to be displayed
   by the display-messages goal.
   Messages are prefixed with the variable Segment which is set by the
-  calling segment.
+  calling segment and the current Macro_Stack (See Debug support).
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message.
@@ -784,14 +847,6 @@ Verbose
   Displays the message if VERBOSE has been defined. All verbose messages are
   automatically added to the message list. Verbose messages are prefixed with
   vbs.
-  NOTE: This is NOT intended to be used as part of a recipe.
-  Parameters:
-    1 = The message to display.
-
-Debug
-  Displays the message if DEBUG has been defined. All debug messages are
-  automatically added to the message list. Debug messages are prefixed with
-  dbg.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
@@ -827,6 +882,32 @@ Signal-Error
 If QUIET is not empty then all messages except error messages are suppressed.
 They are still added to the message list and can still be displayed using
 the display-messages goal.
+
++++++ Debug support
+
+When DEBUG is defined the following macros are defined.
+
+Macro_Stack
+  This is a special variable containing the list of macros which have been
+  entered using Enter-Macro.
+
+Enter-Macro
+  Adds a macro name to the Macro_Stack. This should be called as the first
+  line of the macro.
+  Parameter:
+    1 = The name of the macro to add to the stack.
+
+Exit-Macro
+  Removes the last macro name from the Macro_Stack. This should be called as
+  the last line of the macro.
+
+Debug
+  Emit a debugging message. All debug messages are automatically added to the
+  message list. Debug messages are prefixed with dbg.
+  NOTE: This is NOT intended to be used as part of a recipe.
+  Parameters:
+    1 = The message to display.
+
 
 +++++ Paths and file names
 
