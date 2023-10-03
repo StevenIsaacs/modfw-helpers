@@ -47,6 +47,7 @@ define Display-Vars
 endef
 
 define Expect-Vars
+  $(call Enter-Macro,Expect-Vars)
   $(foreach _e,$(1),
     $(eval _ve := $(subst :,${Space},${_e}))
     $(call Debug,Expect-Vars:${_ve} $(word 1,${_ve}) $(word 2,${_ve}))
@@ -64,9 +65,11 @@ define Expect-Vars
       )
     )
   )
+  $(call Exit-Macro)
 endef
 
 define Expect-List
+  $(call Enter-Macro,Expect-List)
   $(call Debug,Expect-List:Expecting:($(1)) Actual:($(2)))
   $(eval _i := 0)
   $(eval _ex := )
@@ -87,17 +90,21 @@ define Expect-List
   ,
     $(call PASS,Lists match.)
   )
+  $(call Exit-Macro)
 endef
 
 define Expect-String
+  $(call Enter-Macro,Expect-String)
   $(call Debug,Expect-String:Expecting:($(1)) Actual:($(2)))
   $(call Expect-List,$(1),$(2))
+  $(call Exit-Macro)
 endef
 
 #+
 # Display the current context and the context for a segment.
 #-
 define Report-Seg-Context
+  $(call Enter-Macro,Report-Seg-Context)
   $(call Display-Vars,
     SegId \
     Seg \
@@ -136,16 +143,19 @@ define Report-Seg-Context
   $(call Test-Info,Last-Segment-Path:$(call Last-Segment-Path))
   $(call Test-Info,Last-Segment-File:$(call Last-Segment-File))
   $(call Test-Info,MAKEFILE_LIST:$(MAKEFILE_LIST))
+  $(call Exit-Macro)
 endef
 
 #+
 # Display a test summary.
 #-
 define Report-Test-Summary
+  $(call Enter-Macro,Report-Test-Summary)
   $(call Test-Info,\
     Total tests:${TestC} Total passed:${PassedC} Total failed:${FailedC})
   $(call Test-Info,Passed tests:${PassedL})
   $(call Test-Info,Failed tests:${FailedL})
+  $(call Exit-Macro)
 endef
 
 # NOTE: This required DEBUG to be defined.
