@@ -3,6 +3,26 @@
 #----------------------------------------------------------------------------
 ifndef helpersSegId
 
+# Changing the prefix because some editors, like vscode, don't handle tabs
+# in make files very well. This also slightly improves readability.
+.RECIPEPREFIX := >
+SHELL = /bin/bash
+
+# The directory containing the makefile.
+WorkingPath = $(realpath $(dir $(word 1,${MAKEFILE_LIST})))
+WorkingDir = $(notdir ${WorkingPath})
+WorkingVar := _$(subst -,_,$(WorkingDir))
+ifneq (${LOG_FILE},)
+  LogPath := ${WorkingPath}/.${WorkingDir}/log
+  $(shell mkdir -p ${LogPath})
+  LogFile := ${LogPath}/${LOG_FILE}
+endif
+
+# For storing sticky options in a known location.
+DEFAULT_STICKY_PATH := ${WorkingPath}/.${WorkingDir}/sticky
+
+STICKY_PATH := ${DEFAULT_STICKY_PATH}
+
 #++++++++++++++
 # For messages.
 NewLine = nlnl
@@ -14,9 +34,10 @@ Dlr := $
 Entry_Stack :=
 
 define Format-Message
-  $(eval \
-    MsgList += \
-    ${NewLine}$(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
+  $(if ${LogFile},
+    $(file >>${LogFile},\
+      $(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
+  )
   $(if ${QUIET},
   ,
     $(if $(filter $(lastword $(2)),${NewLine}),
@@ -497,21 +518,6 @@ $(call Enter-Segment)
 HELPER_FUNCTIONS := ${${Seg}SegP}/modfw-functions.sh
 export HELPER_FUNCTIONS
 
-# Changing the prefix because some editors, like vscode, don't handle tabs
-# in make files very well. This also slightly improves readability.
-.RECIPEPREFIX := >
-SHELL = /bin/bash
-
-# The directory containing the makefile.
-WorkingPath = $(call Get-Segment-Path,1)
-WorkingDir = $(notdir ${WorkingPath})
-WorkingVar := $(call To-Shell-Var,${WorkingDir})
-
-# For storing sticky options in a known location.
-DEFAULT_STICKY_PATH := ${WorkingPath}/.${WorkingDir}/sticky
-
-STICKY_PATH := ${DEFAULT_STICKY_PATH}
-
 # Special goal to force another goal.
 FORCE:
 
@@ -544,10 +550,12 @@ $(call Info,Running on: ${Platform})
 $(call Debug,MAKELEVEL = ${MAKELEVEL})
 $(call Debug,MAKEFLAGS = ${MAKEFLAGS})
 
-display-messages:
-> @if [ -n '${MsgList}' ]; then \
-  m="${MsgList}";printf "Messages:$${m//${NewLine}/\\n}" | less;\
-  fi
+ifneq (${LogFile},)
+display-messages: ${LogFile}
+> less $<
+else
+  $(call Signal-Error,Use LOG_FILE to enable message logging.)
+endif
 
 display-errors:
 > @if [ -n '${ErrorList}' ]; then \
@@ -600,6 +608,22 @@ Errors = ${Errors}
   If not empty then errors have been reported.
 
 Defines the helper macros:
+
+++++ Message logging.
+Because message lists can become lengthy they are not retained in memory. The
+messages can be routed to a log file.
+
+Command line options:
+LOG_FILE := ${LOG_FILE}
+  When defined all messages are written to a log file and the display-messages
+  goal will display them. This is the log file name only -- no path. The
+  display-messages goal exists only when LOG_FILE is defined.
+  Defines:
+    LogPath = ${LogPath}
+      Where log files are written to. This is always relative to the
+      working directory.
+    LogFile = ${LogFile}
+      The file the messages are written to.
 
 ++++ Variables and variable naming
 
