@@ -11,64 +11,73 @@ Space := ${_empty} ${_empty}
 Comma := ,
 Dlr := $
 
-Macro_Stack :=
+Entry_Stack :=
 
-define _Format-Message
+define Format-Message
   $(eval \
     MsgList += \
-    ${NewLine}$(strip $(1)):${Seg}:$(lastword ${Macro_Stack}):$(strip $(2)))
+    ${NewLine}$(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
   $(if ${QUIET},
   ,
     $(if $(filter $(lastword $(2)),${NewLine}),
       $(info )
     )
-    $(info $(strip $(1)):${Seg}:$(lastword ${Macro_Stack}):$(strip $(2)))
+    $(info $(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
   )
   $(eval Messages = yes)
 endef
 
 define Info
-  $(call _Format-Message,...,$(1))
+  $(call Format-Message,....,$(1))
 endef
 
 define Warn
-  $(call _Format-Message,WRN,$(1))
+  $(call Format-Message,WARN,$(1))
 endef
 
 _V:=n
 ifneq (${VERBOSE},)
 define Verbose
-  $(call _Format-Message,vbs,$(1))
+  $(call Format-Message,vbrs,$(1))
 endef
 _V:=v
 endif
 
 ifneq (${DEBUG},)
 define Debug
-  $(call _Format-Message,dbg,$(1))
+  $(call Format-Message,dbug,$(1))
 endef
 _V:=vp
 endif
 
-define Enter-Macro
-  $(if $(filter $(1),${Macro_Stack}),
-    $(call Warn,Recursive call to $(1) detected.)
+define _Push-Entry
+  $(if $(filter $(1),${Entry_Stack}),
+    $(call Warn,Recursive entry to $(1) detected.)
   )
-  $(eval Macro_Stack += $(1))
+  $(eval Entry_Stack += $(1))
   $(if ${DEBUG},
-    $(call _Format-Message,trc,${Macro_Stack})
+    $(call Format-Message, \
+      $(words ${Entry_Stack})-->,${Entry_Stack})
   )
+endef
+
+define _Pop-Entry
+  $(if ${DEBUG},
+    $(call Format-Message, \
+      <--$(words ${Entry_Stack}),Exiting:$(lastword ${Entry_Stack}))
+  )
+  $(eval \
+    Entry_Stack := $(filter-out $(lastword ${Entry_Stack}),${Entry_Stack})
+  )
+endef
+
+define Enter-Macro
+  $(call _Push-Entry,$(1))
 endef
 
 define Exit-Macro
-  $(if ${DEBUG},
-    $(call _Format-Message,trc,Exiting macro.)
-  )
-  $(eval \
-    Macro_Stack := $(filter-out $(lastword ${Macro_Stack}),${Macro_Stack})
-  )
+  $(call _Pop-Entry)
 endef
-
 
 MAKEFLAGS += --debug=${_V}
 
@@ -79,22 +88,27 @@ Error_Handler :=
 Error_Safe := 1
 
 define Set-Error-Handler
+  $(call Enter-Macro,Set-Error-Handler)
   $(eval Error_Handler := $(1))
+  $(call Exit-Macro)
 endef
 
 define Signal-Error
-  $(eval ErrorList += ${NewLine}ERR:${Seg}:$(1))
-  $(call _Format-Message,ERR,$(1))
+  $(eval ErrorList += ${NewLine}ERR?:${Seg}:$(1))
+  $(call Format-Message,ERR?,$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
-  $(and ${Error_Handler},$(filter ${Error_Safe},1),
-    $(eval Error_Safe := )
-    $(call Debug,Calling ${Error_Handler}.)
-    $(call Debug,Message:$(1).)
-    $(call ${Error_Handler},$(1))
-    $(eval Error_Safe := 1)
-  ,
-    $(call Warn,Recursive call to Signal-Error -- handler not called.)
+  $(call Debug,Handler: ${Error_Handler} Safe:${Error_Safe})
+  $(if ${Error_Handler},
+    $(if ${Error_Safe},
+      $(eval Error_Safe := )
+      $(call Debug,Calling ${Error_Handler}.)
+      $(call Debug,Message:$(1).)
+      $(call ${Error_Handler},$(1))
+      $(eval Error_Safe := 1)
+    ,
+      $(call Warn,Recursive call to Signal-Error -- handler not called.)
+    )
   )
 endef
 #--------------
@@ -112,9 +126,9 @@ endef
 To-Shell-Var = _$(subst -,_,$(1))
 
 define Require
-$(call Enter-Macro,Require)
 $(strip \
-  $(call Debug,Required in: ${Seg})
+  $(call Enter-Macro,Require)
+  $(call Debug,Requiring defined variables:$(1))
   $(eval _r :=)
   $(foreach _v,$(1),
     $(call Debug,Requiring: ${_v})
@@ -123,22 +137,25 @@ $(strip \
       $(call Signal-Error,${Seg} requires variable ${_v} must be defined.)
     )
   )
+  $(call Exit-Macro)
   ${_r}
 )
-$(call Exit-Macro)
 endef
 
 define _mbof
   $(if $(filter ${$(1)},$(2)),
-    $(call Debug,$(1)=${$(1)} and is a valid option) 1,
+    $(call Debug,$(1)=${$(1)} and is a valid option) 1
+  ,
     $(call Signal-Error,Variable $(1)=${$(1)} must equal one of: $(2))
   )
 endef
 
 define Must-Be-One-Of
-$(call Enter-Macro,Must-Be-One-Of)
-$(strip $(call _mbof,$(1),$(2)))
-$(call Exit-Macro)
+$(strip
+  $(call Enter-Macro,Must-Be-One-Of)
+  $(call _mbof,$(1),$(2))
+  $(call Exit-Macro)
+)
 endef
 
 StickyVars :=
@@ -149,24 +166,28 @@ define Sticky
   $(call Debug,Sticky:Var:${_sp})
   $(eval _sv := $(word 2,${_spl}))
   $(call Debug,Sticky:Value:${_sv})
-  $(if ${_sv},,\
-    $(eval _sv := ${${_sp}}))
+  $(if ${_sv},
+  ,
+    $(eval _sv := ${${_sp}})
+  )
   $(call Debug,Sticky:New value:${_sv})
   $(call Debug,Sticky:Path: ${STICKY_PATH})
-  $(if $(filter $(1),${StickyVars}),\
-  $(call Signal-Error,\
-    Sticky:Redefinition of sticky variable ${_sp} ignored.),\
-  $(eval StickyVars += ${_sp});\
-  $(if $(filter 0,${MAKELEVEL}),\
-    $(eval ${_sp}:=$(shell \
-      ${helpersSegP}/sticky.sh ${_sp}=${_sv} ${STICKY_PATH} $(2))),\
-    $(call Debug,Sticky:Variables are read-only in a sub-make.);\
-    $(if ${${_sp}},,\
-    $(call Debug,Sticky:Reading variable ${${_sp}});\
-    $(eval ${_sp}:=$(shell \
-      ${helpersSegP}/sticky.sh ${_sp}= ${STICKY_PATH} $(2))),\
-    )\
-  )\
+  $(if $(filter $(1),${StickyVars}),
+    $(call Signal-Error,Redefinition of sticky variable ${_sp} ignored.)
+  ,
+    $(eval StickyVars += ${_sp})
+    $(if $(filter 0,${MAKELEVEL}),
+      $(eval ${_sp}:=$(shell \
+        ${helpersSegP}/sticky.sh ${_sp}=${_sv} ${STICKY_PATH} $(2)))
+    ,
+      $(call Debug,Variables are read-only in a sub-make.)
+      $(if ${${_sp}},
+      ,
+        $(call Debug,Reading variable ${${_sp}})
+        $(eval ${_sp}:=$(shell \
+          ${helpersSegP}/sticky.sh ${_sp}= ${STICKY_PATH} $(2)))
+      )
+    )
   )
   $(call Exit-Macro)
 endef
@@ -197,14 +218,15 @@ endef
 OverridableVars :=
 define Overridable
   $(call Enter-Macro,Overridable)
-  $(if $(filter $(1),${OverridableVars}),\
-  $(call Signal-Error,\
-    Overridable:Var $(1) has already been declared.),\
-  $(eval OverridableVars += $(1));\
-  $(if $(filter $(origin $(1)),undefined),\
-    $(eval $(1) := $(2)),\
-    $(call Debug,Overridable:Var $(1) has override value: ${$(1)})\
-    )\
+  $(if $(filter $(1),${OverridableVars}),
+    $(call Signal-Error,Var $(1) has already been declared.)
+  ,
+    $(eval OverridableVars += $(1))
+    $(if $(filter $(origin $(1)),undefined),
+      $(eval $(1) := $(2))
+    ,
+      $(call Debug,Var $(1) has override value: ${$(1)})
+    )
   )
   $(call Exit-Macro)
 endef
@@ -250,24 +272,29 @@ define Find-Segment
   $(eval $(2) := )
   $(call Debug,Locating segment: $(1))
   $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegId}))
-  $(foreach _p,${SegPaths} $(call Get-Segment-Path,${SegId}),\
-  $(call Debug,Trying: ${_p});\
-  $(if $(wildcard ${_p}/$(1).mk),\
-    $(eval $(2) := ${_p}/$(1).mk))))
-  $(if ${$(2)},\
-  $(call Debug,Found segment:${$(2)}),
-  $(call Signal-Error,$(1).mk not found.))
+  $(foreach _p,${SegPaths} $(call Get-Segment-Path,${SegId}),
+    $(call Debug,Trying: ${_p})
+    $(if $(wildcard ${_p}/$(1).mk),
+      $(eval $(2) := ${_p}/$(1).mk)
+    )
+  )
+  $(if ${$(2)},
+    $(call Debug,Found segment:${$(2)})
+  ,
+    $(call Signal-Error,$(1).mk not found.)
+  )
   $(call Exit-Macro)
 endef
 
 define Use-Segment
   $(call Enter-Macro,Use-Segment)
-  $(if $(findstring .mk,$(1)),\
-  $(call Debug,Including segment:${1});\
-  $(eval include $(1)),\
-  $(call Find-Segment,$(1),_seg);\
-  $(call Debug,Using segment:${_seg});\
-  $(eval include ${_seg})\
+  $(if $(findstring .mk,$(1)),
+    $(call Debug,Including segment:${1})
+    $(eval include $(1))
+  ,
+    $(call Find-Segment,$(1),_seg)
+    $(call Debug,Using segment:${_seg})
+    $(eval include ${_seg})
   )
   $(call Exit-Macro)
 endef
@@ -294,24 +321,26 @@ define Enter-Segment
   $(eval ${__s}PrvSegId := ${SegId})
   $(call Set-Segment-Context,${${__s}SegId})
   $(call Exit-Macro)
+  $(call _Push-Entry,${Seg})
 endef
 
 # Assumes the context is set to the exiting segment.
 define Exit-Segment
   $(call Enter-Macro,Exit-Segment)
-$(call Debug,Exiting segment: ${Seg})
-$(call Debug,Checking help: $(call Is-Goal,help-${Seg}))
-$(if $(call Is-Goal,help-${Seg}),\
-$(call Debug,Help message variable: help_${SegV}_msg);\
-$(eval hlp${SegV} := $$(call help_${SegV}_msg)):\
-$(eval export hlp${SegV});\
-$(call Debug,Generating help goal: help-${Seg});\
-$(eval \
-help-${Seg}:;\
-echo "$$$$hlp${SegV}" | less\
-))
-$(eval $(call Set-Segment-Context,${${Seg}PrvSegId}))
-$(call Exit-Macro)
+  $(call Debug,Exiting segment: ${Seg})
+  $(call Debug,Checking help: $(call Is-Goal,help-${Seg}))
+  $(if $(call Is-Goal,help-${Seg}),
+    $(call Debug,Help message variable: help_${SegV}_msg)
+    $(eval hlp${SegV} := $$(call help_${SegV}_msg))
+    $(eval export hlp${SegV})
+    $(call Debug,Generating help goal: help-${Seg})
+    $(eval \
+help-${Seg}:;echo "$$$$hlp${SegV}" | less\
+    )
+  )
+  $(eval $(call Set-Segment-Context,${${Seg}PrvSegId}))
+  $(call Exit-Macro)
+  $(call _Pop-Entry)
 endef
 
 # Assumes the context is set to the exiting segment.
@@ -319,14 +348,16 @@ define Check-Segment-Conflicts
   $(call Enter-Macro,Check-Segment-Conflicts)
   $(eval __s := $(call Last-Segment-Basename))
   $(call Debug,\
-  Segment exists: ID = ${${__s}SegId}: file = $(call Get-Segment-File,${${__s}SegId}))
-  $(eval \
-    $(if $(findstring \
+    Segment exists: ID = ${${__s}SegId}: file = $(call Get-Segment-File,${${__s}SegId}))
+  $(if \
+    $(findstring \
       $(call Last-Segment-File),$(call Get-Segment-File,${${__s}SegId})),
-        $(call Info,\
-        $(call Get-Segment-File,${${__s}SegId}) has already been included.),\
+    $(call Info,\
+      $(call Get-Segment-File,${${__s}SegId}) has already been included.)
+  ,
     $(call Signal-Error,\
-      Prefix conflict with $(${__s}Seg) in $(call Last-Segment-File).)))
+      Prefix conflict with $(${__s}Seg) in $(call Last-Segment-File).)
+  )
   $(call Exit-Macro)
 endef
 
@@ -431,14 +462,18 @@ define Pause
 endef
 
 define Return-Code
+$(strip
+  $(call Enter-Macro,Return-Code)
   $(if $(filter 0,$(lastword $(1))),,$(lastword $(1)))
+  $(call Exit-Macro)
+)
 endef
 
 define Run
   $(call Enter-Macro,Run)
-  $(call Debug,Run:$(2))
-  $(eval $(1) := $(shell $(2) 2>&1;echo $$?))
-  $(cal Exit-Macro)
+  $(call Debug,Command:$(1))
+  $(shell $(1) 2>&1;echo $$?)
+  $(call Exit-Macro)
 endef
 
 #--------------
@@ -832,7 +867,7 @@ Info
   Use this macro to add a message to a list of messages to be displayed
   by the display-messages goal.
   Messages are prefixed with the variable Segment which is set by the
-  calling segment and the current Macro_Stack (See Debug support).
+  calling segment and the current Entry_Stack (See Debug support).
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message.
@@ -879,19 +914,17 @@ Signal-Error
     Error_Safe = ${Error_Safe}
       The handler is called only when this is equal to 1.
 
-Macro_Stack
-  This is a special variable containing the list of macros which have been
-  entered using Enter-Macro. The last item on the stack is emitted with all
-  messages.
+Entry_Stack
+  This is a special variable containing the list of macros and segment which have been entered using Enter-Macro and Enter-Segment. The last item on the stack is emitted with all messages.
 
 Enter-Macro
-  Adds a macro name to the Macro_Stack. This should be called as the first
+  Adds a macro name to the Entry_Stack. This should be called as the first
   line of the macro.
   Parameter:
     1 = The name of the macro to add to the stack.
 
 Exit-Macro
-  Removes the last macro name from the Macro_Stack. This should be called as
+  Removes the last macro name from the Entry_Stack. This should be called as
   the last line of the macro.
 
 If QUIET is not empty then all messages except error messages are suppressed.
@@ -901,7 +934,8 @@ the display-messages goal.
 +++++ Debug support
 
 When DEBUG is defined macro call trace messages are emitted. These are
-prefixed with trc.
+prefixed with --> for entry into a segment or macro and <-- for exit from
+a segment or macro.
 
 When DEBUG is defined the following macros are defined:
 
@@ -911,7 +945,6 @@ Debug
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
-
 
 +++++ Paths and file names
 

@@ -4,7 +4,6 @@
 # The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-$(call Info,+++++ $(call Last-Segment-Basename) entry. +++++)
 ifndef $(call Last-Segment-Basename)SegId
 $(call Enter-Segment)
 # -----
@@ -20,16 +19,20 @@ define Test-Info
   $(call Info,Suite:${SuiteID}:$(strip $(1)))
 endef
 
+define Test-Result
+  $(call Format-Message,$(1):${SuiteID}:${TestC}:$(strip $(2)))
+endef
+
 define PASS
   $(call Inc-Var,TestC)
-  $(call Info,PASS:${TestC}:$(strip $(1)))
+  $(call Test-Result,PASS,$(strip $(1)))
   $(call Inc-Var,PassedC)
   $(eval PassedL += ${SuiteID}:${TestC})
 endef
 
 define FAIL
   $(call Inc-Var,TestC)
-  $(call Signal-Error,FAIL:${TestC}:$(strip $(1)))
+  $(call Test-Result,FAIL,$(strip $(1)))
   $(call Inc-Var,FailedC)
   $(eval FailedL += ${SuiteID}:${TestC})
 endef
@@ -50,10 +53,10 @@ define Expect-Vars
   $(call Enter-Macro,Expect-Vars)
   $(foreach _e,$(1),
     $(eval _ve := $(subst :,${Space},${_e}))
-    $(call Debug,Expect-Vars:${_ve} $(word 1,${_ve}) $(word 2,${_ve}))
+    $(call Debug,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
     $(if $(word 2,${_ve}),
       $(if $(filter ${$(word 1,${_ve})},$(word 2,${_ve})),
-        $(call PASS,Expecting:${_e})
+        $(call PASS,Expecting:(${_e}))
       ,
         $(call FAIL,Expecting:(${_e}) = (${$(word 1,${_ve})}))
       )
@@ -61,7 +64,7 @@ define Expect-Vars
       $(if $(strip ${$(word 1,${_ve})}),
         $(call FAIL,Expecting:(${_e}) = (${$(word 1,${_ve})}))
       ,
-        $(call PASS,Expecting:${_e})
+        $(call PASS,Expecting:(${_e}))
       )
     )
   )
@@ -70,19 +73,19 @@ endef
 
 define Expect-List
   $(call Enter-Macro,Expect-List)
-  $(call Debug,Expect-List:Expecting:($(1)) Actual:($(2)))
+  $(call Debug,Expecting:($(1)) Actual:($(2)))
   $(eval _i := 0)
   $(eval _ex := )
   $(foreach _w,$(1),
     $(call Inc-Var,_i)
     $(if $(filter ${_w},$(word ${_i},$(2))),
-      $(call Debug,Expect-List:${_w} = $(word ${_i},$(2)))
+      $(call Debug,${_w} = $(word ${_i},$(2)))
     ,
       $(eval _ex += ${_i})
     )
   )
   $(if ${_ex},
-    $(call Test-Info,Expect-List:Lists do not match.)
+    $(call Test-Info,Lists do not match.)
     $(foreach _i,${_ex},
       $(call FAIL,\
         Expected:($(word ${_i},$(1))) Found:($(word ${_i},$(2))))
@@ -95,9 +98,42 @@ endef
 
 define Expect-String
   $(call Enter-Macro,Expect-String)
-  $(call Debug,Expect-String:Expecting:($(1)) Actual:($(2)))
+  $(call Debug,Expecting:($(1)) Actual:($(2)))
   $(call Expect-List,$(1),$(2))
   $(call Exit-Macro)
+endef
+
+Expected_Error :=
+Error_Message :=
+define Oneshot-Error-Handler
+  $(call Enter-Macro,Expect-Error)
+  $(eval Error_Message := $(1))
+  $(call Expect-String,${Expected_Error},$(1))
+  $(call Set-Error-Handler)
+  $(call Exit-Macro)
+endef
+
+define Expect-Error
+  $(eval Expected_Error := $(1))
+  $(call Set-Error-Handler,Oneshot-Error-Handler)
+endef
+
+define Verify-Error-Occurred
+  $(if $(1),
+    $(if ${Error_Handler},
+      $(call FAIL,Error did not occur.)
+      $(call Set-Error-Handler)
+    ,
+      $(call PASS,Error occurred as expected.)
+    )
+  ,
+    $(if ${Error_Handler},
+      $(call PASS,Error did not occur as expected.)
+      $(call Set-Error-Handler)
+    ,
+      $(call FAIL,An unexpected error occurred.)
+    )
+  )
 endef
 
 #+
@@ -151,8 +187,7 @@ endef
 #-
 define Report-Test-Summary
   $(call Enter-Macro,Report-Test-Summary)
-  $(call Test-Info,\
-    Total tests:${TestC} Total passed:${PassedC} Total failed:${FailedC})
+  $(call Test-Info,${TestC} Total passed:${PassedC} Total failed:${FailedC})
   $(call Test-Info,Passed tests:${PassedL})
   $(call Test-Info,Failed tests:${FailedL})
   $(call Exit-Macro)
@@ -197,22 +232,106 @@ endif
 ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,Testing helpers...)
 
-  $(call Next-Suite,Signal-Error callback.)
+    $(call Next-Suite,Expect-Vars)
+  v1 := v1_val
+  v2 := v2_val
+  v3 := v3_val
+  v4 := v4_fail
+
+  $(call Test-Info,FAIL:${SuiteID}:4 Is expected.)
+  $(call Expect-Vars,v1:v1_val v2:v2_val v3:v3_val v4:v4_val)
+
+  $(call Next-Suite,Expect-List)
+  $(call Test-Info,The list being verified can be longer than the expect list.)
+  $(call Expect-List,one two three four,one two three four five)
+  $(call Test-Info,Same lists.)
+  $(call Expect-List,one two three four,one two three four)
+  $(call Test-Info,Lists do not match.)
+  $(call Test-Info,Expect FAIL.)
+  $(call Expect-List,one two three four,one Two three Four)
+  $(call Test-Info,Expect PASS.)
+  $(call Expect-String,This should pass.,This should pass.)
+  $(call Test-Info,Expect FAIL.)
+  $(call Expect-String,This should fail.,This should FAIL.)
+
+  $(call Next-Suite,Add-To-Manifest)
+
+  $(call Add-To-Manifest,l1,null,one)
+  $(call Test-Info,List: l1=${l1})
+  $(call Expect-List,l1,one)
+
+  $(call Add-To-Manifest,l1,null,two)
+  $(call Test-Info,List: l1=${l1})
+  $(call Expect-List,${l1},one two)
+
+  $(call Add-To-Manifest,l2,l2_e1,2.one)
+  $(call Test-Info,Var: l2_e1=${l2_e1})
+  $(call Expect-Vars,l2_e1:2.one)
+  $(call Test-Info,List: l2=${l2})
+  $(call Expect-List,${l}2,2.one)
+
+  $(call Add-To-Manifest,l2,l2_e2,2.two)
+  $(call Test-Info,Var: l2_e2=${l2_e1})
+  $(call Expect-Vars,l2_e2:2.two)
+  $(call Test-Info,List: l2=${l2})
+  $(call Expect-List,${l2},2.one 2.two)
+
+  $(call Next-Suite,Signal-Error)
+
+  $(call Expect-Error,Error one.)
+  $(call Signal-Error,Error one.)
+  $(call Verify-Error-Occurred,yes)
+  $(call Test-Info,ErrorList: ${ErrorList})
+  $(call Expect-Error,Error two.)
+  $(call Signal-Error,Error two.)
+  $(call Verify-Error-Occurred,yes)
+  $(call Test-Info,ErrorList: ${ErrorList})
+  $(call Expect-Error,Error three.)
+  $(call Signal-Error,Error three.)
+  $(call Verify-Error-Occurred,yes)
+  $(call Test-Info,ErrorList: ${ErrorList})
+  $(call Expect-Error,Error four.)
+  $(call Signal-Error,Error four.)
+  $(call Verify-Error-Occurred,yes)
+  $(call Test-Info,ErrorList: ${ErrorList})
+  $(call Expect-Error,Error five.)
+  $(call Signal-Error,Error five.)
+  $(call Verify-Error-Occurred,yes)
+  $(call Test-Info,ErrorList: ${ErrorList})
+
+$(call Next-Suite,Signal-Error callback.)
   define error-handler
-    $(call Test-Info,error-handler:$(1))
+    $(call Enter-Macro,error-handler)
+    $(call Test-Info,$(1))
+    $(eval _err := 1)
+    $(call Exit-Macro)
   endef
 
   define recursive-error-handler
-    $(call Test-Info,recursive-error-handler:$(1))
+    $(call Enter-Macro,recursive-error-handler)
+    $(call Test-Info,$(1))
+    $(call Inc-Var,_err)
     $(call Signal-Error,Recursive error.)
+    $(call Exit-Macro)
   endef
+
+  _err :=
   $(call Signal-Error,No error handler.)
+  $(call Expect-Vars,_err:)
+
   $(call Set-Error-Handler,error-handler)
   $(call Signal-Error,Error handler installed.)
+  $(call Expect-Vars,_err:1)
+
+  _err := 0
   $(call Set-Error-Handler,recursive-error-handler)
   $(call Signal-Error,Recursive error handler installed.)
+  $(call Expect-Vars,_err:1)
+
+  _err :=
   $(call Set-Error-Handler)
   $(call Signal-Error,Error handler removed.)
+  $(call Expect-Vars,_err:)
 
   $(call Next-Suite,Current context.)
   $(call Report-Seg-Context)
@@ -221,35 +340,84 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,helpersSegId = ${helpersSegId})
   $(call Test-Info,HELPER_FUNCTIONS = ${HELPER_FUNCTIONS})
 
+  $(call Next-Suite,Return-Code)
   _o := 0
   $(call Test-Info,Return-Code:Checking: ${_o})
   # No exception.
   _r := $(call Return-Code,0)
+  $(call Test-Info,Return-Code returned: (${_r}))
+  ifeq (${_r},)
+    $(call PASS,Return-Code returned an empty variable.)
+  else
+    $(call FAIL,Return-Code returned a non-empty variable.)
+  endif
   $(call Expect-Vars,_r:)
   _o := This is 0
   $(call Test-Info,Return-Code:Checking: ${_o})
   _r := $(call Return-Code,${_o})
+  $(call Test-Info,Return-Code returned: (${_r}))
+  ifeq (${_r},)
+    $(call PASS,Return-Code returned an empty variable.)
+  else
+    $(call FAIL,Return-Code returned a non-empty variable.)
+  endif
   $(call Expect-Vars,_r:)
   # Exception.
   _o := 128
   $(call Test-Info,Return-Code:Checking: ${_o})
   _r := $(call Return-Code,${_o})
+  $(call Test-Info,Return-Code returned: (${_r}))
+  ifeq (${_r},)
+    $(call FAIL,Return-Code returned an empty variable.)
+  else
+    ifeq (${_r},${_o})
+      $(call PASS,Return-Code returned ${_o}.)
+    else
+      $(call FAIL,Return-Code returned ${_o}.)
+    endif
+  endif
   $(call Expect-Vars,_r:128)
 
   _o := Exception is 128
-  $(call Test-Info,Return-Code:Checking: ${_o})
+  $(call Test-Info,Return-Code:Checking: (${_o}))
   _r := $(call Return-Code,${_o})
+  $(call Test-Info,Return-Code returned: (${_r}))
+  ifeq (${_r},)
+    $(call FAIL,Return-Code returned an empty variable.)
+  else
+    ifeq (${_r},$(lastword ${_o}))
+      $(call PASS,Return-Code expected: ($(lastword ${_o})).)
+    else
+      $(call FAIL,Return-Code expected:($(lastword ${_o})).)
+    endif
+  endif
   $(call Expect-Vars,_r:128)
 
   $(call Next-Suite,Running shell commands.)
-  $(call Run._o,ls test)
+  _o := $(call Run,ls test)
   $(call Test-Info,Run output = ${_o})
   _r := $(call Return-Code,${_o})
+  $(call Test-Info,Return-Code returned: (${_r}))
   $(call Test-Info,Run return code: ${_r})
+  ifeq (${_r},)
+    $(call PASS,Return-Code returned an empty variable.)
+  else
+    $(call FAIL,Return-Code returned a non-empty variable.)
+  endif
   $(call Expect-Vars,_r:)
-  $(call Run._o,ls not-exist)
+  _o := $(call Run,ls not-exist)
   $(call Test-Info,Run output = ${_o})
   _r := $(call Return-Code,${_o})
+  $(call Test-Info,Return-Code returned: (${_r}))
+  ifeq (${_r},)
+    $(call FAIL,Return-Code returned an empty variable.)
+  else
+    ifeq (${_r},$(lastword ${_o}))
+      $(call PASS,Return-Code returned (${_r}).)
+    else
+      $(call FAIL,Return-Code returned (${_r}) expected ($(lastword ${_o})).)
+    endif
+  endif
   $(call Test-Info,Run return code: ${_r})
 
   $(call Next-Suite,Segment identifiers.)
@@ -262,68 +430,35 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,StickyVars:${StickyVars})
   $(call Sticky,tv1,tv1)
   $(call Verbose,Sticky tv1 = ${tv1})
+  $(call Expect-Vars,tv1:tv1_v)
   $(call Test-Info,StickyVars:${StickyVars})
   $(call Sticky,tv2,tv2)
   $(call Verbose,Sticky tv2 = ${tv2})
+  $(call Expect-Vars,tv2:tv2_v)
   $(call Test-Info,StickyVars:${StickyVars})
+
+  $(call Set-Error-Handler,Expect-Error)
   # Should cause redefinition error.
+  Expected_Error := Redefinition of sticky variable tv2 ignored.
   $(call Sticky,tv2,xxx)
   $(call Verbose,After second Sticky tv2 = ${tv2})
+  $(call Expect-Vars,tv2:tv2_v)
   $(call Test-Info,StickyVars:${StickyVars})
   # Using assignment in call.
   $(call Sticky,tv3=tv3_v)
+  $(call Expect-Vars,tv3:tv3_v)
   # Redefine the previous error variable.
+  Expected_Error := Redefinition of sticky variable tv2 -- should not happen.
   $(call Redefine-Sticky,tv2=xxx)
   $(call Verbose,After redefined Sticky tv2 = ${tv2})
+  $(call Expect-Vars,tv2:xxx)
   $(call Test-Info,StickyVars:${StickyVars})
 
   $(call Test-Info,StickyVars:Var:<var>=<val>:<saved>)
   $(foreach _v,${StickyVars},\
-    $(call Test-Info,Var:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v})))
-
-  $(call Next-Suite,Expect_Vars)
-  v1 := v1_val
-  v2 := v2_val
-  v3 := v3_val
-  v4 := v4_fail
-
-  $(call Expect-Vars,v1:v1_val v2:v2_val v3:v3_val v4:v4_val)
-
-  $(call Next-Suite,Expect-List)
-  $(call Test-Info,The list being verified can be longer than the expect list.)
-  $(call Expect-List,one two three four,one two three four five)
-  $(call Test-Info,Same lists.)
-  $(call Expect-List,one two three four,one two three four)
-  $(call Test-Info,Lists do not match.)
-  $(call Expect-List,one two three four,one Two three Four)
-  $(call Expect-String,This should pass.,This should pass.)
-  $(call Expect-String,This should fail.,This should FAIL.)
-
-  $(call Next-Suite,Add-To-Manifest)
-  $(call Add-To-Manifest,l1,null,one)
-  $(call Test-Info,List: l1=${l1})
-  $(call Add-To-Manifest,l1,null,two)
-  $(call Test-Info,List: l1=${l1})
-  $(call Add-To-Manifest,l2,l2_e1,2.one)
-  $(call Test-Info,List: l2=${l2})
-  $(call Test-Info,Var: l2_e1=${l2_e1})
-  $(call Add-To-Manifest,l2,l2_e2,2.two)
-  $(call Test-Info,List: l2=${l2})
-  $(call Test-Info,Var: l2_e2=${l2_e1})
-  $(call Test-Info,Var: null=${null})
-
-  $(call Next-Suite,Signal-Error)
-  $(call Signal-Error,Error one.)
-  $(info ErrorList: ${ErrorList})
-  $(call Signal-Error,Error two.)
-  $(info ErrorList: ${ErrorList})
-  $(call Signal-Error,Error three.)
-  $(info ErrorList: ${ErrorList})
-  $(call Signal-Error,Error four.)
-  $(info ErrorList: ${ErrorList})
-  $(call Signal-Error,Error five.)
-  $(info ErrorList: ${ErrorList})
-  $(call show-errors)
+    $(call Test-Info,Var:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v}))\
+  )
+  $(call Set-Error-Handler)
 
   $(call Next-Suite,Require)
   a := 1
@@ -334,16 +469,16 @@ ifneq ($(call Is-Goal,test-helpers),)
     $(call FAIL,Require: Returned an empty string -- should have returned d.)
   else
     ifeq (${r},d)
-      $(call PASS,Require: Returned -${r}-.)
+      $(call PASS,Require: Returned (${r}).)
     else
-      $(call FAIL,Require: Returned -${r}- -- should have been d.)
+      $(call FAIL,Require: Returned (${r}) -- should have been (d).)
     endif
   endif
   r := $(call Require,a b c)
   ifeq (${r},)
     $(call PASS,Require: Returned an empty string as it should.)
   else
-    $(call FAIL,Require: Returned -${r}- -- should have been empty.)
+    $(call FAIL,Require: Returned (${r})- -- should have been empty.)
   endif
 
   $(call Next-Suite,Must-Be-One-Of)
@@ -371,21 +506,25 @@ ifneq ($(call Is-Goal,test-helpers),)
 
   $(call Next-Suite,Use-Segment)
 
-  $(call Next-Suite,Use-Segment:Segments in the current directory.)
+  $(call Test-Info,Segments in the current directory.)
   $(call Use-Segment,ts1)
   $(call Use-Segment,ts2)
-  $(call Next-Suite,Use-Segment:Segments in subdirectories.)
+  $(call Test-Info,Segments in subdirectories.)
   $(call Use-Segment,td1)
   $(call Use-Segment,td2)
   $(call Use-Segment,td3)
-  $(call Next-Suite,Use-Segment:Multiple segments of the same name.)
+  $(call Test-Info,Multiple segments of the same name.)
   $(call Use-Segment,tm1)
+  $(call Expect-Error,Prefix conflict with tm1)
   $(call Use-Segment,test/d2/tm1)
-  $(call Next-Suite,Use-Segment:A segment in a subdirectory.)
+  $(call Verify-Error-Occurred,yes)
+  $(call Test-Info,A segment in a subdirectory.)
   $(call Use-Segment,sd3/tsd3)
-  $(call Next-Suite,Use-Segment:Does not exist.)
+  $(call Test-Info,Does not exist.)
+  $(call Expect-Error,te1.mk not found.)
   $(call Use-Segment,te1)
-  $(call Next-Suite,Use-Segment:Full segment path (no find).)
+  $(call Verify-Error-Occurred,yes)
+  $(call Test-Info,Full segment path (no find).)
   $(call Use-Segment,${SegP}/ts3.mk)
 
   $(call Next-Suite,Test overridable variables.)
@@ -396,7 +535,9 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Overridable,ov2,ov2_val)
   $(call Test-Info,ov2:$(ov2))
   # Should trigger an error message because 0v2 is already declared.
+  $(call Expect-Error,Var ov2 has already been declared.)
   $(call Overridable,ov2,ov2_new_val)
+  $(call Verify-Error-Occurred,yes)
   $(call Test-Info,ov2:$(ov2))
   $(call Test-Info,Overridables: $(OverridableVars))
 
@@ -541,6 +682,35 @@ Expect-String
     1 = The expected string,
     2 = The string to verify.
 
+Oneshot-Error-Handler
+  Use this as a one-shot error handler which verifies the error message using
+  Expect-String. This is designed to be called from Signal-Error. Use
+  Set-Error-Handler to install it. Once called Oneshot-Error-Handler disables
+  itself.
+  Parameters:
+    1 = The error message to verify.
+  Uses:
+    Expected_Error
+      The parameter is expected to match this string. See Expect-String for
+      more information regarding matching.
+    Error_Message
+      The error message is saved for later verification.
+
+Expect-Error
+  Installs Oneshot-Error-Handler as an error handler and sets Expected_Error.
+  Parameters:
+    1 = The expected error message.
+
+Verify-Error-Occurred
+  Verifies Oneshot-Error-Handler was called or not after calling Expect-Error.
+  A PASS or FAIL is emitted depending upon the value of the parameter. The
+  error handler is disabled.
+  NOTE: For this to work Expect-Error must be called to arm the one-shot
+  handler.
+  Parameters:
+    1 = If not empty then the handler should have been called. Otherwise, the
+        handler should not have been called.
+
 Report-Seg-Context
   Displays a series of messages for the current segment context as defined by
   Enter-Segment and Set-Segment-Context (see help-helpers).
@@ -564,4 +734,3 @@ $(call Next-Suite,ID exists context.)
 $(call Report-Seg-Context)
 $(call Check-Segment-Conflicts)
 endif # SegId
-$(call Info,----- $(call Last-Segment-Basename) exit. -----)

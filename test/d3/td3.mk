@@ -8,7 +8,8 @@ ifndef $(call Last-Segment-Basename)SegId
 $(call Enter-Segment)
 # -----
 
-$(call Info,${Seg}:Path:$(call Last-Segment-Path))
+$(call Test-Info,Path:$(call Last-Segment-Path))
+$(call Expect-Vars,Seg:td3 td3Seg:td3)
 
 # +++++
 # Postamble

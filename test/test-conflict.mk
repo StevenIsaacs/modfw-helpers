@@ -28,7 +28,9 @@ $(call Exit-Segment)
 else # tmSegId already defined.
 $(call next-test,ID conflict context.)
 $(call report-seg-context)
+$(call Expect-Error,Prefix conflict with test-helpers in)
 $(call Check-Segment-Conflicts)
+$(call Verify-Error-Occurred,yes)
 
 endif
 # -----

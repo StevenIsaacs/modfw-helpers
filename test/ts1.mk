@@ -9,6 +9,7 @@ $(call Enter-Segment)
 # -----
 
 $(call Info,${Seg}:Path:$(call Last-Segment-Path))
+$(call Expect-Vars,Seg:ts1 ts1Seg:ts1)
 
 # +++++
 # Postamble
