@@ -104,10 +104,10 @@ define Expect-String
 endef
 
 Expected_Error :=
-Error_Message :=
+Actual_Error :=
 define Oneshot-Error-Handler
   $(call Enter-Macro,Expect-Error)
-  $(eval Error_Message := $(1))
+  $(eval Actual_Error := $(1))
   $(call Expect-String,${Expected_Error},$(1))
   $(call Set-Error-Handler)
   $(call Exit-Macro)
@@ -118,21 +118,21 @@ define Expect-Error
   $(call Set-Error-Handler,Oneshot-Error-Handler)
 endef
 
-define Verify-Error-Occurred
-  $(if $(1),
-    $(if ${Error_Handler},
-      $(call FAIL,Error did not occur.)
-      $(call Set-Error-Handler)
-    ,
-      $(call PASS,Error occurred as expected.)
-    )
+define Verify-Error
+  $(if ${Error_Handler},
+    $(call FAIL,Error did not occur.)
+    $(call Set-Error-Handler)
   ,
-    $(if ${Error_Handler},
-      $(call PASS,Error did not occur as expected.)
-      $(call Set-Error-Handler)
-    ,
-      $(call FAIL,An unexpected error occurred.)
-    )
+    $(call PASS,Error occurred -- as expected.)
+  )
+endef
+
+define Verify-No-Error
+  $(if ${Error_Handler},
+    $(call PASS,Error did not occur -- as expected.)
+    $(call Set-Error-Handler)
+  ,
+    $(call FAIL,An unexpected error occurred.)
   )
 endef
 
@@ -280,23 +280,23 @@ ifneq ($(call Is-Goal,test-helpers),)
 
   $(call Expect-Error,Error one.)
   $(call Signal-Error,Error one.)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,ErrorList: ${ErrorList})
   $(call Expect-Error,Error two.)
   $(call Signal-Error,Error two.)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,ErrorList: ${ErrorList})
   $(call Expect-Error,Error three.)
   $(call Signal-Error,Error three.)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,ErrorList: ${ErrorList})
   $(call Expect-Error,Error four.)
   $(call Signal-Error,Error four.)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,ErrorList: ${ErrorList})
   $(call Expect-Error,Error five.)
   $(call Signal-Error,Error five.)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,ErrorList: ${ErrorList})
 
 $(call Next-Suite,Signal-Error callback.)
@@ -517,13 +517,13 @@ $(call Next-Suite,Signal-Error callback.)
   $(call Use-Segment,tm1)
   $(call Expect-Error,Prefix conflict with tm1)
   $(call Use-Segment,test/d2/tm1)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,A segment in a subdirectory.)
   $(call Use-Segment,sd3/tsd3)
   $(call Test-Info,Does not exist.)
   $(call Expect-Error,te1.mk not found.)
   $(call Use-Segment,te1)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,Full segment path (no find).)
   $(call Use-Segment,${SegP}/ts3.mk)
 
@@ -537,7 +537,7 @@ $(call Next-Suite,Signal-Error callback.)
   # Should trigger an error message because 0v2 is already declared.
   $(call Expect-Error,Var ov2 has already been declared.)
   $(call Overridable,ov2,ov2_new_val)
-  $(call Verify-Error-Occurred,yes)
+  $(call Verify-Error)
   $(call Test-Info,ov2:$(ov2))
   $(call Test-Info,Overridables: $(OverridableVars))
 
@@ -693,18 +693,30 @@ Oneshot-Error-Handler
     Expected_Error
       The parameter is expected to match this string. See Expect-String for
       more information regarding matching.
-    Error_Message
+    Actual_Error
       The error message is saved for later verification.
 
 Expect-Error
-  Installs Oneshot-Error-Handler as an error handler and sets Expected_Error.
+  Enables (arm) Oneshot-Error-Handler as an error handler and sets
+  Expected_Error.
   Parameters:
     1 = The expected error message.
 
-Verify-Error-Occurred
-  Verifies Oneshot-Error-Handler was called or not after calling Expect-Error.
-  A PASS or FAIL is emitted depending upon the value of the parameter. The
-  error handler is disabled.
+Verify-Error
+  Verifies Oneshot-Error-Handler was called since calling Expect-Error.
+  A PASS is emitted if the error occurred. Otherwise a FAIL is emitted.
+  This also disables the error handler to avoid confusing subsequent tests.
+  NOTE: For this to work Expect-Error must be called to arm the one-shot
+  handler.
+  Parameters:
+    1 = If not empty then the handler should have been called. Otherwise, the
+        handler should not have been called.
+
+Verify-No-Error
+  Verifies Oneshot-Error-Handler was not called since calling Expect-Error.
+  A PASS is emitted If the error has NOT occurred. Otherwise a FAIL is
+  emitted.
+  This also disables the error handler to avoid confusing subsequent tests.
   NOTE: For this to work Expect-Error must be called to arm the one-shot
   handler.
   Parameters:

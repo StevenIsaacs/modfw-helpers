@@ -16,6 +16,7 @@ ifneq (${LOG_FILE},)
   LogPath := ${WorkingPath}/.${WorkingDir}/log
   $(shell mkdir -p ${LogPath})
   LogFile := ${LogPath}/${LOG_FILE}
+  $(file >${LogFile},${WorkingDir} log: $(shell date))
 endif
 
 # For storing sticky options in a known location.
@@ -52,6 +53,10 @@ define Info
   $(call Format-Message,....,$(1))
 endef
 
+define Attention
+  $(call Format-Message,ATTN,$(1))
+endef
+
 define Warn
   $(call Format-Message,WARN,$(1))
 endef
@@ -73,7 +78,7 @@ endif
 
 define _Push-Entry
   $(if $(filter $(1),${Entry_Stack}),
-    $(call Warn,Recursive entry to $(1) detected.)
+    $(call Attention,Recursive entry to $(1) detected.)
   )
   $(eval Entry_Stack += $(1))
   $(if ${DEBUG},
@@ -889,15 +894,20 @@ Comma = ${Comma}
 
 Info
   Use this macro to add a message to a list of messages to be displayed
-  by the display-messages goal.
-  Messages are prefixed with the variable Segment which is set by the
-  calling segment and the current Entry_Stack (See Debug support).
+  by the display-messages goal. Info uses .... as a message prefix.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message.
 
+Attention
+  Use this macro to flag a message as important. Important messages are
+  prefixed with ATTN.
+  NOTE: This is NOT intended to be used as part of a recipe.
+  Parameters:
+    1 = The message to display.
+
 Warn
-  Display a warning message. Warning messages are prefixed with WRN.
+  Display a warning message. Warning messages are prefixed with WARN.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
@@ -905,7 +915,7 @@ Warn
 Verbose
   Displays the message if VERBOSE has been defined. All verbose messages are
   automatically added to the message list. Verbose messages are prefixed with
-  vbs.
+  vbrs.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
@@ -925,7 +935,7 @@ Set-Error-Handler
 Signal-Error
   Use this macro to issue an error message as a warning and signal a
   delayed error exit. The messages can be displayed using the display-errors
-  goal. Error messages are prefixed with ERR.
+  goal. Error messages are prefixed with ERR?.
   If an error handler is connected (see Set-Error-Handler) and the
   Error_Safe variable is equal to 1 then the error handler is called with the
   error message as the first parameter.
@@ -965,7 +975,7 @@ When DEBUG is defined the following macros are defined:
 
 Debug
   Emit a debugging message. All debug messages are automatically added to the
-  message list. Debug messages are prefixed with dbg.
+  message list. Debug messages are prefixed with dbug.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
