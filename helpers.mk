@@ -1219,7 +1219,7 @@ ifneq (${LOG_FILE},)
 display-messages: ${LogFile}
 > less $<
 else
-  $(call Attention,Use LOG_FILE=1 to enable message logging.)
+  $(call Attention,Use LOG_FILE=<file> to enable message logging.)
 display-messages:
 endif
 
