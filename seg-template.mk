@@ -14,7 +14,7 @@ $(call Enter-Segment)
 # Postamble
 # Define help only if needed.
 ifneq ($(call Is-Goal,help-${Seg}),)
-define help_${SegV}_msg
+define help-${Seg}
 Make segment: ${Seg}.mk
 
 <make segment help messages>

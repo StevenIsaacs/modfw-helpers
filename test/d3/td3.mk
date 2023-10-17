@@ -14,8 +14,8 @@ $(call Expect-Vars,Seg:td3 td3Seg:td3)
 # +++++
 # Postamble
 ifneq ($(call Is-Goal,help-${Seg}),)
-$(call test-message,Help message variable: help_${SegV}_msg)
-define help_${SegV}_msg
+$(call test-message,Help message variable: help-${Seg})
+define help-${Seg}
 Make segment: ${Seg}.mk
 
 This segment is in the helpers directory and is intended for test only.

@@ -35,7 +35,7 @@ endif # Test
 $(call Resolve-Help-Goals)
 
 ifneq ($(filter help,$(Goals)),)
-define _HelpersUsage
+define help-Usage
 Usage: make [<option>=<value> ...] [<goal>]
 
 NOTE: This help is displayed if no goal is specified.
@@ -52,8 +52,6 @@ Goals:
 
 endef
 
-export _HelpersUsage
-help:
-> @echo "$$_HelpersUsage" | less
+help: help-Usage
 
 endif

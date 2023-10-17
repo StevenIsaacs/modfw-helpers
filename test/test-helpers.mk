@@ -38,9 +38,10 @@ define FAIL
 endef
 
 define Next-Suite
-$(call Inc-Var,SuiteID)
-$(call Info,$(NewLine))
-$(call Test-Info,++++ $(1) ++++)
+  $(eval TestC := 0)
+  $(call Inc-Var,SuiteID)
+  $(call Info,$(NewLine))
+  $(call Test-Info,++++ $(1) ++++)
 endef
 
 define Display-Vars
@@ -232,7 +233,22 @@ endif
 ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,Testing helpers...)
 
-    $(call Next-Suite,Expect-Vars)
+  $(call Next-Suite,String manipulation.)
+  t1 := A1bc!4De
+  t1l := $(call To-Lower,${t1})
+  t1u := $(call To-Upper,${t1})
+  t2 := cDeF-gHiJ
+  t2l := $(call To-Lower,${t2})
+  t2u := $(call To-Upper,${t2})
+
+  $(call Expect-Vars,\
+    t1l:a1bc!4de \
+    t1u:A1BC!4DE \
+    t2l:cdef-ghij\
+    t2u:CDEF-GHIJ \
+  )
+
+  $(call Next-Suite,Expect-Vars)
   v1 := v1_val
   v2 := v2_val
   v3 := v3_val
@@ -394,28 +410,25 @@ $(call Next-Suite,Signal-Error callback.)
   $(call Expect-Vars,_r:128)
 
   $(call Next-Suite,Running shell commands.)
-  _o := $(call Run,ls test)
-  $(call Test-Info,Run output = ${_o})
-  _r := $(call Return-Code,${_o})
-  $(call Test-Info,Return-Code returned: (${_r}))
-  $(call Test-Info,Run return code: ${_r})
-  ifeq (${_r},)
-    $(call PASS,Return-Code returned an empty variable.)
+  $(call Run,ls test)
+  $(call Test-Info,Run output = ${Run_Output})
+  $(call Test-Info,Run return code: ${Run_Rc})
+  ifeq (${Run_Rc},)
+    $(call PASS,Run_Rc is empty.)
   else
-    $(call FAIL,Return-Code returned a non-empty variable.)
+    $(call FAIL,Run_Rc is NOT empty.)
   endif
-  $(call Expect-Vars,_r:)
-  _o := $(call Run,ls not-exist)
-  $(call Test-Info,Run output = ${_o})
-  _r := $(call Return-Code,${_o})
-  $(call Test-Info,Return-Code returned: (${_r}))
-  ifeq (${_r},)
-    $(call FAIL,Return-Code returned an empty variable.)
+  $(call Expect-Vars,Run_Rc:)
+  $(call Run,ls not-exist)
+  $(call Test-Info,Run output = ${Run_Output})
+  $(call Test-Info,Run return code: ${Run_Rc})
+  ifeq (${Run_Rc},)
+    $(call FAIL,Run_Rc is empty.)
   else
-    ifeq (${_r},$(lastword ${_o}))
-      $(call PASS,Return-Code returned (${_r}).)
+    ifeq (${Run_Rc},$(lastword ${Run_Output}))
+      $(call PASS,Run_Rc (${Run_Rc}).)
     else
-      $(call FAIL,Return-Code returned (${_r}) expected ($(lastword ${_o})).)
+      $(call FAIL,Run_Rc is (${Run_Rc}) expected ($(lastword ${Run_Output})).)
     endif
   endif
   $(call Test-Info,Run return code: ${_r})
@@ -595,7 +608,7 @@ endif # Goal is test-helpers
 # +++++
 # Postamble
 ifneq ($(call Is-Goal,help-${Seg}),)
-define help_${SegV}_msg
+define help-${Seg}
 This make segment provides test support macros and tests for the macros in
 helpers.mk.
 
@@ -735,8 +748,9 @@ Report-Test-Summary
     TestC   This is also the total number of tests reported.
     PassedC The total number of tests reported as PASS.
     FailedC The total number of tests reported as FAIL.
+
 endef
-$(call Test-Info,help_${SegV}_msg = ${help_${SegV}_msg})
+$(call Test-Info,help-${Seg} = ${help-${Seg}})
 endif
 $(call Exit-Segment)
 $(call Next-Suite,Restored context.)

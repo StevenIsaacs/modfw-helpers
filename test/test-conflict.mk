@@ -16,7 +16,7 @@ $(call Enter-Segment)
 # Postamble
 ifneq ($(call Is-Goal,help-${Seg}),)
 $(call Info,Declaring help message for ${Seg}.)
-define help_${SegV}_msg
+define help-${Seg}
 This make segment is designed to test detection of a prefix conflict between
 two or more files. Displaying this help should not be possible because this
 file uses the same prefix as test-macros.mk.
