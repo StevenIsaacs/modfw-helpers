@@ -37,21 +37,50 @@ define FAIL
   $(eval FailedL += ${SuiteID}:${TestC})
 endef
 
-define Next-Suite
+_macro := Next-Suite
+define _help
+${_macro}
+  Advance to the next test suite.
+  Parameters:
+    1 = A message describing the test.
+  Uses:
+    SuiteID  Incremented by 1.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
   $(eval TestC := 0)
   $(call Inc-Var,SuiteID)
   $(call Info,$(NewLine))
   $(call Test-Info,++++ $(1) ++++)
 endef
 
-define Display-Vars
+_macro := Display-Vars
+define _help
+${_macro}
+  Display a list of variables and their values. This produces a series of
+  messages formatted as <varname> = <varvalue>
+  Parameters:
+    1 = The list of variable names.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
   $(foreach _v,$(1),
     $(call Test-Info,$(_v) = ${$(_v)})
   )
 endef
 
-define Expect-Vars
-  $(call Enter-Macro,Expect-Vars)
+_macro := Expect-Vars
+define _help
+${_macro}
+  Steps through a list of <var>:<value> pairs and verifies the <var> has a
+  value equal to <value>. PASS or FAIL messages are emitted accordingly.
+  Parameters:
+    1 = The list of <var>:<value> pairs. The pair must be separated with a
+        colon (:) and the <value> cannot contain any spaces.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
   $(foreach _e,$(1),
     $(eval _ve := $(subst :,${Space},${_e}))
     $(call Debug,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
@@ -72,8 +101,23 @@ define Expect-Vars
   $(call Exit-Macro)
 endef
 
-define Expect-List
-  $(call Enter-Macro,Expect-List)
+_macro := Expect-List
+define _help
+${_macro}
+  Verifies a list matches an expected list by stepping through the expected
+  list and verifying each word of the list being verified matches.
+  Only the words in the expected list are verified -- meaning the list being
+  verified can be longer than the expected list.
+  Words that do not match produce an error message.
+  NOTE: The list can be a typical list or can be a sentence with each word
+  separated by spaces.
+  Parameters:
+    1 = The expected list.
+    2 = The list to verify.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(call Debug,Expecting:($(1)) Actual:($(2)))
   $(eval _i := 0)
   $(eval _ex := )
@@ -97,29 +141,166 @@ define Expect-List
   $(call Exit-Macro)
 endef
 
-define Expect-String
-  $(call Enter-Macro,Expect-String)
+_macro := Expect-String
+define _help
+${_macro}
+  A synonym for Expect-List for clarity when checking strings.
+  Parameters:
+    1 = The expected string,
+    2 = The string to verify.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(call Debug,Expecting:($(1)) Actual:($(2)))
   $(call Expect-List,$(1),$(2))
   $(call Exit-Macro)
 endef
 
+Expected_Warning :=
+Actual_Warning :=
+_macro := Oneshot-Warning-Handler
+define _help
+${_macro}
+  Use this as a one-shot message callback which verifies the error message using
+  Expect-String. This is designed to be called from Warn. Use
+  Set-Warning-Handler to install it. Once called Oneshot-Warning-Handler
+  disables itself.
+  Parameters:
+    1 = The error message to verify.
+  Uses:
+    Expected_Warning
+      The parameter is expected to match this string. See Expect-String for
+      more information regarding matching.
+    Actual_Warning
+      The error message is saved for later verification.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+  $(call Set-Warning-Handler)
+  $(eval Actual_Warning := $(1))
+  $(call Debug,Actual:$(1))
+  $(call Expect-String,${Expected_Warning},${Actual_Warning})
+  $(call Exit-Macro)
+endef
+
+_macro := Expect-Warning
+define _help
+${_macro}
+  Enables (arm) Oneshot-Warning-Handler as a callback and sets
+  Expected_Warning.
+  Parameters:
+    1 = The expected warning.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+  $(eval Expected_Warning := $(1))
+  $(call Set-Warning-Handler,Oneshot-Warning-Handler)
+  $(call Exit-Macro)
+endef
+
+_macro := Verify-Warning
+define _help
+${_macro}
+  Verifies Oneshot-Warning-Handler was called since calling Expect-Warning.
+  A PASS is emitted if the error occurred. Otherwise a FAIL is emitted.
+  This also disables the warning handler to avoid confusing subsequent tests.
+  NOTE: For this to work Expect-Warning must be called to arm the one-shot
+  handler.
+  Parameters:
+    1 = If not empty then the handler should have been called. Otherwise, the
+        handler should not have been called.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(if ${Warning_Handler},
+    $(call FAIL,Warning did not occur.)
+    $(call Set-Warning-Handler)
+  ,
+    $(call PASS,Warning occurred -- as expected.)
+  )
+endef
+
+_macro := Verify-No-Warning
+define _help
+${_macro}
+  Verifies Oneshot-Warning-Handler was not called since calling Expect-Warning.
+  A PASS is emitted If the warning has NOT occurred. Otherwise a FAIL is
+  emitted.
+  This also disables the warning handler to avoid confusing subsequent tests.
+  NOTE: For this to work Expect-Warning must be called to arm the one-shot
+  handler.
+  Parameters:
+    1 = If not empty then the handler should have been called. Otherwise, the
+        handler should not have been called.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(if ${Warning_Handler},
+    $(call PASS,Warning did not occur -- as expected.)
+    $(call Set-Warning-Handler)
+  ,
+    $(call FAIL,An unexpected warning occurred.)
+  )
+endef
+
 Expected_Error :=
 Actual_Error :=
-define Oneshot-Error-Handler
-  $(call Enter-Macro,Expect-Error)
+_macro := Oneshot-Error-Handler
+define _help
+${_macro}
+  Use this as a one-shot error handler which verifies the error message using
+  Expect-String. This is designed to be called from Signal-Error. Use
+  Set-Error-Handler to install it. Once called Oneshot-Error-Handler disables
+  itself.
+  Parameters:
+    1 = The error message to verify.
+  Uses:
+    Expected_Error
+      The parameter is expected to match this string. See Expect-String for
+      more information regarding matching.
+    Actual_Error
+      The error message is saved for later verification.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
   $(eval Actual_Error := $(1))
   $(call Expect-String,${Expected_Error},$(1))
   $(call Set-Error-Handler)
   $(call Exit-Macro)
 endef
 
-define Expect-Error
+_macro := Expect-Error
+define _help
+${_macro}
+  Enables (arm) Oneshot-Error-Handler as an error handler and sets
+  Expected_Error.
+  Parameters:
+    1 = The expected error message.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
   $(eval Expected_Error := $(1))
   $(call Set-Error-Handler,Oneshot-Error-Handler)
 endef
 
-define Verify-Error
+_macro := Verify-Error
+define _help
+${_macro}
+  Verifies Oneshot-Error-Handler was called since calling Expect-Error.
+  A PASS is emitted if the error occurred. Otherwise a FAIL is emitted.
+  This also disables the error handler to avoid confusing subsequent tests.
+  NOTE: For this to work Expect-Error must be called to arm the one-shot
+  handler.
+  Parameters:
+    1 = If not empty then the handler should have been called. Otherwise, the
+        handler should not have been called.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
   $(if ${Error_Handler},
     $(call FAIL,Error did not occur.)
     $(call Set-Error-Handler)
@@ -128,7 +309,21 @@ define Verify-Error
   )
 endef
 
-define Verify-No-Error
+_macro := Verify-No-Error
+define _help
+${_macro}
+  Verifies Oneshot-Error-Handler was not called since calling Expect-Error.
+  A PASS is emitted If the error has NOT occurred. Otherwise a FAIL is
+  emitted.
+  This also disables the error handler to avoid confusing subsequent tests.
+  NOTE: For this to work Expect-Error must be called to arm the one-shot
+  handler.
+  Parameters:
+    1 = If not empty then the handler should have been called. Otherwise, the
+        handler should not have been called.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
   $(if ${Error_Handler},
     $(call PASS,Error did not occur -- as expected.)
     $(call Set-Error-Handler)
@@ -140,8 +335,17 @@ endef
 #+
 # Display the current context and the context for a segment.
 #-
-define Report-Seg-Context
-  $(call Enter-Macro,Report-Seg-Context)
+_macro := Report-Seg-Context
+define _help
+${_macro}
+  Displays a series of messages for the current segment context as defined by
+  Enter-Segment and Set-Segment-Context (see help-helpers).
+  Uses:
+    Variables defined by the helper macros.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0))
   $(call Display-Vars,
     SegId \
     Seg \
@@ -186,8 +390,18 @@ endef
 #+
 # Display a test summary.
 #-
-define Report-Test-Summary
-  $(call Enter-Macro,Report-Test-Summary)
+_macro := Report-Test-Summary
+define _help
+${_macro}
+  Display a summary of test results.
+  Displays:
+    TestC   This is also the total number of tests reported.
+    PassedC The total number of tests reported as PASS.
+    FailedC The total number of tests reported as FAIL.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0))
   $(call Test-Info,${TestC} Total passed:${PassedC} Total failed:${FailedC})
   $(call Test-Info,Passed tests:${PassedL})
   $(call Test-Info,Failed tests:${FailedL})
@@ -657,97 +871,27 @@ FAIL
     FailedC Is incremented.
     FailedL SuiteID is appended to this list.
 
-Next-Suite
-  Advance to the next test suite.
-  Parameters:
-    1 = A message describing the test.
-  Uses:
-    SuiteID  Incremented by 1.
+${help-Next-Suite}
 
-Display-Vars
-  Display a list of variables and their values. This produces a series of
-  messages formatted as <varname> = <varvalue>
-  Parameters:
-    1 = The list of variable names.
+${help-Display-Vars}
 
-Expect-Vars
-  Steps through a list of <var>:<value> pairs and verifies the <var> has a
-  value equal to <value>. PASS or FAIL messages are emitted accordingly.
-  Parameters:
-    1 = The list of <var>:<value> pairs. The pair must be separated with a
-        colon (:) and the <value> cannot contain any spaces.
+${help-Expect-Vars}
 
-Expect-List
-  Verifies a list matches an expected list by stepping through the expected
-  list and verifying each word of the list being verified matches.
-  Only the words in the expected list are verified -- meaning the list being
-  verified can be longer than the expected list.
-  Words that do not match produce an error message.
-  NOTE: The list can be a typical list or can be a sentence with each word
-  separated by spaces.
-  Parameters:
-    1 = The expected list.
-    2 = The list to verify.
+${help-Expect-List}
 
-Expect-String
-  A synonym for Expect-List for clarity when checking strings.
-  Parameters:
-    1 = The expected string,
-    2 = The string to verify.
+${help-Expect-String}
 
-Oneshot-Error-Handler
-  Use this as a one-shot error handler which verifies the error message using
-  Expect-String. This is designed to be called from Signal-Error. Use
-  Set-Error-Handler to install it. Once called Oneshot-Error-Handler disables
-  itself.
-  Parameters:
-    1 = The error message to verify.
-  Uses:
-    Expected_Error
-      The parameter is expected to match this string. See Expect-String for
-      more information regarding matching.
-    Actual_Error
-      The error message is saved for later verification.
+${help-Oneshot-Error-Handler}
 
-Expect-Error
-  Enables (arm) Oneshot-Error-Handler as an error handler and sets
-  Expected_Error.
-  Parameters:
-    1 = The expected error message.
+${help-Expect-Error}
 
-Verify-Error
-  Verifies Oneshot-Error-Handler was called since calling Expect-Error.
-  A PASS is emitted if the error occurred. Otherwise a FAIL is emitted.
-  This also disables the error handler to avoid confusing subsequent tests.
-  NOTE: For this to work Expect-Error must be called to arm the one-shot
-  handler.
-  Parameters:
-    1 = If not empty then the handler should have been called. Otherwise, the
-        handler should not have been called.
+${help-Verify-Error}
 
-Verify-No-Error
-  Verifies Oneshot-Error-Handler was not called since calling Expect-Error.
-  A PASS is emitted If the error has NOT occurred. Otherwise a FAIL is
-  emitted.
-  This also disables the error handler to avoid confusing subsequent tests.
-  NOTE: For this to work Expect-Error must be called to arm the one-shot
-  handler.
-  Parameters:
-    1 = If not empty then the handler should have been called. Otherwise, the
-        handler should not have been called.
+${help-Verify-No-Error}
 
-Report-Seg-Context
-  Displays a series of messages for the current segment context as defined by
-  Enter-Segment and Set-Segment-Context (see help-helpers).
-  Uses:
-    Variables defined by the helper macros.
+${help-Report-Seg-Context}
 
-Report-Test-Summary
-  Display a summary of test results.
-  Displays:
-    TestC   This is also the total number of tests reported.
-    PassedC The total number of tests reported as PASS.
-    FailedC The total number of tests reported as FAIL.
+${help-Report-Test-Summary}
 
 endef
 $(call Test-Info,help-${Seg} = ${help-${Seg}})

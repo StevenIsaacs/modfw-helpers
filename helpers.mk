@@ -58,19 +58,38 @@ ${_var}
   stack is emitted with all messages.
 endef
 help-${_var} := $(call _help)
-Entry_Stack :=
+${_var} :=
+
+_var := Warning_Handler
+define _help
+${_var}
+  This variable is used to reference a macro which will be called for every
+  message and is mostly intended for testing.
+endef
+help-${_var} := $(call _help)
+${_var} :=
+
+_var := Warning_Safe
+define _help
+${_var}
+  This variable is used as a semaphore to indicate when it is safe to call the
+  message callback. The purpose is to avoid recursive calls to the callback.
+  The callback is safe when this variable is not empty.
+endef
+${_var} := 1
 
 define Format-Message
+  $(eval _msg := \
+    $(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
   $(if ${LOG_FILE},
-    $(file >>${LogFile},\
-      $(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
+    $(file >>${LogFile},${_msg})
   )
   $(if ${QUIET},
   ,
     $(if $(filter $(lastword $(2)),${NewLine}),
       $(info )
     )
-    $(info $(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
+    $(info ${_msg})
   )
   $(eval Messages = yes)
 endef
@@ -114,6 +133,13 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Format-Message,WARN,$(1))
+  $(if $(and ${Warning_Handler},${Warning_Safe}),
+    $(eval Warning_Safe :=)
+    $(call ${Warning_Handler},$(strip $(1)))
+    $(eval Warning_Safe := 1)
+  ,
+    $(call Attention,Recursive call to Warning_Handler -- callback not called.)
+  )
 endef
 
 _V:=n
@@ -212,6 +238,24 @@ define ${_macro}
   $(call _Pop-Entry)
 endef
 
+_macro := Set-Warning-Handler
+define _help
+${_macro}
+  Install a message callback for when a message is issued.
+  The callback should support one parameter which will be the message.
+  WARNING: An message callback should not do any thing that could in turn trigger another message. Doing so could result in a fatal infinite loop. To help mitigate this problem the variable Warning_Safe is used as a semaphore. If the variable is empty then the message callback will NOT be called.
+  Recursive callbacks are disallowed.
+  Parameters:
+    1 = The name of the macro to call when a message is called. To disable the
+        current handler do not pass this parameter or pass an empty value.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+  $(eval Warning_Handler := $(1))
+  $(call Exit-Macro)
+endef
+
 _macro := Enable-Single-Step
 define _help
 ${_macro}
@@ -261,7 +305,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Set-Error-Handler)
+  $(call Enter-Macro,$(0),$(1))
   $(eval Error_Handler := $(1))
   $(call Exit-Macro)
 endef
@@ -291,16 +335,14 @@ define ${_macro}
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
   $(call Debug,Handler: ${Error_Handler} Safe:${Error_Safe})
-  $(if ${Error_Handler},
-    $(if ${Error_Safe},
-      $(eval Error_Safe := )
-      $(call Debug,Calling ${Error_Handler}.)
-      $(call Debug,Message:$(1).)
-      $(call ${Error_Handler},$(1))
-      $(eval Error_Safe := 1)
-    ,
-      $(call Warn,Recursive call to Signal-Error -- handler not called.)
-    )
+  $(if $(and ${Error_Handler},${Error_Safe}),
+    $(eval Error_Safe := )
+    $(call Debug,Calling ${Error_Handler}.)
+    $(call Debug,Message:$(1).)
+    $(call ${Error_Handler},$(1))
+    $(eval Error_Safe := 1)
+  ,
+    $(call Warn,Recursive call to Signal-Error -- handler not called.)
   )
 endef
 #--------------
@@ -453,7 +495,7 @@ endef
 help-${_macro} := $(call _help)
 StickyVars :=
 define ${_macro}
-  $(call Enter-Macro,Sticky)
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(eval _spl := $(subst =,${Space},$(1)))
   $(eval _sp := $(word 1,${_spl}))
   $(call Debug,Sticky:Var:${_sp})
