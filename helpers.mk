@@ -12,6 +12,16 @@ SHELL = /bin/bash
 True := 1
 False :=
 
+DefaultGoal ?= help
+
+ifeq (${MAKECMDGOALS},)
+  .DEFAULT_GOAL := $(DefaultGoal)
+else
+  .DEFAULT_GOAL :=
+endif
+
+Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
+
 ifeq (${MAKELEVEL},0)
   SubMake := ${False}
 else
@@ -94,6 +104,24 @@ define Format-Message
   $(eval Messages = yes)
 endef
 
+_macro := Line
+define _help
+${_macro}
+  Add a blank line or a line termination to the output.
+  Uses:
+    NewLine   The newline pattern is appended to the output.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(if ${LOG_FILE},
+    $(file >>${LogFile},${_msg})
+  )
+  $(if ${QUIET},
+  ,
+    $(info )
+  )
+endef
+
 _macro := Info
 define _help
 ${_macro}
@@ -133,12 +161,15 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Format-Message,WARN,$(1))
-  $(if $(and ${Warning_Handler},${Warning_Safe}),
-    $(eval Warning_Safe :=)
-    $(call ${Warning_Handler},$(strip $(1)))
-    $(eval Warning_Safe := 1)
-  ,
-    $(call Attention,Recursive call to Warning_Handler -- callback not called.)
+  $(if ${Warning_Handler},
+    $(if ${Warning_Safe},
+      $(eval Warning_Safe :=)
+      $(call ${Warning_Handler},$(strip $(1)))
+      $(eval Warning_Safe := 1)
+    ,
+      $(call Attention,\
+        Recursive call to Warning_Handler -- callback not called.)
+    )
   )
 endef
 
@@ -243,7 +274,7 @@ define _help
 ${_macro}
   Install a message callback for when a message is issued.
   The callback should support one parameter which will be the message.
-  WARNING: An message callback should not do any thing that could in turn trigger another message. Doing so could result in a fatal infinite loop. To help mitigate this problem the variable Warning_Safe is used as a semaphore. If the variable is empty then the message callback will NOT be called.
+  WARNING: A message callback should not do any thing that could in turn trigger another warning. Doing so could result in a fatal infinite loop. To help mitigate this problem the variable Warning_Safe is used as a semaphore. If the variable is empty then the message callback will NOT be called.
   Recursive callbacks are disallowed.
   Parameters:
     1 = The name of the macro to call when a message is called. To disable the
@@ -264,7 +295,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Enable-Single-Step)
+  $(call Enter-Macro,$(0))
   $(eval Single_Step := yes)
   $(call Exit-Macro)
 endef
@@ -276,7 +307,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Disable-Single-Step)
+  $(call Enter-Macro,$(0))
   $(eval Single_Step :=)
   $(call Exit-Macro)
 endef
@@ -335,14 +366,16 @@ define ${_macro}
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
   $(call Debug,Handler: ${Error_Handler} Safe:${Error_Safe})
-  $(if $(and ${Error_Handler},${Error_Safe}),
-    $(eval Error_Safe := )
-    $(call Debug,Calling ${Error_Handler}.)
-    $(call Debug,Message:$(1).)
-    $(call ${Error_Handler},$(1))
-    $(eval Error_Safe := 1)
-  ,
-    $(call Warn,Recursive call to Signal-Error -- handler not called.)
+  $(if ${Error_Handler},
+    $(if ${Error_Safe},
+      $(eval Error_Safe := )
+      $(call Debug,Calling ${Error_Handler}.)
+      $(call Debug,Message:$(1).)
+      $(call ${Error_Handler},$(1))
+      $(eval Error_Safe := 1)
+    ,
+      $(call Warn,Recursive call to Signal-Error -- handler not called.)
+    )
   )
 endef
 #--------------
@@ -418,7 +451,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
 $(strip \
-  $(call Enter-Macro,Require)
+  $(call Enter-Macro,$(0),$(1))
   $(call Debug,Requiring defined variables:$(1))
   $(eval _r :=)
   $(foreach _v,$(1),
@@ -454,7 +487,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
 $(strip
-  $(call Enter-Macro,Must-Be-One-Of)
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(call _mbof,$(1),$(2))
   $(call Exit-Macro)
 )
@@ -548,7 +581,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Redefine-Sticky)
+  $(call Enter-Macro,$(0),$(1))
   $(eval _rspl := $(subst =,${Space},$(1)))
   $(eval _rsp := $(word 1,${_rspl}))
   $(eval _rsv := $(word 2,${_rspl}))
@@ -576,7 +609,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Remove-Sticky)
+  $(call Enter-Macro,$(0),$(1))
   $(if $(filter $(1),${StickyVars}),
     $(call Debug,Removing sticky variable: $(1))
     $(eval StickyVars := $(filter-out $(1),${StickyVars}))
@@ -603,7 +636,7 @@ endef
 help-${_macro} := $(call _help)
 OverridableVars :=
 define ${_macro}
-  $(call Enter-Macro,Overridable)
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(if $(filter $(1),${OverridableVars}),
     $(call Signal-Error,Var $(1) has already been declared.)
   ,
@@ -722,7 +755,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Add-Segment-Path)
+  $(call Enter-Macro,$(0),$(1))
   $(eval SegPaths += $(1))
   $(call Debug,Added path(s):$(1))
   $(call Exit-Macro)
@@ -742,7 +775,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Find-Segment)
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(eval $(2) := )
   $(call Debug,Locating segment: $(1))
   $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegId}))
@@ -796,7 +829,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Use-Segment)
+  $(call Enter-Macro,$(0),$(1))
   $(if $(findstring .mk,$(1)),
     $(call Debug,Including segment:${1})
     $(eval include $(1))
@@ -827,7 +860,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Set-Segment-Context)
+  $(call Enter-Macro,$(0),$(1))
   $(eval SegId := $(1))
   $(eval Seg := $(call Get-Segment-Basename,$(1)))
   $(eval SegP := $(call Get-Segment-Path,$(1)))
@@ -858,7 +891,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Enter-Segment)
+  $(call Enter-Macro,$(0))
   $(eval __s := $(call Last-Segment-Basename))
   $(eval ${__s}SegId := $(call Last-Segment-Id))
   $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${${__s}SegId})))
@@ -880,7 +913,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Exit-Segment)
+  $(call Enter-Macro,$(0))
   $(call Debug,Exiting segment: ${Seg})
   $(eval $(call Set-Segment-Context,${${Seg}PrvSegId}))
   $(call Exit-Macro)
@@ -896,7 +929,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Check-Segment-Conflicts)
+  $(call Enter-Macro,$(0))
   $(eval __s := $(call Last-Segment-Basename))
   $(call Debug,\
     Segment exists: ID = ${${__s}SegId}: file = $(call Get-Segment-File,${${__s}SegId}))
@@ -987,7 +1020,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Gen-Segment-File)
+  $(call Enter-Macro,$(0),$(1) $(2) $(3))
   $(file >$(3),$(call Gen-Segment-Text,$(1),$(2)))
   $(call Exit-Macro)
 endef
@@ -1006,7 +1039,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Resolve-Help-Goals)
+  $(call Enter-Macro,$(0))
   $(call Debug,Resolving help goals.)
   $(call Debug,Help goals: $(filter help-%,${Goals}))
   $(foreach _s,$(patsubst help-%,%,$(filter help-%,${Goals})),
@@ -1050,7 +1083,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Add-To-Manifest)
+  $(call Enter-Macro,$(0),$(1) $(2) $(3))
   $(call Debug,Adding $(3) to $(1))
   $(call Debug,Var: $(2))
   $(eval $(2) = $(3))
@@ -1132,7 +1165,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
 $(strip
-  $(call Enter-Macro,Return-Code)
+  $(call Enter-Macro,$(0))
   $(if $(filter 0,$(lastword $(1))),,$(lastword $(1)))
   $(call Exit-Macro)
 )
@@ -1155,7 +1188,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,Run)
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(call Debug,Command:$(1))
   $(eval Run_Output := $(shell $(1) 2>&1;echo $$?))
   $(call Debug,Run_Output = ${Run_Output})
@@ -1180,7 +1213,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-$(call Enter-Macro,Gen-Command-Goal)
+$(call Enter-Macro,$(0),$(1) $(2) $(3))
 $(if $(call Is-Goal,$(1)),
   $(call Verbose,Generating $(1) to do "$(2)")
   $(if $(3),
@@ -1227,17 +1260,6 @@ export HELPER_FUNCTIONS
 
 # Special goal to force another goal.
 FORCE:
-
-DefaultGoal ?= help
-
-ifeq (${MAKECMDGOALS},)
-  $(call Info,No goal was specified -- defaulting to: ${DefaultGoal}.)
-  .DEFAULT_GOAL := $(DefaultGoal)
-else
-  .DEFAULT_GOAL :=
-endif
-
-Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
 
 $(call Info,Goals: ${Goals})
 
