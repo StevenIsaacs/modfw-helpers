@@ -8,50 +8,161 @@ ifndef $(call Last-Segment-Basename)SegId
 $(call Enter-Segment)
 # -----
 
+SuiteL :=
 SuiteID := 0
+TestID := 0
+StepID := 0
 TestC := 0
 PassedC := 0
-PassedL :=
 FailedC := 0
 FailedL :=
 
-define Test-Info
-  $(call Info,Suite:${SuiteID}:$(strip $(1)))
+_macro := Test-Info
+define _help
+${_macro}
+  Display a test message in a parsable format. This shows the test number along
+  with the test message.
+  Parameters:
+    1 = The message to display.
+  Uses:
+    SuiteID
+    TestID
+    StepID
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Info,Suite:${SuiteID}:${TestID}:${StepID}:$(strip $(1)))
 endef
 
-define Test-Result
-  $(call Format-Message,$(1):${SuiteID}:${TestC}:$(strip $(2)))
+_macro := Test-Result
+define _help
+${_macro}
+  Display the result of a test step.
+  Parameters:
+    1 = A four character prefix for the result message. Typically this is
+        PASS or FAIL since this is called by those macros.
+  Uses:
+    SuiteID   The current test suite.
+    TestID    The current test in the test suite.
+    StepID    The test step in the current test.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Inc-Var,StepID)
+  $(call Format-Message,$(1):${SuiteID}:${TestID}:${StepID}:$(strip $(2)))
 endef
 
-define PASS
-  $(call Inc-Var,TestC)
-  $(call Test-Result,PASS,$(strip $(1)))
+_macro := PASS
+define _help
+${_macro}
+  Display a test passed message.
+  Parameters:
+    1 = The message to display.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Test-Result,PASS,$(1))
   $(call Inc-Var,PassedC)
-  $(eval PassedL += ${SuiteID}:${TestC})
 endef
 
-define FAIL
-  $(call Inc-Var,TestC)
-  $(call Test-Result,FAIL,$(strip $(1)))
+_macro := FAIL
+define _help
+${_macro}
+  Display a test failed message.
+  Parameters:
+    1 = The message to display.
+  Uses:
+    SuiteID   The current test suite.
+    TestID    The current test in the test suite.
+    StepID    The test step in the current test.
+    SuiteFL   The list of test failures for the current test suite. TestID
+              and StepID are appended to this list.
+    FailedL   The list of all test failures. SuiteID, TestId and, StepID are
+              appended to this list.
+    FailedC   Is incremented.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Test-Result,FAIL,$(1))
   $(call Inc-Var,FailedC)
-  $(eval FailedL += ${SuiteID}:${TestC})
+  $(call SuiteFL += ${TestID}:${StepID})
+  $(eval FailedL += ${SuiteID}:${TestID}:${StepID})
 endef
 
-_macro := Next-Suite
+_macro := Begin-Suite
 define _help
 ${_macro}
   Advance to the next test suite.
   Parameters:
-    1 = A message describing the test.
+    1 = The test suite name (<suite>).
+    2 = A message describing the test suite.
   Uses:
-    SuiteID  Incremented by 1.
+    SuiteN  Is set to the name of the current test suite.
+    SuiteL  The suite name is appended to the list of test suites.
+    SuiteID Incremented by 1.
+    SuiteFL Is reset.
+    SuiteL  The test suite name is appended to this list.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(eval TestC := 0)
+  $(eval SuiteN := $(1))
+  $(eval SuiteL += $(1))
+  $(eval SuiteFL := )
   $(call Inc-Var,SuiteID)
+  $(eval TestID := 0)
   $(call Info,$(NewLine))
-  $(call Test-Info,++++ $(1) ++++)
+  $(call Test-Info,++++ $(1):$(2) ++++)
+endef
+
+_macro := End-Suite
+define _help
+${_macro}
+  End the current test suite. Record the suite test results.
+  Uses:
+    SuiteN  The test suite name (<suite>).
+  Defines:
+    <suite>_TestC
+      The number of tests in this test suite.
+    <suite>_Failed
+      The list of failed tests for this test suite.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(eval ${SuiteN}_TestC := ${TestID})
+  $(eval ${SuiteN}_Failed := ${SuiteFL})
+  $(call Test-Info,---- ${SuiteN} ----)
+endef
+
+_macro := Begin-Test
+define _help
+${_macro}
+  Advance to the next test in the current test suite.
+  Parameters:
+    1 = The name of the test.
+  Uses:
+    SuiteN    The name of the running test suite.
+    TestN     Set to the name of the test.
+    TestID    Incremented by 1.
+    TestC     Incremented by 1.
+    StepID    Reset to 0.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(eval TestN := $(1))
+  $(call Inc-Var,TestC)
+  $(call Inc-Var,TestID)
+  $(eval StepID := 0)
+  $(info ${NewLine})
+  $(call Test-Info,Begin test:${SuiteN}:$(1))
+endef
+
+_macro := End-Test
+define _help
+${_macro}
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Test-Info,End test:${SuiteID}:$(1))
 endef
 
 _macro := Display-Vars
@@ -189,7 +300,8 @@ _macro := Expect-Warning
 define _help
 ${_macro}
   Enables (arm) Oneshot-Warning-Handler as a callback and sets
-  Expected_Warning.
+  Expected_Warning. The next call should be one which would generate the
+  expected warning. That should be followed by a call to Verify-Warning.
   Parameters:
     1 = The expected warning.
 endef
@@ -268,7 +380,6 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(eval Actual_Error := $(1))
-  $(call Expect-String,${Expected_Error},$(1))
   $(call Set-Error-Handler)
   $(call Exit-Macro)
 endef
@@ -277,7 +388,8 @@ _macro := Expect-Error
 define _help
 ${_macro}
   Enables (arm) Oneshot-Error-Handler as an error handler and sets
-  Expected_Error.
+  Expected_Error. NOTE: Verify-Error must be called to verify that the
+  error occurred and that the expected message was emitted.
   Parameters:
     1 = The expected error message.
 endef
@@ -306,6 +418,7 @@ define ${_macro}
     $(call Set-Error-Handler)
   ,
     $(call PASS,Error occurred -- as expected.)
+    $(call Expect-String,${Expected_Error},$(1))
   )
 endef
 
@@ -387,10 +500,7 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
-#+
-# Display a test summary.
-#-
-_macro := Report-Test-Summary
+_macro := Report-Test-Results
 define _help
 ${_macro}
   Display a summary of test results.
@@ -403,9 +513,58 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
   $(call Test-Info,${TestC} Total passed:${PassedC} Total failed:${FailedC})
-  $(call Test-Info,Passed tests:${PassedL})
-  $(call Test-Info,Failed tests:${FailedL})
+  $(if ${FailedL},
+    $(call Test-Info,Failed tests:${FailedL})
+  )
   $(call Exit-Macro)
+endef
+
+_macro := Run-Suites
+define _help
+  Run each test suite in the suites directory only if the suite is a goal.
+  Each test suite is contained in its own makefile segment and must be
+  stand alone (i.e. not dependant upon other test suites).
+  Parameters:
+    1 = The path to the directory containing the test suites.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+$(call Enter-Macro,$(0),$(1))
+$(foreach _suite,$(call Basenames-In,$(1)/*.mk),
+  $(eval _g := $(call Is-Goal,${_suite}))
+  $(if ${_g},
+    $(call Use-Segment,${_suite})
+  ,
+    $(call Verbose,Skipping test suite: ${_suite})
+  )
+)
+$(call Exit-Macro)
+endef
+
+_macro := Run-Tests
+define _help
+  Run each test in a list of tests. The individual tests will be executed only
+  if they are included in the list of goals.
+  Parameters:
+    1 = List of tests to run.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+$(call Enter-Macro,$(0),$(1))
+$(if $(1),
+  $(foreach _t,$(1),
+    $(call Test-Info,Test: ${_t})
+    $(if $(call Is-Goal,${_t}),
+      $(call Test-Info,Running test:${_t})
+      $(call ${_t})
+    ,
+      $(call Test-Info,Skipping test:${_t})
+    )
+  )
+,
+  $(call Test-Info,No tests have been listed.)
+)
+$(call Exit-Macro)
 endef
 
 # NOTE: This required DEBUG to be defined.
@@ -447,7 +606,7 @@ endif
 ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,Testing helpers...)
 
-  $(call Next-Suite,String manipulation.)
+  $(call Begin-Suite,String manipulation.)
   t1 := A1bc!4De
   t1l := $(call To-Lower,${t1})
   t1u := $(call To-Upper,${t1})
@@ -462,7 +621,7 @@ ifneq ($(call Is-Goal,test-helpers),)
     t2u:CDEF-GHIJ \
   )
 
-  $(call Next-Suite,Expect-Vars)
+  $(call Begin-Suite,Expect-Vars)
   v1 := v1_val
   v2 := v2_val
   v3 := v3_val
@@ -471,7 +630,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,FAIL:${SuiteID}:4 Is expected.)
   $(call Expect-Vars,v1:v1_val v2:v2_val v3:v3_val v4:v4_val)
 
-  $(call Next-Suite,Expect-List)
+  $(call Begin-Suite,Expect-List)
   $(call Test-Info,The list being verified can be longer than the expect list.)
   $(call Expect-List,one two three four,one two three four five)
   $(call Test-Info,Same lists.)
@@ -484,7 +643,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,Expect FAIL.)
   $(call Expect-String,This should fail.,This should FAIL.)
 
-  $(call Next-Suite,Add-To-Manifest)
+  $(call Begin-Suite,Add-To-Manifest)
 
   $(call Add-To-Manifest,l1,null,one)
   $(call Test-Info,List: l1=${l1})
@@ -506,7 +665,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Test-Info,List: l2=${l2})
   $(call Expect-List,${l2},2.one 2.two)
 
-  $(call Next-Suite,Signal-Error)
+  $(call Begin-Suite,Signal-Error)
 
   $(call Expect-Error,Error one.)
   $(call Signal-Error,Error one.)
@@ -529,7 +688,7 @@ ifneq ($(call Is-Goal,test-helpers),)
   $(call Verify-Error)
   $(call Test-Info,ErrorList: ${ErrorList})
 
-$(call Next-Suite,Signal-Error callback.)
+$(call Begin-Suite,Signal-Error callback.)
   define error-handler
     $(call Enter-Macro,error-handler)
     $(call Test-Info,$(1))
@@ -563,14 +722,14 @@ $(call Next-Suite,Signal-Error callback.)
   $(call Signal-Error,Error handler removed.)
   $(call Expect-Vars,_err:)
 
-  $(call Next-Suite,Current context.)
+  $(call Begin-Suite,Current context.)
   $(call Report-Seg-Context)
 
-  $(call Next-Suite,$(SHELL) HELPER_FUNCTIONS)
+  $(call Begin-Suite,$(SHELL) HELPER_FUNCTIONS)
   $(call Test-Info,helpersSegId = ${helpersSegId})
   $(call Test-Info,HELPER_FUNCTIONS = ${HELPER_FUNCTIONS})
 
-  $(call Next-Suite,Return-Code)
+  $(call Begin-Suite,Return-Code)
   _o := 0
   $(call Test-Info,Return-Code:Checking: ${_o})
   # No exception.
@@ -623,7 +782,7 @@ $(call Next-Suite,Signal-Error callback.)
   endif
   $(call Expect-Vars,_r:128)
 
-  $(call Next-Suite,Running shell commands.)
+  $(call Begin-Suite,Running shell commands.)
   $(call Run,ls test)
   $(call Test-Info,Run output = ${Run_Output})
   $(call Test-Info,Run return code: ${Run_Rc})
@@ -647,10 +806,10 @@ $(call Next-Suite,Signal-Error callback.)
   endif
   $(call Test-Info,Run return code: ${_r})
 
-  $(call Next-Suite,Segment identifiers.)
+  $(call Begin-Suite,Segment identifiers.)
   $(call Report-Seg-Context)
 
-  $(call Next-Suite,Sticky variables.)
+  $(call Begin-Suite,Sticky variables.)
   tv1 := tv1_v
   tv2 := tv2_v
   $(call Test-Info,STICKY_PATH = ${STICKY_PATH})
@@ -687,7 +846,7 @@ $(call Next-Suite,Signal-Error callback.)
   )
   $(call Set-Error-Handler)
 
-  $(call Next-Suite,Require)
+  $(call Begin-Suite,Require)
   a := 1
   b := 2
   c := 3
@@ -708,7 +867,7 @@ $(call Next-Suite,Signal-Error callback.)
     $(call FAIL,Require: Returned (${r})- -- should have been empty.)
   endif
 
-  $(call Next-Suite,Must-Be-One-Of)
+  $(call Begin-Suite,Must-Be-One-Of)
   _pat := 1 2 3
   $(call Test-Info,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
   ifeq ($(call Must-Be-One-Of,a,${_pat}),)
@@ -731,7 +890,7 @@ $(call Next-Suite,Signal-Error callback.)
     $(call FAIL,Is one.)
   endif
 
-  $(call Next-Suite,Use-Segment)
+  $(call Begin-Suite,Use-Segment)
 
   $(call Test-Info,Segments in the current directory.)
   $(call Use-Segment,ts1)
@@ -754,7 +913,7 @@ $(call Next-Suite,Signal-Error callback.)
   $(call Test-Info,Full segment path (no find).)
   $(call Use-Segment,${SegP}/ts3.mk)
 
-  $(call Next-Suite,Test overridable variables.)
+  $(call Begin-Suite,Test overridable variables.)
   $(call Test-Info,Declaring ov1 as overridable.)
   $(call Overridable,ov1,ov1_val)
   $(call Test-Info,ov1:$(ov1))
@@ -768,7 +927,7 @@ $(call Next-Suite,Signal-Error callback.)
   $(call Test-Info,ov2:$(ov2))
   $(call Test-Info,Overridables: $(OverridableVars))
 
-  $(call Next-Suite,Confirmations)
+  $(call Begin-Suite,Confirmations)
   _r := $(call Confirm,Enter positive response.,y)
   $(call Test-Info,Response = "${_r}")
   ifeq (${_r},y)
@@ -791,7 +950,7 @@ test-helpers: display-errors display-messages
 else ifneq ($(call Is-Goal,test-submake),)
   $(call Test-Info,Testing sub-make...)
   $(call Test-Info,Before:tv1=${tv1} tv2=${tv2} tv3=${tv3})
-  $(call Next-Suite,Sticky variables in a sub-make.)
+  $(call Begin-Suite,Sticky variables in a sub-make.)
   $(call Test-Info,Cannot set sticky variables in a sub-make.)
   $(call Test-Info,StickyVars:${StickyVars})
   # tv1 should have the value from the command line but not saved.
@@ -826,52 +985,66 @@ define help-${Seg}
 This make segment provides test support macros and tests for the macros in
 helpers.mk.
 
+Definitions:
+  Test suite:
+    A collection of tests which are closely related. A test suite should begin
+    by setting up an environment in which the tests are executed. On completion
+    of the tests the environment should then be torn down to avoid corrupting
+    the environment for subsequent test suites or normal development. A test
+    suite should NOT be dependant upon conditions created by any other test
+    suite. HOWEVER, a test suite can require that other test suites pass
+    before running any additional tests. In this case a test suite can trigger
+    execution of other test suites.
+  Test or test case:
+    A specific test in a test suite. Each test should begin with a setup
+    and end with a teardown. A test should first verify preconditions to ensure
+    the environment has been setup properly for the test and to ensure previous
+    tests have not corrupted the environment. A test should not rely upon
+    conditions from a previous test and should not leave any artifacts to
+    clutter the test environment or confuse subsequent tests. A test should be
+    able to be executed atomically.
+  Test step:
+    A single step in a test.
+
 Defines:
 
+SuiteL
+  The list of test suites run. This can be used to get the name of a test
+  suite using the SuiteID.
 SuiteID
-  Test counter. This is also the current test number.
+  The current test suite. This is incremented by Begin-Suite.
+SuiteFL
+  The list of failed tests for the current test suite. These are identified
+  using TestID and StepID.
+TestID
+  The current test within a test suite. This is reset by Begin-Suite and
+  incremented by Begin-Test.
+StepID
+  The test step within a test. This is reset by Begin-Test and incremented
+  each time a PASS or FAIL is reported.
 TestC
-  Test result counter. The total number of test results which were reported.
+  The total number of test results which were reported.
 PassedC
   The number of tests which passed.
-PassedL
-  The list of passing test SuiteIDs.
 FailedC
   The number of tests which failed.
 FailedL
-  The list of failing test SuiteIDs.
+  The list of failing tests. These are identified using SuiteID, TestID and,
+  StepID.
 
 Defines the test helper macros:
 
-Test-Info
-  Display a test message in a parsable format. This shows the test number along
-  with the test message.
-  Parameters:
-    1 = The message to display.
-  Uses:
-    SuiteID
+${help-Test-Info}
 
-PASS
-  Display a test passed message.
-  Parameters:
-    1 = The message to display.
-  Uses:
-    SuiteID The current test suite.
-    TestC   Is incremented.
-    PassedC Is incremented.
-    PassedL SuiteID is appended to this list.
+${help-Test-Result}
 
-FAIL
-  Display a test failed message.
-  Parameters:
-    1 = The message to display.
-  Uses:
-    SuiteID  The current test suite.
-    TestC   Is incremented.
-    FailedC Is incremented.
-    FailedL SuiteID is appended to this list.
+${help-PASS}
 
-${help-Next-Suite}
+${help-FAIL}
+
+${help-Begin-Suite}
+
+${help-Begin-Test}
 
 ${help-Display-Vars}
 
@@ -880,6 +1053,14 @@ ${help-Expect-Vars}
 ${help-Expect-List}
 
 ${help-Expect-String}
+
+${help-Oneshot-Warning-Handler}
+
+${help-Expect-Warning}
+
+${help-Verify-Warning}
+
+${help-Verify-No-Warning}
 
 ${help-Oneshot-Error-Handler}
 
@@ -891,16 +1072,16 @@ ${help-Verify-No-Error}
 
 ${help-Report-Seg-Context}
 
-${help-Report-Test-Summary}
+${help-Report-Test-Results}
 
 endef
 $(call Test-Info,help-${Seg} = ${help-${Seg}})
 endif
 $(call Exit-Segment)
-$(call Next-Suite,Restored context.)
+$(call Begin-Suite,Restored context.)
 $(call Report-Seg-Context)
 else # SegId exists
-$(call Next-Suite,ID exists context.)
+$(call Begin-Suite,ID exists context.)
 $(call Report-Seg-Context)
 $(call Check-Segment-Conflicts)
 endif # SegId
