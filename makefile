@@ -12,7 +12,7 @@ $(call Info,WorkingVar: ${WorkingVar})
 
 $(call Use-Segment,test-helpers)
 
-$(call Run-Suites,${SUITES_PATH},${SUITES})
+$(call Run-Suites,${SUITES_PATH},${CASES})
 
 $(call Resolve-Help-Goals)
 
@@ -25,19 +25,11 @@ NOTE: This help is displayed if no goal is specified.
 This make file is used to run test suites for testing the helpers and the
 test helpers.
 
-Goals:
-    all
-      Use this goal to run all of the test suites.
-    <suite>
-      Run a specific test suite.
-    test-helpers
-        Test the helper macros.
-    test-conflicts
-        Test ID conflicts among segments. This is also executed by
-        test-helpers.
+The sticky variable CASES defines which tests are run. See help-CASES for more
+information.
+
+Use the test goal. See help-test-helpers for more information.
 
 endef
-
-help: help-Usage
 
 endif

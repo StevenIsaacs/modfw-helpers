@@ -17,7 +17,7 @@ define _help
   The path to the directory containing the test suites to run.
   Default: DEFAULT_SUITES_PATH = ${DEFAULT_SUITES_PATH}
 endef
-help-${_var} := ${call _help}
+help-${_var} := $(call _help)
 
 _var := CASES
 $(call Sticky,${_var},$(call Basenames-In,${SUITES_PATH}/*.mk))
@@ -35,20 +35,31 @@ define _help
   This relies upon each test suite defining a list of available tests. This
   variable must be named <suite>.TestL.
   Examples:
+    Run all tests in the SUITES_PATH directory. NOTE: This does not change the
+    previously saved sticky value.
+      CASES=""
     Run all tests in suite1 and suite2.
       CASES="suite1 suite2"
     Run only test1 and test2 in suite1.
       CASES="suite1.test1+test2"
-    Run all tests in the current test suite.
+    Run all tests in the current segment context.
       CASES="."
-    Run only test1 from current test suite.
+    Run only test1 from current segment context.
       CASES=".test1"
-    Run all tests having the same prefix in the current test suite.
+    Run all tests having the same prefix in the current segment context.
       CASES=".test%"
     Run all tests having the same prefix in suite1 and suite2.
       CASES="suite1.test% suite2.test%"
     Run all tests matching any of multiple prefixes in suite1.
       CASES="suite1.test%+ts_%"
+endef
+help-${_var} := $(call _help)
+
+_var := SuiteL
+${_var} :=
+define _help
+${_var}
+  The list of all test suites which are in use.
 endef
 help-${_var} := $(call _help)
 
@@ -58,7 +69,23 @@ define _help
 ${_var}
   The list of test suites to be run in the current session.
 endef
-help-${_var} := ${call _help}
+help-${_var} := $(call _help)
+
+_var := TestL
+${_var} :=
+define _help
+${_var}
+  The list of all tests which have been added to a test suite.
+endef
+help-${_var} := $(call _help)
+
+_var := SuiteL
+${_var} :=
+define _help
+${_var}
+  The list of all test suites which have been added to a test suite.
+endef
+help-${_var} := $(call _help)
 
 _var := TestRunL
 ${_var} :=
@@ -66,7 +93,31 @@ define _help
 ${_var}
   The list of tests to be run in the current session.
 endef
-help-${_var} := ${call _help}
+help-${_var} := $(call _help)
+
+_var := CompletedTestC
+${_var := 0}
+define _help
+${_var}
+  The number of tests which have completed.
+endef
+help-${_var} := $(call _help)
+
+_var := PassedC
+${_var} :=
+define _help
+${_var}
+  Total number of passed test steps. This is incremented when a step passes.
+endef
+help-${_var} := $(call _help)
+
+_var := FailedC
+${_var} :=
+define _help
+${_var}
+  Total number of failed test steps. This is incremented when a step fails.
+endef
+help-${_var} := $(call _help)
 
 _var := SuiteN
 ${_var} :=
@@ -74,7 +125,7 @@ define _help
 ${_var}
   The name of the running test suite.
 endef
-help-${_var} := ${call _help}
+help-${_var} := $(call _help)
 
 _var := SuiteID
 ${_var} := 0
@@ -177,7 +228,7 @@ define _help
 ${_var}
   The name of the running test.
 endef
-help-${_var} := ${call _help}
+help-${_var} := $(call _help)
 
 _var := TestsL
 ${_var} :=
@@ -233,6 +284,14 @@ ${_var}
 endef
 help-${_var} := $(call _help)
 
+_var := StepC
+${_var} := 0
+define _help
+${_var}
+  The total number of steps executed in the test run.
+endef
+help-${_var} := $(call _help)
+
 _var := StepID
 ${_var} := 0
 define _help
@@ -277,76 +336,151 @@ ${_macro}
   Parameters:
     1 = A four character prefix for the result message. Typically this is
         PASS or FAIL since this is called by those macros.
+    2 = The message for the result.
   Uses:
     SuiteID   The current test suite.
     TestID    The current test in the test suite.
     StepID    The test step in the current test. This is incremented by 1.
+    StepC     The total number of steps in the test run. This is incremented
+              by 1.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Inc-Var,StepID)
-  $(call Log-Message,$(1):${SuiteID}:${TestID}:${StepID}:$(strip $(2)))
+  $(call Inc-Var,StepC)
+  $(call Log-Message,$(1),${SuiteID}:${TestID}:${StepID}:$(2))
+endef
+
+_macro := Record-PASS
+define _help
+${_macro}
+  Record a PASS test step result.
+Uses:
+${help-PassedC}
+${help-SuiteN}
+${help-TestN}
+${help-StepID}
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Inc-Var,PassedC)
+  $(eval SuitePassedL += ${SuiteN}:${TestN}:${StepID})
+endef
+
+_macro := Record-FAIL
+define _help
+${_macro}
+  Record a FAIL test step result.
+Uses:
+${help-FailedC}
+${help-SuiteN}
+${help-TestN}
+${help-StepID}
+$(help-TestFailed)
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Inc-Var,FailedC)
+  $(eval SuiteFailedL += ${SuiteN}:${TestN}:${StepID})
+  $(eval TestFailed := 1)
+endef
+
+_var := ExpectedResultsL
+${_var} :=
+define _help
+${_var}
+  The list of PASS or FAIL results to verify. Each call to PASS or FAIL
+  advances to the next result in the list. The results are verified in the
+  order in which they are specified in this list.
+  e.g. FAIL PASS PASS FAIL PASS Expects a FAIL followed by a PASS followed by
+  two PASSEs and finally a FAIL.
+endef
+help-${_var} := $(call _help)
+
+_macro := Verify-Result
+define _help
+${_macro}
+  This is called by either PASS or FAIL when ExpectedResultL is not empty.
+  As each result is verified it is removed from the head of the list. The
+  message for the result is logged.
+  NOTE: If the expected results list is empty then an error is emitted.
+  Parameters:
+    1 = The step result -- either PASS or FAIL.
+    2 = The message for the result.
+  Uses:
+${help-ExpectedResultsL}
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+  $(if ${ExpectedResultsL},
+    $(if $(filter $(1),$(word 1,${ExpectedResultsL})),
+      $(call Log-Result,PASS,$(1):$(2))
+      $(call Record-PASS)
+    ,
+      $(call Log-Result,FAIL,$(1):$(2))
+      $(call Record-FAIL)
+    )
+    $(eval ExpectedResultsL := \
+      $(wordlist 2,$(words ${ExpectedResultsL}),${ExpectedResultsL}))
+  ,
+    $(call Signal-Error,Call to Verify-Result when no results are expected.)
+  )
+  $(call Exit-Macro)
 endef
 
 _macro := PASS
 define _help
 ${_macro}
-  Display a test passed message.
+  Display a test passed message. If results are expected the PASS result is
+  verified using Verify-Result.
   Parameters:
     1 = The message to display.
-    SuiteN    The current test suite.
-    TestN     The current test in the test suite.
-    StepID    The test step in the current test.
-    SuitePassedC   Is incremented.
-    SuitePassedL   The list of all passing tests. SuiteID, TestId and, StepID are
-              appended to this list.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Log-Result,PASS,$(1))
-  $(call Inc-Var,PassedC)
-  $(eval SuitePassedL += ${SuiteN}:${TestN}:${StepID})
+  $(if ${ExpectedResultsL},
+    $(call Verify-Result,$(0),$(1))
+  ,
+    $(call Log-Result,PASS,$(1))
+    $(call Record-PASS)
+  )
 endef
 
 _macro := FAIL
 define _help
 ${_macro}
   Display a test failed message. This also flags the current test and suite
-  as having failed.
+  as having failed. If results are expected the FAIL result is verified using
+  Verify-Result.
   Parameters:
     1 = The message to display.
-  Uses:
-    SuiteN    The current test suite.
-    TestN     The current test in the test suite.
-    StepID    The test step in the current test.
-    SuiteFailedC   Is incremented.
-    SuiteFailedL   The list of all test failures. SuiteID, TestId and, StepID are
-              appended to this list.
-    TestFailed
-      This is set to be non-empty (1).
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Log-Result,FAIL,$(1))
-  $(call Inc-Var,FailedC)
-  $(eval SuiteFailedL += ${SuiteN}:${TestN}:${StepID})
-  $(eval TestFailed := 1)
+  $(if ${ExpectedResultsL},
+    $(call Verify-Result,$(0),$(1))
+  ,
+    $(call Log-Result,FAIL,$(1))
+    $(call Record-FAIL)
+  )
 endef
 
-_macro := Display-Vars
+_macro := Set-Expected-Results
 define _help
 ${_macro}
-  Display a list of variables and their values. This produces a series of
-  messages formatted as <varname> = <varvalue>
+  Sets a list of test step results to be verified when PASS or FAIL are called.
+  This is useful when a FAIL result is actually an indication that a test
+  step passed. See
   Parameters:
-    1 = The list of variable names.
+    1 = The list of PASS and FAIL results to verify.
+  Uses:
+    ${help-ExpectedResultsL}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
-  $(foreach _v,$(1),
-    $(call Test-Info,$(_v) = ${$(_v)})
-  )
+  $(eval ExpectedResultsL := $(1))
   $(call Exit-Macro)
 endef
 
@@ -699,6 +833,24 @@ define ${_macro}
   )
 endef
 
+_macro := Display-Vars
+define _help
+${_macro}
+  Display a list of variables and their values. This produces a series of
+  messages formatted as <varname> = <varvalue>
+  Parameters:
+    1 = The list of variable names.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+  $(foreach _v,$(1),
+    $(call Test-Info,$(_v) = ${$(_v)})
+  )
+  $(call Exit-Macro)
+endef
+
+
 #+
 # Display the current context and the context for a segment.
 #-
@@ -758,16 +910,19 @@ define _help
 ${_macro}
   Display a summary of test results.
   Displays:
-    TestC   This is also the total number of tests reported.
+    CompletedTestC
+            This is also the total number of tests reported.
     PassedC The total number of tests reported as PASS.
     FailedC The total number of tests reported as FAIL.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(call Test-Info,${TestC} Total passed:${PassedC} Total failed:${FailedC})
-  $(if ${FailedL},
-    $(call Test-Info,Failed tests:${FailedL})
+  $(call Test-Info,\
+    Ran ${StepC} steps in ${CompletedTestC} tests in ${SuiteID} suites.)
+  $(call Test-Info,Total passed:${PassedC} Total failed:${FailedC})
+  $(if ${FailedTestsL},
+    $(call Test-Info,Failed tests:${FailedTestsL})
   )
   $(call Exit-Macro)
 endef
@@ -835,6 +990,7 @@ help-${_macro} = $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if ${$(1).Prereqs},
+    $(call Debug,$(1) prereqs:${$(1).Prereqs})
     $(foreach _prereq,${$(1).Prereqs},
       $(call Use-Segment,$(word 1,$(subst ., ,${_prereq})))
       $(if $(filter ${_prereq},${PassedTestsL}),
@@ -846,6 +1002,7 @@ define ${_macro}
         ,
           $(eval TestFailed := )
           $(call ${_prereq})
+          $(call Inc-Var,CompletedTestC)
           $(if ${TestFailed},$(eval PrereqFailed := 1))
         )
       )
@@ -865,7 +1022,7 @@ ${_macro}
   If any of the prerequisite tests fail as indicated by the variable TestFailed
   the current test is considered to have failed.
   Parameters:  Parameters:
-    1 = List of tests to run.
+    1 = The name of the list of tests to run.
   Uses:
     <test>.Prereqs
       A list of prerequisite tests which must pass before the current test
@@ -879,23 +1036,36 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(1),
-    $(foreach _t,$(1),
+    $(eval CompletedTestC := 0)
+    $(eval FailedSuitesL := )
+    $(eval FailedSuitesC := 0)
+    $(eval FailedTestsL := )
+    $(eval FailedTestsC := 0)
+    $(eval StepC := 0)
+    $(foreach _t,${$(1)},
+      $(call Test-Info,Running test:${_t})
       $(call Test-Info,Test: ${_t})
       $(eval PrereqFailed := )
-      $(call Run-Prerequisites,${_t})
+      $(if ${${_t}.Prereqs},
+        $(call Test-Info,Running prereqs for test:${_t})
+        $(call Run-Prerequisites,${_t})
+      )
       $(if ${PrereqFailed},
         $(call Test-Info,Prerequisites for test ${_t} have failed -- skipping.)
       ,
         $(call Test-Info,Running test:${_t})
         $(eval TestFailed := )
         $(call ${_t})
-        $(if ${TestFailed},
-          $(eval SuiteFailed := 1)
-          $(call Inc-Var,FailedTestsC)
-          $(eval FailedTestsL += ${_t})
-        ,
-          $(call Inc-Var,PassedTestsC)
-          $(eval PassedTestsL += ${_t})
+        $(call Inc-Var,CompletedTestC)
+        $(let _s,$(word 1,$(subst ., ,${_t})),
+          $(if ${TestFailed},
+            $(call Inc-Var,FailedTestsC)
+            $(eval FailedTestsL += ${_t})
+            $(eval ${_s}.FailedTestsL += ${_t})
+          ,
+            $(call Inc-Var,PassedTestsC)
+            $(eval PassedTestsL += ${_t})
+          )
         )
       )
     )
@@ -905,22 +1075,37 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
-_macro := Add-Test-To-Suite
+_macro := Declare-Test
 define _help
 ${_macro}
-  Add a test to the current suite test.
+  Add a test to the list of tests and the current test suite. If the test has
+  already been added a warning is issued.
   Parameters:
-    1 = The name of the test.
+    1 = The name of the test <test>.
   Uses:
     SuiteN
-      The name of the current test suite.
+      The name of the current test suite (<suite>).
+  Modifies:
+    TestL
+      The test name (TestN) is appended to the list of all tests.
+    TestN
+      Defines the name of the test. This includes the current test suite
+      context.
+      This uses the form: <suite>.<test>
     <suite>.TestL
       The test name is appended to this list.
+
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
-  $(eval ${SuiteN}.TestL += $(1))
+  $(eval TestN := ${SuiteN}.$(1))
+  $(if $(filter ${SuiteN}${TestN},${TestL}),
+    $(call Warning,Name conflict with test ${TestN}.)
+  ,
+    $(eval TestL += ${TestN})
+    $(eval ${SuiteN}.TestL += ${TestN})
+  )
   $(call Exit-Macro)
 endef
 
@@ -931,8 +1116,8 @@ ${_macro}
   Parameters:
     1 = The test suite name (<suite>).
     2 = A message describing the test suite.
-  Uses:
-    SuitesL
+  Modifies:
+    SuiteL
       The suite name is appended to the list of test suites.
     SuiteN
       Is set to the name of the current test suite $$(1).
@@ -951,7 +1136,7 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
   $(call Inc-Var,SuiteID)
-  $(eval SuitesL += $(1))
+  $(eval SuiteL += $(1))
   $(eval SuiteN := $(1))
   $(eval SuiteTestC := 0)
   $(eval SuiteTestL := )
@@ -971,7 +1156,7 @@ ${_macro}
   End the current test suite. Record the suite test results.
   Uses:
     SuiteN  The test suite name (<suite>).
-  Defines:
+  Modifies:
     <suite>.TestC
       The number of tests in this test suite.
     <suite>.Failed
@@ -985,7 +1170,7 @@ define ${_macro}
   $(eval FailedTestsL += ${SuiteFailedL})
   $(call Add-Var,FailedTestsC,${SuiteFailedC})
   $(foreach _n,
-    TestC SuiteTestL SuitePassedC SuitePassedL SuiteFailedC SuiteFailedL,
+    CompletedTestC SuiteTestL SuitePassedC SuitePassedL SuiteFailedC SuiteFailedL,
     $(eval ${SuiteN}.${_n} := ${${_n}})
     $(call Debug,${SuiteN}.${_n} = ${${SuiteN}.${_n}})
   )
@@ -998,12 +1183,13 @@ define _help
 ${_macro}
   Create the list of tests to be run and ensure all of the test suite segments
   for a given test list are in use. This calls Use-Segment to load a test suite.
+  NOTE: This does not include prerequisite tests.
   Parameters:
     1 = The list of test suites to use. If this is empty then the CASES
         variable is used. If the CASES variable is empty then all suites in
         the directory indicated by SUITES_PATH are used. This supports the
         notation described for CASES, See help-CASES for more information.
-  Defines:
+  Modifies:
     SuiteRunL
       The list of test suites used.
     TestRunL
@@ -1018,9 +1204,11 @@ define ${_macro}
     $(if ${CASES},
       $(eval _cases := ${CASES})
     ,
+      $(call Test-Info,Running all tests in:${SUITES_PATH})
       $(eval _cases := $(call Basenames-In,${SUITES_PATH}/*.mk))
     )
   )
+  $(call Debug,Parsing:${_cases})
   $(foreach _case,${_cases},
     $(eval _s.t := $(subst ., ,${_case}))
     $(if $(word 1,${_s.t}),
@@ -1029,10 +1217,14 @@ define ${_macro}
       $(eval _suite := ${Seg})
     )
     $(if $(wildcard ${SUITES_PATH}/${_suite}.mk),
-      $(call Use-Segment,${_suite})
-      $(if $(filter ${_suite},${SuiteRunL}),
+      $(if $(filter ${_suite},${SuiteL}),
+        $(call Warning,Test suite ${_suite} has already been declared.)
       ,
-        $(eval SuiteRunL += ${_suite})
+        $(call Use-Segment,${_suite})
+        $(if $(filter ${_suite},${SuiteRunL}),
+        ,
+          $(eval SuiteRunL += ${_suite})
+        )
       )
     ,
       $(call Signal-Error,Test suite does not exist: ${_suite})
@@ -1064,7 +1256,7 @@ ${_macro}
         help-CASES for more information.
 endef
 help-${_macro} := $(call _help)
-ifneq ($(or $(findstring help,${Goals}),$(findstring call,${Goals})),)
+ifneq ($(call Is-Goal,help%),)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1):$(2))
   $(call Test-Info,Displaying help -- not running test suites.)
@@ -1080,7 +1272,7 @@ define ${_macro}
   )
   $(call Exit-Macro)
 endef
-else
+else ifneq ($(call Is-Goal,test),)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1):$(2))
   $(call Add-Segment-Path,$(1))
@@ -1089,449 +1281,28 @@ define ${_macro}
   $(eval FailedSuitesC := 0)
   $(eval FailedSuitesL :=)
   $(call Create-Run-List,$(2))
-  $(if $(2),
-    $(eval _cases := $(2))
+  $(if ${TestRunL},
+    $(call Run-Tests,TestRunL),
+    $(foreach _s,${SuiteRunL},
+      $(if ${${_s}.FailedTestsL},
+        $(eval FailedSuitesL += ${_s})
+        $(call Inc-Var,FailedSuitesC)
+      ,
+        $(eval PassedSuitesL += ${_s})
+        $(call Inc-Var,PassedSuitesC)
+      )
+    )
   ,
-    $(eval _cases := ${CASES})
+    $(call Warning,No tests in the TestRunL list.)
   )
-  $(foreach _case,${_cases},
-    $(eval _s.t := $(subst ., ,${_case}))
-    $(eval _casen := $(word 1,${_s.t}))
-    $(if ${${_casen}.SegID},
-    ,
-      $(call Use-Segment,${_casen})
-    )
-    $(if $(word 2,${_s.t}),
-      $(eval _testl := \
-        $(foreach _t,$(subst +, ,$(word 2,${_s.t})),${_casen}.${_t}))
-    ,
-      $(eval _testl := ${${_casen}.TestL})
-    )
-    $(call Test-Info,Test list:${_testl})
-    $(eval SuiteFailed := )
-    $(call Run-Tests,${_testl})
-    $(if ${SuiteFailed},
-      $(call Inc-Var,FailedSuitesC)
-      $(eval FailedSuitesL += ${_case})
-    ,
-      $(call Inc-Var,PassedSuitesC)
-      $(eval PassedSuitesL += ${_case})
-    )
-  )
+  $(call Report-Test-Results)
+
   $(call Exit-Macro)
 endef
 endif
 
-# NOTE: This required DEBUG to be defined.
-ifneq (${DEBUG},)
-  ifneq ($(call Is-Goal,test-stack),)
-    $(call Test-Info,Testing the macro stack.)
-    define m-3
-      $(call Enter-Macro,m-3)
-      $(call Test-Info,Macro entered,)
-      $(call Exit-Macro)
-      $(call Test-Info,Macro exited.)
-    endef
-
-    define m-2
-      $(call Enter-Macro,m-2)
-      $(call Test-Info,Macro entered,)
-      $(call m-3)
-      $(call Exit-Macro)
-      $(call Test-Info,Macro exited.)
-    endef
-
-    define m-1
-      $(call Enter-Macro,m-1)
-      $(call Test-Info,Macro entered,)
-      $(call m-2)
-      $(call Exit-Macro)
-      $(call Test-Info,Macro exited.)
-    endef
-
-    $(call Debug,Calling m-1.)
-    $(call m-1)
-
-test-stack: display-errors display-messages
-
-  endif
-
-endif
-
-ifneq ($(call Is-Goal,test-helpers),)
-  $(call Test-Info,Testing helpers...)
-
-  $(call Begin-Suite,String manipulation.)
-  t1 := A1bc!4De
-  t1l := $(call To-Lower,${t1})
-  t1u := $(call To-Upper,${t1})
-  t2 := cDeF-gHiJ
-  t2l := $(call To-Lower,${t2})
-  t2u := $(call To-Upper,${t2})
-
-  $(call Expect-Vars,\
-    t1l:a1bc!4de \
-    t1u:A1BC!4DE \
-    t2l:cdef-ghij\
-    t2u:CDEF-GHIJ \
-  )
-
-  $(call Begin-Suite,Expect-Vars)
-  v1 := v1_val
-  v2 := v2_val
-  v3 := v3_val
-  v4 := v4_fail
-
-  $(call Test-Info,FAIL:${SuiteID}:4 Is expected.)
-  $(call Expect-Vars,v1:v1_val v2:v2_val v3:v3_val v4:v4_val)
-
-  $(call Begin-Suite,Expect-List)
-  $(call Test-Info,The list being verified can be longer than the expect list.)
-  $(call Expect-List,one two three four,one two three four five)
-  $(call Test-Info,Same lists.)
-  $(call Expect-List,one two three four,one two three four)
-  $(call Test-Info,Lists do not match.)
-  $(call Test-Info,Expect FAIL.)
-  $(call Expect-List,one two three four,one Two three Four)
-  $(call Test-Info,Expect PASS.)
-  $(call Expect-String,This should pass.,This should pass.)
-  $(call Test-Info,Expect FAIL.)
-  $(call Expect-String,This should fail.,This should FAIL.)
-
-  $(call Begin-Suite,Add-To-Manifest)
-
-  $(call Add-To-Manifest,l1,null,one)
-  $(call Test-Info,List: l1=${l1})
-  $(call Expect-List,l1,one)
-
-  $(call Add-To-Manifest,l1,null,two)
-  $(call Test-Info,List: l1=${l1})
-  $(call Expect-List,${l1},one two)
-
-  $(call Add-To-Manifest,l2,l2_e1,2.one)
-  $(call Test-Info,Var: l2_e1=${l2_e1})
-  $(call Expect-Vars,l2_e1:2.one)
-  $(call Test-Info,List: l2=${l2})
-  $(call Expect-List,${l}2,2.one)
-
-  $(call Add-To-Manifest,l2,l2_e2,2.two)
-  $(call Test-Info,Var: l2_e2=${l2_e1})
-  $(call Expect-Vars,l2_e2:2.two)
-  $(call Test-Info,List: l2=${l2})
-  $(call Expect-List,${l2},2.one 2.two)
-
-  $(call Begin-Suite,Signal-Error)
-
-  $(call Expect-Error,Error one.)
-  $(call Signal-Error,Error one.)
-  $(call Verify-Error)
-  $(call Test-Info,ErrorList: ${ErrorList})
-  $(call Expect-Error,Error two.)
-  $(call Signal-Error,Error two.)
-  $(call Verify-Error)
-  $(call Test-Info,ErrorList: ${ErrorList})
-  $(call Expect-Error,Error three.)
-  $(call Signal-Error,Error three.)
-  $(call Verify-Error)
-  $(call Test-Info,ErrorList: ${ErrorList})
-  $(call Expect-Error,Error four.)
-  $(call Signal-Error,Error four.)
-  $(call Verify-Error)
-  $(call Test-Info,ErrorList: ${ErrorList})
-  $(call Expect-Error,Error five.)
-  $(call Signal-Error,Error five.)
-  $(call Verify-Error)
-  $(call Test-Info,ErrorList: ${ErrorList})
-
-$(call Begin-Suite,Signal-Error callback.)
-  define error-handler
-    $(call Enter-Macro,error-handler)
-    $(call Test-Info,$(1))
-    $(eval _err := 1)
-    $(call Exit-Macro)
-  endef
-
-  define recursive-error-handler
-    $(call Enter-Macro,recursive-error-handler)
-    $(call Test-Info,$(1))
-    $(call Inc-Var,_err)
-    $(call Signal-Error,Recursive error.)
-    $(call Exit-Macro)
-  endef
-
-  _err :=
-  $(call Signal-Error,No error handler.)
-  $(call Expect-Vars,_err:)
-
-  $(call Set-Error-Callback,error-handler)
-  $(call Signal-Error,Error handler installed.)
-  $(call Expect-Vars,_err:1)
-
-  _err := 0
-  $(call Set-Error-Callback,recursive-error-handler)
-  $(call Signal-Error,Recursive error handler installed.)
-  $(call Expect-Vars,_err:1)
-
-  _err :=
-  $(call Set-Error-Callback)
-  $(call Signal-Error,Error handler removed.)
-  $(call Expect-Vars,_err:)
-
-  $(call Begin-Suite,Current context.)
-  $(call Report-Seg-Context)
-
-  $(call Begin-Suite,$(SHELL) HELPER_FUNCTIONS)
-  $(call Test-Info,helpersSegId = ${helpersSegId})
-  $(call Test-Info,HELPER_FUNCTIONS = ${HELPER_FUNCTIONS})
-
-  $(call Begin-Suite,Return-Code)
-  _o := 0
-  $(call Test-Info,Return-Code:Checking: ${_o})
-  # No exception.
-  _r := $(call Return-Code,0)
-  $(call Test-Info,Return-Code returned: (${_r}))
-  ifeq (${_r},)
-    $(call PASS,Return-Code returned an empty variable.)
-  else
-    $(call FAIL,Return-Code returned a non-empty variable.)
-  endif
-  $(call Expect-Vars,_r:)
-  _o := This is 0
-  $(call Test-Info,Return-Code:Checking: ${_o})
-  _r := $(call Return-Code,${_o})
-  $(call Test-Info,Return-Code returned: (${_r}))
-  ifeq (${_r},)
-    $(call PASS,Return-Code returned an empty variable.)
-  else
-    $(call FAIL,Return-Code returned a non-empty variable.)
-  endif
-  $(call Expect-Vars,_r:)
-  # Exception.
-  _o := 128
-  $(call Test-Info,Return-Code:Checking: ${_o})
-  _r := $(call Return-Code,${_o})
-  $(call Test-Info,Return-Code returned: (${_r}))
-  ifeq (${_r},)
-    $(call FAIL,Return-Code returned an empty variable.)
-  else
-    ifeq (${_r},${_o})
-      $(call PASS,Return-Code returned ${_o}.)
-    else
-      $(call FAIL,Return-Code returned ${_o}.)
-    endif
-  endif
-  $(call Expect-Vars,_r:128)
-
-  _o := Exception is 128
-  $(call Test-Info,Return-Code:Checking: (${_o}))
-  _r := $(call Return-Code,${_o})
-  $(call Test-Info,Return-Code returned: (${_r}))
-  ifeq (${_r},)
-    $(call FAIL,Return-Code returned an empty variable.)
-  else
-    ifeq (${_r},$(lastword ${_o}))
-      $(call PASS,Return-Code expected: ($(lastword ${_o})).)
-    else
-      $(call FAIL,Return-Code expected:($(lastword ${_o})).)
-    endif
-  endif
-  $(call Expect-Vars,_r:128)
-
-  $(call Begin-Suite,Running shell commands.)
-  $(call Run,ls test)
-  $(call Test-Info,Run output = ${Run_Output})
-  $(call Test-Info,Run return code: ${Run_Rc})
-  ifeq (${Run_Rc},)
-    $(call PASS,Run_Rc is empty.)
-  else
-    $(call FAIL,Run_Rc is NOT empty.)
-  endif
-  $(call Expect-Vars,Run_Rc:)
-  $(call Run,ls not-exist)
-  $(call Test-Info,Run output = ${Run_Output})
-  $(call Test-Info,Run return code: ${Run_Rc})
-  ifeq (${Run_Rc},)
-    $(call FAIL,Run_Rc is empty.)
-  else
-    ifeq (${Run_Rc},$(lastword ${Run_Output}))
-      $(call PASS,Run_Rc (${Run_Rc}).)
-    else
-      $(call FAIL,Run_Rc is (${Run_Rc}) expected ($(lastword ${Run_Output})).)
-    endif
-  endif
-  $(call Test-Info,Run return code: ${_r})
-
-  $(call Begin-Suite,Segment identifiers.)
-  $(call Report-Seg-Context)
-
-  $(call Begin-Suite,Sticky variables.)
-  tv1 := tv1_v
-  tv2 := tv2_v
-  $(call Test-Info,STICKY_PATH = ${STICKY_PATH})
-  $(call Test-Info,StickyVars:${StickyVars})
-  $(call Sticky,tv1,tv1)
-  $(call Verbose,Sticky tv1 = ${tv1})
-  $(call Expect-Vars,tv1:tv1_v)
-  $(call Test-Info,StickyVars:${StickyVars})
-  $(call Sticky,tv2,tv2)
-  $(call Verbose,Sticky tv2 = ${tv2})
-  $(call Expect-Vars,tv2:tv2_v)
-  $(call Test-Info,StickyVars:${StickyVars})
-
-  $(call Set-Error-Callback,Expect-Error)
-  # Should cause redefinition error.
-  Expected_Error := Redefinition of sticky variable tv2 ignored.
-  $(call Sticky,tv2,xxx)
-  $(call Verbose,After second Sticky tv2 = ${tv2})
-  $(call Expect-Vars,tv2:tv2_v)
-  $(call Test-Info,StickyVars:${StickyVars})
-  # Using assignment in call.
-  $(call Sticky,tv3=tv3_v)
-  $(call Expect-Vars,tv3:tv3_v)
-  # Redefine the previous error variable.
-  Expected_Error := Redefinition of sticky variable tv2 -- should not happen.
-  $(call Redefine-Sticky,tv2=xxx)
-  $(call Verbose,After redefined Sticky tv2 = ${tv2})
-  $(call Expect-Vars,tv2:xxx)
-  $(call Test-Info,StickyVars:${StickyVars})
-
-  $(call Test-Info,StickyVars:Var:<var>=<val>:<saved>)
-  $(foreach _v,${StickyVars},\
-    $(call Test-Info,Var:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v}))\
-  )
-  $(call Set-Error-Callback)
-
-  $(call Begin-Suite,Require)
-  a := 1
-  b := 2
-  c := 3
-  r := $(call Require,a b c d)
-  ifeq (${r},)
-    $(call FAIL,Require: Returned an empty string -- should have returned d.)
-  else
-    ifeq (${r},d)
-      $(call PASS,Require: Returned (${r}).)
-    else
-      $(call FAIL,Require: Returned (${r}) -- should have been (d).)
-    endif
-  endif
-  r := $(call Require,a b c)
-  ifeq (${r},)
-    $(call PASS,Require: Returned an empty string as it should.)
-  else
-    $(call FAIL,Require: Returned (${r})- -- should have been empty.)
-  endif
-
-  $(call Begin-Suite,Must-Be-One-Of)
-  _pat := 1 2 3
-  $(call Test-Info,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
-  ifeq ($(call Must-Be-One-Of,a,${_pat}),)
-    $(call FAIL,Is NOT one.)
-  else
-    $(call PASS,Is one.)
-  endif
-  _pat := 2 3
-  $(call Test-Info,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
-  ifeq ($(call Must-Be-One-Of,a,${_pat}),)
-    $(call PASS,Is NOT one.)
-  else
-    $(call FAIL,Is one.)
-  endif
-  _pat := 21 3
-  $(call Test-Info,Must-Be-One-Of:${_pat}: -$(call Must-Be-One-Of,a,${_pat})-)
-  ifeq ($(call Must-Be-One-Of,a,${_pat}),)
-    $(call PASS,Is NOT one.)
-  else
-    $(call FAIL,Is one.)
-  endif
-
-  $(call Begin-Suite,Use-Segment)
-
-  $(call Test-Info,Segments in the current directory.)
-  $(call Use-Segment,ts1)
-  $(call Use-Segment,ts2)
-  $(call Test-Info,Segments in subdirectories.)
-  $(call Use-Segment,td1)
-  $(call Use-Segment,td2)
-  $(call Use-Segment,td3)
-  $(call Test-Info,Multiple segments of the same name.)
-  $(call Use-Segment,tm1)
-  $(call Expect-Error,Prefix conflict with tm1)
-  $(call Use-Segment,test/d2/tm1)
-  $(call Verify-Error)
-  $(call Test-Info,A segment in a subdirectory.)
-  $(call Use-Segment,sd3/tsd3)
-  $(call Test-Info,Does not exist.)
-  $(call Expect-Error,te1.mk not found.)
-  $(call Use-Segment,te1)
-  $(call Verify-Error)
-  $(call Test-Info,Full segment path (no find).)
-  $(call Use-Segment,${SegP}/ts3.mk)
-
-  $(call Begin-Suite,Test overridable variables.)
-  $(call Test-Info,Declaring ov1 as overridable.)
-  $(call Overridable,ov1,ov1_val)
-  $(call Test-Info,ov1:$(ov1))
-  ov2 := ov2_original
-  $(call Overridable,ov2,ov2_val)
-  $(call Test-Info,ov2:$(ov2))
-  # Should trigger an error message because 0v2 is already declared.
-  $(call Expect-Error,Var ov2 has already been declared.)
-  $(call Overridable,ov2,ov2_new_val)
-  $(call Verify-Error)
-  $(call Test-Info,ov2:$(ov2))
-  $(call Test-Info,Overridables: $(OverridableVars))
-
-  $(call Begin-Suite,Confirmations)
-  _r := $(call Confirm,Enter positive response.,y)
-  $(call Test-Info,Response = "${_r}")
-  ifeq (${_r},y)
-  $(call Test-Info,Confirm = (positive))
-  else
-  $(call Test-Info,Confirm = (negative))
-  endif
-  _r := $(call Confirm,Enter negative response.,y)
-  $(call Test-Info,Response = ${_r})
-  ifeq (${_r},y)
-  $(call Test-Info,Confirm = (positive))
-  else
-  $(call Test-Info,Confirm = (negative))
-  endif
-  $(call Pause)
-
-test-helpers: display-errors display-messages
-> ${MAKE} tv1=subtv1 tv3=subtv3 test-submake
-
-else ifneq ($(call Is-Goal,test-submake),)
-  $(call Test-Info,Testing sub-make...)
-  $(call Test-Info,Before:tv1=${tv1} tv2=${tv2} tv3=${tv3})
-  $(call Begin-Suite,Sticky variables in a sub-make.)
-  $(call Test-Info,Cannot set sticky variables in a sub-make.)
-  $(call Test-Info,StickyVars:${StickyVars})
-  # tv1 should have the value from the command line but not saved.
-  $(call Sticky,tv1,tv1)
-  $(call Verbose,Sticky tv1 = ${tv1})
-  $(call Test-Info,StickyVars:${StickyVars})
-  # tv2 should be the saved value.
-  $(call Sticky,tv2,tv2)
-  $(call Verbose,Sticky tv2 = ${tv2})
-  $(call Test-Info,StickyVars:${StickyVars})
-  $(call Test-Info,tv3 should not be saved in the sticky directory.)
-  $(call Sticky,tv3,tv3)
-  $(call Verbose,Sticky tv3 = ${tv3})
-  $(call Test-Info,StickyVars:${StickyVars})
-  # Should cause redefinition error.
-  $(call Sticky,tv2,xxx)
-  $(call Verbose,After second Sticky tv2 = ${tv2})
-  $(call Test-Info,StickyVars:${StickyVars})
-  $(call Test-Info,After:tv1=${tv1} tv2=${tv2} tv3=${tv3})
-  $(foreach _v,${StickyVars},\
-    $(call Test-Info,Var vs file:${_v} = ${${_v}}:$(shell cat ${STICKY_PATH}/${_v})))
-
-test-submake: display-errors display-messages
-
-# endif # Goal is test-submake
-endif # Goal is test-helpers
+.PHONY: test
+test:
 
 # +++++
 # Postamble
@@ -1615,6 +1386,7 @@ Test step:
   A single step in a test. This is reset at the beginning of a test.
   This is identified using the variable:
 ${help-StepID}
+${help-StepC}
   If a test step fails the test is considered to have failed. This is
   indicated by:
 $(help-TestFailed)
@@ -1642,9 +1414,13 @@ ${help-Test-Info}
 
 ${help-Log-Result}
 
+${help-Verify-Result}
+
 ${help-PASS}
 
 ${help-FAIL}
+
+${help-Set-Expected-Results}
 
 ${help-Begin-Suite}
 
@@ -1653,8 +1429,6 @@ ${help-End-Suite}
 ${help-Begin-Test}
 
 ${help-End-Test}
-
-${help-Display-Vars}
 
 ${help-Expect-Vars}
 
@@ -1678,6 +1452,8 @@ ${help-Verify-Error}
 
 ${help-Verify-No-Error}
 
+${help-Display-Vars}
+
 ${help-Report-Seg-Context}
 
 ${help-Report-Test-Results}
@@ -1687,6 +1463,10 @@ ${help-Run-Suites}
 ${help-Run-Tests}
 
 ${help-Run-Prerequisites}
+
+Goals:
+    test
+      Use this goal to run all of the specified test suites.
 
 endef
 $(call Test-Info,help-${Seg})

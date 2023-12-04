@@ -12,15 +12,14 @@ SHELL = /bin/bash
 True := 1
 False :=
 
-DefaultGoal ?= help
 
 ifeq (${MAKECMDGOALS},)
-  .DEFAULT_GOAL := $(DefaultGoal)
+  DefaultGoal := help
 else
-  .DEFAULT_GOAL :=
+  DefaultGoal :=
 endif
 
-Goals = ${.DEFAULT_GOAL} ${MAKECMDGOALS}
+Goals = ${DefaultGoal} ${MAKECMDGOALS}
 
 # This indicates when running as a nested make.
 ifeq (${MAKELEVEL},0)
@@ -109,6 +108,7 @@ ${_var}
   Message_Callback callback. The purpose is to avoid recursive calls to the
   callback. The callback is safe when this variable is not empty.
 endef
+help-${_var} := $(call _help)
 
 _var := Warning_Callback
 ${_var} :=
@@ -128,6 +128,7 @@ ${_var}
   Warning_Callback callback. The purpose is to avoid recursive calls to the
   callback. The callback is safe when this variable is not empty.
 endef
+help-${_var} := $(call _help)
 
 _var := QUIET
 ${_var} ?=
@@ -138,6 +139,7 @@ ${_var}
   They are still added to the message list and can still be displayed using
   the display-messages goal.
 endef
+help-${_var} := $(call _help)
 
 _macro := Log-Message
 define _help
@@ -250,21 +252,21 @@ define ${_macro}
 endef
 
 _V:=n
-ifneq (${VERBOSE},)
 _macro := Verbose
 define _help
 ${_macro}
   Displays the message if VERBOSE has been defined. All verbose messages are
   automatically added to the message list. Verbose messages are prefixed with
-  vbrs.
+  vrbs.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Log-Message,vbrs,$(1))
+  $(call Log-Message,vrbs,$(1))
 endef
+ifneq (${VERBOSE},)
 _V:=v
 endif
 
@@ -430,6 +432,7 @@ ${_var}
   Error_Callback callback. The purpose is to avoid recursive calls to the
   callback. The callback is safe when this variable is not empty.
 endef
+help-${_var} := $(call _help)
 ${_var} := 1
 
 _macro := Set-Error-Callback
@@ -458,7 +461,7 @@ define _help
 ${_macro}
   Use this macro to issue an error message as a warning and signal a
   delayed error exit. The messages can be displayed using the display-errors
-  goal. Error messages are prefixed with ERR?.
+  goal. Error messages are prefixed with ERR!.
   If an error handler is connected (see Set-Error-Callback) and the
   Error_Safe variable is equal to 1 then the error handler is called with the
   error message as the first parameter.
@@ -473,8 +476,8 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(eval ErrorList += ${NewLine}ERR?:${Seg}:$(1))
-  $(call Log-Message,ERR?,$(1))
+  $(eval ErrorList += ${NewLine}ERR!:${Seg}:$(1))
+  $(call Log-Message,ERR!,$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
   $(call Debug,Handler: ${Error_Callback} Safe:${Error_Safe})
@@ -531,6 +534,7 @@ define _help
   Returns:
     The value of the variable increased by the value.
 endef
+help-${_macro} := $(call _help)
 define ${_macro}
   $(eval $(1):=$(shell expr ${$(1)} + $(2)))
 endef
@@ -544,6 +548,7 @@ define _help
   Returns:
     The value of the variable decreased by the value.
 endef
+help-${_macro} := $(call _help)
 define ${_macro}
   $(eval $(1):=$(shell expr ${$(1)} - $(2)))
 endef
@@ -1330,7 +1335,7 @@ ${_macro}
     helpers.SegP=${helpers.SegP}
       The path to the helpers directory. Defaults to the directory
       containing this makefile segment.
-    StickyVars=${StickVars}
+    StickyVars=${StickyVars}
       The list of declared sticky variables. This is used to detect when a
       sticky variable is being redefined.
     STICKY_PATH=${STICKY_PATH}
@@ -1350,6 +1355,9 @@ ${_macro}
     $$(call Sticky,<var>[=],<default>)
       Restores the previously saved <value> or sets <var> equal to
       <default>.
+  To ignore a sticky variable and instead use its default, from the command
+  line use:
+    <var>=""
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
@@ -1488,6 +1496,8 @@ FORCE:
 
 $(call Info,Goals: ${Goals})
 
+.DEFAULT_GOAL := ${DefaultGoal}
+
 # Some behavior depends upon which platform.
 ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
   Platform = Microsoft
@@ -1542,6 +1552,9 @@ help-%:
       $(file >>${TmpPath}/help-$*,${${_h}})))
 > less ${TmpPath}/help-$*
 > rm ${TmpPath}/help-$*
+
+#.PHONY: help help-Usage
+help: help-Usage
 
 origin-%:
 > @echo 'Origin:$*=$(origin $*)'
@@ -1727,7 +1740,6 @@ ${help-Resolve-Help-Goals}
 
 ${help-Add-To-Manifest}
 
-
 +++++ Strings and messaging
 
 NewLine = ${NewLine}
@@ -1837,6 +1849,9 @@ call-<macro>
       For example:
         <macro>.PARMS="parm1:parm2+string"
         This declares two parameters where the second parameter is a string.
+
+help
+  Display the help for the makefile. This help must be named "help-Usage".
 
 help-<sym>
   Display the help for a specific macro, segment, or variable.
