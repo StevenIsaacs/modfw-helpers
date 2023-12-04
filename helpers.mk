@@ -81,12 +81,20 @@ endef
 help-${_var} := $(call _help)
 
 _var := Entry_Stack
-${_var} :=
+${_var} := $(basename $(notdir $(word 1,${MAKEFILE_LIST})))
 define _help
 ${_var}
   This is a special variable containing the list of macros and segments which
   have been entered using Enter-Macro and Enter-Segment. The last item on the
   stack is emitted with all messages.
+endef
+help-${_var} := $(call _help)
+
+_var := Caller
+${_var} := ${Entry_Stack}
+define _help
+${_var}
+  This is the name of the file or macro calling a macro.
 endef
 help-${_var} := $(call _help)
 
@@ -153,7 +161,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(eval _msg := \
-    $(strip $(1)):${Seg}:$(lastword ${Entry_Stack}):$(strip $(2)))
+    $(strip $(1)):${Caller}:$(lastword ${Entry_Stack}):$(strip $(2)))
   $(if ${LOG_FILE},
     $(file >>${LogFile},${_msg})
   )
@@ -304,6 +312,7 @@ define _Push-Entry
   $(if $(filter $(1),${Entry_Stack}),
     $(call Attention,Recursive entry to $(1) detected.)
   )
+  $(eval Caller := $(lastword ${Entry_Stack}))
   $(eval Entry_Stack += $(1))
   $(if ${DEBUG},
     $(call Log-Message, \
@@ -317,9 +326,10 @@ define _Pop-Entry
     $(call Log-Message, \
       <--$(words ${Entry_Stack}),Exiting:$(lastword ${Entry_Stack}))
   )
-  $(eval \
-    Entry_Stack := $(filter-out $(lastword ${Entry_Stack}),${Entry_Stack})
-  )
+  $(eval _l := $(words ${Entry_Stack}))
+  $(call Dec-Var,_l)
+  $(eval Entry_Stack := $(wordlist 1,${_l},${Entry_Stack}))
+  $(eval Caller := $(lastword ${Entry_Stack}))
 endef
 
 _macro := Enter-Macro
@@ -478,7 +488,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(eval ErrorList += ${NewLine}ERR!:${Seg}:$(1))
+  $(eval ErrorList += ${NewLine}ERR!:${Caller}:$(1))
   $(call Log-Message,ERR!,$(1))
   $(eval Errors = yes)
   $(warning Error:${Seg}:$(1))
@@ -603,7 +613,7 @@ $(strip \
     $(call Debug,Requiring: ${_v})
     $(if $(findstring undefined,$(flavor ${_v})),
       $(eval _r += ${_v})
-      $(call Signal-Error,${Seg} requires variable ${_v} must be defined.)
+      $(call Signal-Error,${Caller} requires variable ${_v} must be defined.)
     )
   )
   $(call Exit-Macro)
@@ -1656,6 +1666,8 @@ Errors = ${Errors}
 ${help-SegID_Stack}
 
 ${help-Entry_Stack}
+
+${help-Caller}
 
 Defines the helper macros:
 
