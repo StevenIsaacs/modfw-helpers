@@ -72,15 +72,43 @@ define ${TestN}
   $(call PASS,This should not call Verify-Result.)
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
 
-  $(call Set-Expected-Results,PASS PASS FAIL PASS FAIL)
+  $(call Set-Expected-Results,PASS PASS FAIL FAIL FAIL)
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
   $(call PASS,This should PASS:PASS.)
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
-  $(call FAIL,This should FAIL:PASS.)
+  $(if ${TestFailed},
+    $(call Test-Info,Test has already failed -- skipping FAIL reset.)
+    $(call FAIL,This should FAIL:PASS.)
+  ,
+    $(eval _l := ${SuiteFailedL})
+    $(call FAIL,This should FAIL:PASS.)
+    $(if ${TestFailed},
+      $(call Test-Info,Resetting TestFailed.)
+      $(eval TestFailed := )
+      $(eval SuiteFailedL := ${_l})
+    ,
+      $(call Test-Info,Expected a FAIL but the step passed.)
+      $(eval TestFailed := 1)
+    )
+  )
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
   $(call FAIL,This should PASS:FAIL.)
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
-  $(call FAIL,This should FAIL:PASS.)
+  $(if ${TestFailed},
+    $(call Test-Info,Test has already failed -- skipping FAIL reset.)
+    $(call PASS,This should FAIL:FAIL.)
+  ,
+    $(eval _l := ${SuiteFailedL})
+    $(call PASS,This should FAIL:FAIL.)
+    $(if ${TestFailed},
+      $(call Test-Info,Resetting TestFailed.)
+      $(eval TestFailed := )
+      $(eval SuiteFailedL := ${_l})
+    ,
+      $(call Test-Info,Expected a FAIL but the step passed.)
+      $(eval TestFailed := 1)
+    )
+  )
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
   $(call FAIL,This should PASS:FAIL.)
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
@@ -89,6 +117,30 @@ define ${TestN}
   ,
     $(call PASS,ExpectedResultsL is empty.)
   )
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call Declare-Test,Expect-List)
+define _help
+${TestN}
+  Verify Expect-List for both passing and failing.
+endef
+help-${TestN} := $(call _help)
+${TestN}.Prereqs := ${SuiteN}.Expect-Results
+define ${TestN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(call Set-Expected-Results,PASS)
+  $(eval _l := $(call Expect-List,a b c,a b c))
+
+  $(call Set-Expected-Results,FAIL)
+  $(eval _l := $(call Expect-List,a b c,a x c))
+
+  $(call Set-Expected-Results,FAIL FAIL)
+  $(eval _l := $(call Expect-List,a b c d,a x c y))
 
   $(call End-Test)
   $(call Exit-Macro)

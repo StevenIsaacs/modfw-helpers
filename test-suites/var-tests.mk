@@ -23,7 +23,6 @@ define ${TestN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
-  $(call Test-Info,Running test:${TestN})
   $(eval _v := 0)
   $(foreach _e,0 1 2,
     $(call Expect-Vars,_v:${_e})
@@ -45,11 +44,201 @@ define ${TestN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
-  $(call Test-Info,Running test:${TestN})
   $(eval _v := 2)
   $(foreach _e,2 1 0,
     $(call Expect-Vars,_v:${_e})
     $(call Dec-Var,_v)
+  )
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call Declare-Test,Add-Var)
+define _help
+${TestN}
+  Verify the helper macro:${TestN}
+endef
+help-${TestN} := $(call _help)
+${TestN}.Prereqs := expect-tests.Expect-Vars
+define ${TestN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _v := 0)
+  $(foreach _e,0 2 4,
+    $(call Expect-Vars,_v:${_e})
+    $(call Add-Var,_v,2)
+  )
+
+  $(eval _v := 0)
+  $(foreach _e,0 101 202,
+    $(call Expect-Vars,_v:${_e})
+    $(call Add-Var,_v,101)
+  )
+
+  $(eval _v := -10)
+  $(foreach _e,-10 -7 -4,
+    $(call Expect-Vars,_v:${_e})
+    $(call Add-Var,_v,3)
+  )
+
+  $(eval _v := 0)
+  $(foreach _e,0 -3 -6,
+    $(call Expect-Vars,_v:${_e})
+    $(call Add-Var,_v,-3)
+  )
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call Declare-Test,Sub-Var)
+define _help
+${TestN}
+  Verify the helper macro:${TestN}
+endef
+help-${TestN} := $(call _help)
+${TestN}.Prereqs := expect-tests.Expect-Vars
+define ${TestN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _v := 10)
+  $(foreach _e,10 7 4,
+    $(call Expect-Vars,_v:${_e})
+    $(call Sub-Var,_v,3)
+  )
+
+  $(eval _v := 202)
+  $(foreach _e,202 101 0,
+    $(call Expect-Vars,_v:${_e})
+    $(call Sub-Var,_v,101)
+  )
+
+  $(eval _v := 0)
+  $(foreach _e,0 -3 -6,
+    $(call Expect-Vars,_v:${_e})
+    $(call Sub-Var,_v,3)
+  )
+
+  $(eval _v := 0)
+  $(foreach _e,0 3 6,
+    $(call Expect-Vars,_v:${_e})
+    $(call Sub-Var,_v,-3)
+  )
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call Declare-Test,To-Shell-Var)
+define _help
+${TestN}
+  Verify the helper macro:${TestN}
+endef
+help-${TestN} := $(call _help)
+${TestN}.Prereqs := expect-tests.Expect-Vars
+define ${TestN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _v := $(call To-Shell-Var,test-var-name))
+  $(call Expect-Vars,_v:_test_var_name)
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call Declare-Test,To-Lower)
+define _help
+${TestN}
+  Verify the helper macro:${TestN}
+endef
+help-${TestN} := $(call _help)
+${TestN}.Prereqs := expect-tests.Expect-Vars
+define ${TestN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _v := $(call To-Lower,AbCdEF))
+  $(call Expect-Vars,_v:abcdef)
+
+  $(eval _v := $(call To-Lower,"A123!=&bCD"))
+  $(call Expect-Vars,_v:a123!=&bcd)
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call Declare-Test,To-Upper)
+define _help
+${TestN}
+  Verify the helper macro:${TestN}
+endef
+help-${TestN} := $(call _help)
+${TestN}.Prereqs := expect-tests.Expect-Vars
+define ${TestN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _v := $(call To-Upper,AbCdEF))
+  $(call Expect-Vars,_v:ABCDEF)
+
+  $(eval _v := $(call To-Upper,"A123!=&bCD"))
+  $(call Expect-Vars,_v:A123!=&BCD)
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+define _Require-Callback
+
+endef
+
+$(call Declare-Test,Require)
+define _help
+${TestN}
+  Verify the helper macro:${TestN}
+endef
+help-${TestN} := $(call _help)
+${TestN}.Prereqs := expect-tests.Expect-List
+define ${TestN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _a :=)
+  $(eval _b :=)
+  $(eval _c :=)
+  $(eval _d :=)
+
+  $(eval _u := $(call Require,_a _b _c _d))
+  $(if ${_u},
+    $(call FAIL,Require returned:${_u})
+  ,
+    $(call PASS,Require returned an empty list.)
+  )
+
+  $(eval _u := $(call Require,_a _x _z _d))
+  $(call Test-Info,Require returned:${_u})
+  $(if ${_u},
+    $(call Expect-List,${_u},_x _z)
+  ,
+    $(call FAIL,Require returned an empty list when should have been "_x _z")
+  )
+
+  $(eval undefine _a)
+  $(eval undefine _b)
+  $(eval undefine _c)
+  $(eval undefine _d)
+
+  $(eval _u := $(call Require,_a _b _c _d))
+  $(call Test-Info,Require returned:${_u})
+  $(if ${_u},
+    $(call Expect-List,${_u},_a _b _c _d)
+  ,
+    $(call FAIL,\
+      Require returned an empty list when should have been "_a _b _c _d")
   )
 
   $(call End-Test)

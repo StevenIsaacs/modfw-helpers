@@ -127,6 +127,15 @@ ${_var}
 endef
 help-${_var} := $(call _help)
 
+_var := Self
+${_var} :=
+define _help
+${_var}
+  Also the name of the running test suite. This is provided to make it clear
+  when a test suite is referencing itself.
+endef
+help-${_var} := $(call _help)
+
 _var := SuiteID
 ${_var} := 0
 define _help
@@ -364,7 +373,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Inc-Var,PassedC)
-  $(eval SuitePassedL += ${SuiteN}:${TestN}:${StepID})
+  $(eval SuitePassedL += ${SuiteID}:${TestID}:${StepID})
 endef
 
 _macro := Record-FAIL
@@ -381,7 +390,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Inc-Var,FailedC)
-  $(eval SuiteFailedL += ${SuiteN}:${TestN}:${StepID})
+  $(eval SuiteFailedL += ${SuiteID}:${TestID}:${StepID})
   $(eval TestFailed := 1)
 endef
 
@@ -1013,7 +1022,13 @@ define ${_macro}
           $(eval PrereqFailed := 1)
         ,
           $(call Use-Segment,$(word 1,$(subst ., ,${_prereq})))
-          $(call ${_prereq})
+          $(call Debug,Prereq ${_prereq} origin:$(origin ${_prereq}))
+          $(if $(filter undefined,$(origin ${_prereq})),
+            $(call Signal-Error,Prereq test ${_prereq} is undefined.)
+            $(eval PrereqFailed := 1)
+          ,
+            $(call ${_prereq})
+          )
           $(if ${TestFailed},$(eval PrereqFailed := 1))
         )
       )
@@ -1053,6 +1068,8 @@ define ${_macro}
     $(eval FailedTestsL := )
     $(eval FailedTestsC := 0)
     $(eval StepC := 0)
+    $(eval PassedC := 0)
+    $(eval FailedC := 0)
     $(foreach _t,${$(1)},
       $(call Test-Info,Running test:${_t})
       $(call Test-Info,Test: ${_t})
@@ -1117,7 +1134,7 @@ ${_macro}
   Modifies:
     SuiteL
       The suite name is appended to the list of test suites.
-    SuiteN
+    SuiteN and Self
       Is set to the name of the current test suite $$(1).
     SuiteID
       Incremented by 1.
@@ -1136,6 +1153,7 @@ define ${_macro}
   $(call Inc-Var,SuiteID)
   $(eval SuiteL += $(1))
   $(eval SuiteN := $(1))
+  $(eval Self := $(1))
   $(eval SuiteTestC := 0)
   $(eval SuiteTestL := )
   $(eval SuitePassedC := 0)
@@ -1329,6 +1347,8 @@ ${help-SuiteID}
 ${help-SuitesL}
 ${help-PassedSuitesL}
 ${help-FailedSuitesL}
+
+${help-Self}
 
   Tests being run in the context of a test suite are documented using another
   set of variables which are reset at the beginning of each test suite. These
