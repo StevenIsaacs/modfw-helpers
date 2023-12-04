@@ -264,7 +264,9 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Log-Message,vrbs,$(1))
+  $(if ${VERBOSE},
+    $(call Log-Message,vrbs,$(1))
+  )
 endef
 ifneq (${VERBOSE},)
 _V:=v

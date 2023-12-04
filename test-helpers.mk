@@ -943,12 +943,13 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
+  $(call Line)
   $(call Test-Info,Begin test:${SuiteN}:$(1))
   $(eval TestN := $(1))
   $(call Inc-Var,TestID)
   $(call Inc-Var,TestC)
   $(eval StepID := 0)
-  $(call Line)
+  $(eval TestFailed :=)
   $(call Exit-Macro)
 endef
 
@@ -960,7 +961,19 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(call Test-Info,End test:${SuiteID}:$(1))
+  $(let _s,$(word 1,$(subst ., ,${TestN})),
+    $(call Test-Info,End test:${_s}:${TestN})
+    $(if ${TestFailed},
+      $(call Inc-Var,FailedTestsC)
+      $(eval FailedTestsL += ${TestN})
+      $(eval ${_s}.FailedTestsL += ${TestN})
+    ,
+      $(call Inc-Var,PassedTestsC)
+      $(eval PassedTestsL += ${TestN})
+    )
+  )
+  $(call Inc-Var,CompletedTestC)
+  $(call Line)
   $(call Exit-Macro)
 endef
 
@@ -992,7 +1005,6 @@ define ${_macro}
   $(if ${$(1).Prereqs},
     $(call Debug,$(1) prereqs:${$(1).Prereqs})
     $(foreach _prereq,${$(1).Prereqs},
-      $(call Use-Segment,$(word 1,$(subst ., ,${_prereq})))
       $(if $(filter ${_prereq},${PassedTestsL}),
         $(call Test-Info,Test ${_prereq} has already passed -- skipping.)
       ,
@@ -1000,9 +1012,8 @@ define ${_macro}
           $(call Test-Info,Test ${_prereq} FAILED -- skipping.)
           $(eval PrereqFailed := 1)
         ,
-          $(eval TestFailed := )
+          $(call Use-Segment,$(word 1,$(subst ., ,${_prereq})))
           $(call ${_prereq})
-          $(call Inc-Var,CompletedTestC)
           $(if ${TestFailed},$(eval PrereqFailed := 1))
         )
       )
@@ -1053,20 +1064,7 @@ define ${_macro}
       $(if ${PrereqFailed},
         $(call Test-Info,Prerequisites for test ${_t} have failed -- skipping.)
       ,
-        $(call Test-Info,Running test:${_t})
-        $(eval TestFailed := )
         $(call ${_t})
-        $(call Inc-Var,CompletedTestC)
-        $(let _s,$(word 1,$(subst ., ,${_t})),
-          $(if ${TestFailed},
-            $(call Inc-Var,FailedTestsC)
-            $(eval FailedTestsL += ${_t})
-            $(eval ${_s}.FailedTestsL += ${_t})
-          ,
-            $(call Inc-Var,PassedTestsC)
-            $(eval PassedTestsL += ${_t})
-          )
-        )
       )
     )
   ,
