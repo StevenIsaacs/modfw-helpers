@@ -6,7 +6,7 @@
 $(call Info,+++++ $(call Last-Segment-Basename) entry. +++++)
 # +++++
 # Preamble
-ifndef $(call Last-Segment-Basename)SegId
+ifndef $(call Last-Segment-Basename).SegID
 $(call Enter-Segment)
 # -----
 
@@ -25,7 +25,7 @@ endif
 
 $(call Exit-Segment)
 
-else # tmSegId already defined.
+else # tmSegID already defined.
 $(call next-test,ID conflict context.)
 $(call report-seg-context)
 $(call Expect-Error,Prefix conflict with test-helpers in)

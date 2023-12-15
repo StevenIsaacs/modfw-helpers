@@ -4,22 +4,22 @@
 # The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-ifndef $(call Last-Segment-Basename).SegId
+ifndef $(call Last-Segment-Basename).SegID
 $(call Enter-Segment)
 # -----
 
-$(call Begin-Suite,${Seg},Verify the variable related helper macros.)
+$(call Declare-Suite,${Seg},Verify the variable related helper macros.)
 
 # Define the tests in the order in which they should be run.
 
 $(call Declare-Test,Inc-Var)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-Vars
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-Vars
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -35,12 +35,12 @@ endef
 
 $(call Declare-Test,Dec-Var)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-Vars
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-Vars
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -56,12 +56,12 @@ endef
 
 $(call Declare-Test,Add-Var)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-Vars
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-Vars
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -95,12 +95,12 @@ endef
 
 $(call Declare-Test,Sub-Var)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-Vars
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-Vars
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -134,12 +134,12 @@ endef
 
 $(call Declare-Test,To-Shell-Var)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-Vars
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-Vars
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -152,12 +152,12 @@ endef
 
 $(call Declare-Test,To-Lower)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-Vars
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-Vars
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -173,12 +173,12 @@ endef
 
 $(call Declare-Test,To-Upper)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-Vars
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-Vars
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -198,12 +198,12 @@ endef
 
 $(call Declare-Test,Require)
 define _help
-${TestN}
-  Verify the helper macro:${TestN}
+${.TestUN}
+  Verify the helper macro:${.TestUN}
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := expect-tests.Expect-List
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := expect-tests.Expect-List
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -245,7 +245,7 @@ define ${TestN}
   $(call Exit-Macro)
 endef
 
-$(call End-Suite)
+$(call End-Declare-Suite)
 
 # +++++
 # Postamble
@@ -267,7 +267,7 @@ help-${Seg} := $(call _help)
 #endif # help goal message.
 
 $(call Exit-Segment)
-else # <u>SegId exists
+else # <u>SegID exists
 $(call Check-Segment-Conflicts)
-endif # <u>SegId
+endif # <u>SegID
 # -----

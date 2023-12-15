@@ -4,7 +4,7 @@
 # The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-ifndef $(call Last-Segment-Basename)SegId
+ifndef $(call Last-Segment-Basename).SegID
 $(call Enter-Segment)
 # -----
 
@@ -25,7 +25,7 @@ endef
 endif # help goal message.
 
 $(call Exit-Segment)
-else # <u>SegId exists
+else # <u>SegID exists
 $(call Check-Segment-Conflicts)
-endif # <u>SegId
+endif # <u>SegID
 # -----

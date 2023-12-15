@@ -1,7 +1,7 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Helper macros for makefiles.
 #----------------------------------------------------------------------------
-ifndef helpers.SegId
+ifndef helpers.SegID
 
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
@@ -809,8 +809,8 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
   $(eval $(2) := )
   $(call Debug,Locating segment: $(1))
-  $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegId}))
-  $(foreach _p,${SegPaths} $(call Get-Segment-Path,${SegId}),
+  $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegID}))
+  $(foreach _p,${SegPaths} $(call Get-Segment-Path,${SegID}),
     $(call Debug,Trying: ${_p})
     $(if $(wildcard ${_p}/$(1).mk),
       $(eval $(2) := ${_p}/$(1).mk)
@@ -886,7 +886,7 @@ ${_macro}
   Parameters:
     1 = ID of the segment.
   Sets current context variables:
-    SegId   The makefile segment ID for the new context.
+    SegID   The makefile segment ID for the new context.
     Seg   The makefile segment basename for the new context.
     SegP  The path to the makefile segment for the new context.
     SegF  The makefile segment file for the new context.
@@ -896,7 +896,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
-  $(eval SegId := $(1))
+  $(eval SegID := $(1))
   $(eval Seg := $(call Get-Segment-Basename,$(1)))
   $(eval SegP := $(call Get-Segment-Path,$(1)))
   $(eval SegF := $(call Get-Segment-File,$(1)))
@@ -905,10 +905,10 @@ define ${_macro}
 endef
 
 define _Push-SegID
-  $(if $(filter ${SegId},${SegID_Stack}),
-    $(call Attention,Recursive entry to ${SegId} detected.)
+  $(if $(filter ${SegID},${SegID_Stack}),
+    $(call Attention,Recursive entry to ${SegID} detected.)
   )
-  $(eval SegID_Stack += ${SegId})
+  $(eval SegID_Stack += ${SegID})
   $(if ${DEBUG},
     $(call Log-Message, \
       $(words ${SegID_Stack})-->,${SegID_Stack})
@@ -933,7 +933,7 @@ ${_macro}
   This initializes the context for a new segment and saves information so
   that the context of the previous segment can be restored in the postamble.
   Sets the segment specific context variables:
-    <seg>.SegId
+    <seg>.SegID
       The ID for the segment. This is basically the index in MAKEFILE_LIST for
       the segment.
     <seg>.Seg
@@ -950,14 +950,14 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
   $(eval __s := $(call Last-Segment-Basename))
-  $(eval ${__s}.SegId := $(call Last-Segment-Id))
-  $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${${__s}.SegId})))
+  $(eval ${__s}.SegID := $(call Last-Segment-Id))
+  $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${${__s}.SegID})))
   $(eval ${__s}.Seg := $(call Last-Segment-Basename))
   $(eval ${__s}.SegP := $(call Last-Segment-Path))
   $(eval ${__s}.SegF := $(call Last-Segment-File))
   $(eval ${__s}.SegV := $(call To-Shell-Var,${__s}))
   $(call _Push-SegID)
-  $(call Set-Segment-Context,${${__s}.SegId})
+  $(call Set-Segment-Context,${${__s}.SegID})
   $(call Exit-Macro)
   $(call _Push-Entry,${Seg})
 endef
@@ -990,12 +990,12 @@ define ${_macro}
   $(call Enter-Macro,$(0))
   $(eval __s := $(call Last-Segment-Basename))
   $(call Debug,\
-    Segment exists: ID = ${${__s}.SegId}: file = $(call Get-Segment-File,${${__s}.SegId}))
+    Segment exists: ID = ${${__s}.SegID}: file = $(call Get-Segment-File,${${__s}.SegID}))
   $(if \
     $(findstring \
-      $(call Last-Segment-File),$(call Get-Segment-File,${${__s}.SegId})),
+      $(call Last-Segment-File),$(call Get-Segment-File,${${__s}.SegID})),
     $(call Info,\
-      $(call Get-Segment-File,${${__s}.SegId}) has already been included.)
+      $(call Get-Segment-File,${${__s}.SegID}) has already been included.)
   ,
     $(call Signal-Error,\
       Prefix conflict with $(${__s}.Seg) in $(call Last-Segment-File).)
@@ -1012,7 +1012,7 @@ define ${_macro}
 # The format of all the $(1) based names is required.
 # +++++
 # Preamble
-$.ifndef $(1).SegId
+$.ifndef $(1).SegID
 $$(call Enter-Segment)
 # -----
 
@@ -1045,9 +1045,9 @@ $.endef
 $.endif # help goal message.
 
 $$(call Exit-Segment)
-$.else # $$(call Last-Segment-Basename).SegId exists
+$.else # $$(call Last-Segment-Basename).SegID exists
 $$(call Check-Segment-Conflicts)
-$.endif # $$(call Last-Segment-Basename).SegId
+$.endif # $$(call Last-Segment-Basename).SegID
 # -----
 
 endef
@@ -1300,17 +1300,17 @@ endef
 
 #--------------
 
-# Set SegId to the segment that included helpers so that the previous segment
+# Set SegID to the segment that included helpers so that the previous segment
 # set by Enter-Segment and used by Exit-Segment will have a valid value.
 _i := $(call Last-Segment-Id)
 $(call Dec-Var,_i)
 # Initialize the top level context.
 $(call Set-Segment-Context,${_i})
-$(call Debug,Included from: SegId = ${SegId})
+$(call Debug,Included from: SegID = ${SegID})
 ${Seg}.Seg := ${Seg}
-${Seg}.SegId := ${SegId}
-${Seg}.SegP := $(call Get-Segment-Path,${SegId})
-${Seg}.SegF := $(call Get-Segment-File,${SegId})
+${Seg}.SegID := ${SegID}
+${Seg}.SegP := $(call Get-Segment-Path,${SegID})
+${Seg}.SegF := $(call Get-Segment-File,${SegID})
 ${Seg}.SegV := $(call To-Shell-Var,${Seg})
 
 $(call Enter-Segment)
@@ -1888,4 +1888,4 @@ $(call Debug,${helpers.Seg}.SegID:${${helpers.Seg}.SegID})
 $(call Exit-Segment)
 else # Already loaded.
 $(call Check-Segment-Conflicts)
-endif # helpers.SegId
+endif # helpers.SegID

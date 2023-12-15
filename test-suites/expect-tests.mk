@@ -4,22 +4,22 @@
 # The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
 # Preamble
-ifndef $(call Last-Segment-Basename).SegId
+ifndef $(call Last-Segment-Basename).SegID
 $(call Enter-Segment)
 # -----
 
-$(call Begin-Suite,${Seg},Verify the variable related helper macros.)
+$(call Declare-Suite,${Seg},Verify the variable related helper macros.)
 
 # Define the tests in the order in which they should be run.
 
 $(call Declare-Test,Expect-Vars)
 define _help
-${TestN}
+${.TestUN}
   Verify Expect-Vars for both passing and failing.
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := ${SuiteN}.Set-Expected-Results
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := ${.SuiteN}.Set-Expected-Results
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -45,12 +45,12 @@ endef
 
 $(call Declare-Test,Set-Expected-Results)
 define _help
-${TestN}
+${.TestUN}
   Verify a list of expected results will produce the correct test results.
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs :=
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs :=
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -76,37 +76,33 @@ define ${TestN}
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
   $(call PASS,This should PASS:PASS.)
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
-  $(if ${TestFailed},
+  $(if ${.Failed},
     $(call Test-Info,Test has already failed -- skipping FAIL reset.)
     $(call FAIL,This should FAIL:PASS.)
   ,
-    $(eval _l := ${SuiteFailedL})
     $(call FAIL,This should FAIL:PASS.)
-    $(if ${TestFailed},
-      $(call Test-Info,Resetting TestFailed.)
-      $(eval TestFailed := )
-      $(eval SuiteFailedL := ${_l})
+    $(if ${.Failed},
+      $(call Test-Info,FAIL was expected${Comma} resetting .Failed.)
+      $(call Undo-FAIL)
     ,
       $(call Test-Info,Expected a FAIL but the step passed.)
-      $(eval TestFailed := 1)
+      $(call Record-FAIL)
     )
   )
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
   $(call FAIL,This should PASS:FAIL.)
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
-  $(if ${TestFailed},
+  $(if ${.Failed},
     $(call Test-Info,Test has already failed -- skipping FAIL reset.)
     $(call PASS,This should FAIL:FAIL.)
   ,
-    $(eval _l := ${SuiteFailedL})
     $(call PASS,This should FAIL:FAIL.)
-    $(if ${TestFailed},
-      $(call Test-Info,Resetting TestFailed.)
-      $(eval TestFailed := )
-      $(eval SuiteFailedL := ${_l})
+    $(if ${.Failed},
+      $(call Test-Info,FAIL was expected${Comma} resetting .Failed.)
+      $(call Undo-FAIL)
     ,
       $(call Test-Info,Expected a FAIL but the step passed.)
-      $(eval TestFailed := 1)
+      $(call Record-FAIL)
     )
   )
   $(call Debug,ExpectedResultsL:${ExpectedResultsL})
@@ -124,12 +120,12 @@ endef
 
 $(call Declare-Test,Expect-List)
 define _help
-${TestN}
+${.TestUN}
   Verify Expect-List for both passing and failing.
 endef
-help-${TestN} := $(call _help)
-${TestN}.Prereqs := ${SuiteN}.Expect-Results
-define ${TestN}
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := ${.SuiteN}.Set-Expected-Results
+define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
@@ -146,7 +142,32 @@ define ${TestN}
   $(call Exit-Macro)
 endef
 
-$(call End-Suite)
+$(call Declare-Test,Expect-String)
+define _help
+${.TestUN}
+  Verify Expect-List for both passing and failing.
+endef
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs := ${.SuiteN}.Set-Expected-Results
+define ${.TestUN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _str := This is a string.)
+  $(call Set-Expected-Results,PASS)
+  $(eval _l := $(call Expect-String,${_str},This is a string.))
+
+  $(call Set-Expected-Results,FAIL)
+  $(eval _l := $(call Expect-String,${_str},This is A string.))
+
+  $(call Set-Expected-Results,FAIL FAIL)
+  $(eval _l := $(call Expect-String,${_str},This Is A string.))
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call End-Declare-Suite)
 
 # +++++
 # Postamble
@@ -171,7 +192,7 @@ help-${Seg} := $(call _help)
 #endif # help goal message.
 
 $(call Exit-Segment)
-else # <u>SegId exists
+else # <u>SegID exists
 $(call Check-Segment-Conflicts)
-endif # <u>SegId
+endif # <u>SegID
 # -----
