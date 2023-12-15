@@ -849,7 +849,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call Enter-Macro,$(0))
+  $(call Enter-Macro,$(0),$(1))
   $(if $(1),
     $(foreach _ctx,$(1),
       $(if ${_ctx}.ID,
@@ -1037,7 +1037,6 @@ define ${_macro}
       ,
         $(call Test-Info,Running test:${_t})
         $(call Test-Info,Test: ${_t})
-        $(call Init-Context-Results,Prereq)
         $(if ${${_t}.Prereqs},
           $(call Test-Info,Running prereqs for test:${_t})
           $(call Run-Prerequisites,${_t})
@@ -1238,12 +1237,13 @@ else ifneq ($(call Is-Goal,test),)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1):$(2))
   $(call Add-Segment-Path,$(1))
-  $(call Declare-Contexts,Session Declared)
+  $(call Declare-Contexts,Session Declared Prereq)
   $(eval Session.ID := ${SegID})
   $(eval Declared.ID := ${SegID})
   $(call Create-Run-List,$(2))
   $(if ${Run.TestL},
     $(call Run-Tests,Run.TestL)
+    $(call Report-Test-Results,Prereq)
     $(call Report-Test-Results,Session)
   ,
     $(call Warning,No tests in the Run.TestL list.)
@@ -1427,6 +1427,8 @@ ${help-PASS}
 ${help-FAIL}
 
 ${help-Undo-FAIL}
+
+${help-Update-Test-Results}
 
 ${help-Set-Expected-Results}
 
