@@ -984,26 +984,25 @@ define ${_macro}
         )
       ,
         $(call Test-Info,Running prerequisite:${_prereq}.)
-        $(let _s,$(call Get-Suite-Name,${_prereq}),
-          $(call Debug,Prerequisite suite:${_s})
-          $(if ${${_s}.SegID},
-            $(call Debug,The suite containing ${_prereq} is in use.)
-          ,
-            $(call Use-Segment,${_s})
-          )
-          $(call Debug,Prereq ${_prereq} origin:$(origin ${_prereq}))
-          $(if $(filter undefined,$(origin ${_prereq})),
-            $(call Signal-Error,Prereq test ${_prereq} is undefined.)
+        $(eval _st := $(call Get-Suite-Name,${_prereq}))
+        $(call Debug,Prerequisite suite:${_st})
+        $(if ${${_st}.SegID},
+          $(call Debug,The suite containing ${_prereq} is in use.)
+        ,
+          $(call Use-Segment,${_st})
+        )
+        $(call Debug,Prereq ${_prereq} origin:$(origin ${_prereq}))
+        $(if $(filter undefined,$(origin ${_prereq})),
+          $(call Signal-Error,Prereq test ${_prereq} is undefined.)
+          $(eval Prereq.Failed := 1)
+        ,
+          $(call Run-Prerequisites,${_prereq})
+          $(eval RunContext := Prereq)
+          $(call ${_prereq})
+          $(eval RunContext :=)
+          $(if ${${_prereq}.Failed},
+            $(call Test-Info,Test ${_prereq} FAILED -- skipping.)
             $(eval Prereq.Failed := 1)
-          ,
-            $(call Run-Prerequisites,${_prereq})
-            $(eval RunContext := Prereq)
-            $(call ${_prereq})
-            $(eval RunContext :=)
-            $(if ${${_prereq}.Failed},
-              $(call Test-Info,Test ${_prereq} FAILED -- skipping.)
-              $(eval Prereq.Failed := 1)
-            )
           )
         )
       )
