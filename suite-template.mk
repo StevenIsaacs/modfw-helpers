@@ -14,7 +14,7 @@ ${.SuiteN}.Prereqs :=
 
 # Define the tests in the order in which they should be run.
 
-$(call Declare-Test,Inc-Var)
+$(call Declare-Test,<test>)
 define _help
 ${.TestUN}
   Verify the macro:${.TestUN}
