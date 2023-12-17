@@ -1158,6 +1158,7 @@ define ${_macro}
   $(foreach _case,${_cases},
     $(eval _s := $(call Get-Suite-Name,${_case}))
     $(eval _t := $(call Get-Test-Name,${_case}))
+    $(call Debug,Parsing test(s):${_t})
     $(if ${_s},
       $(eval _suite := ${_s})
     ,
@@ -1168,24 +1169,28 @@ define ${_macro}
     ,
       $(if $(wildcard ${SUITES_PATH}/${_suite}.mk),
         $(call Use-Segment,${_suite})
-        $(call Add-Suite-To-Contexts,Run,${_suite})
       ,
         $(call Signal-Error,Test suite does not exist: ${_suite})
       )
-      $(if ${_t},
-        $(foreach _test,$(subst +, ,${_t}),
-          $(eval _t2 := $(filter ${_suite}.${_test},${${_suite}.TestL}))
-          $(if ${_t2},
-            $(call Add-Tests-To-Manifest,Run,${_suite}.${_test})
-          ,
-            $(call Signal-Error,\
-              Test ${_test} is not a member of suite ${_suite})
-          )
+    )
+    $(if ${_t},
+      $(eval _tl := $(subst +, ,${_t}))
+      $(call Debug,Test list:${_tl})
+      $(foreach _test,${_tl},
+        $(call Debug,Parsing test(s):${_test})
+        $(eval _t2 := $(filter ${_suite}.${_test},${${_suite}.TestL}))
+        $(call Debug,Checking test:${_t2})
+        $(if ${_t2},
+          $(call Debug,Adding test:${_t2})
+          $(call Add-Tests-To-Contexts,Run,${_t2})
+        ,
+          $(call Signal-Error,\
+            Test ${_test} is not a member of suite ${_suite})
         )
-      ,
-        $(call Debug,Adding suite ${_suite} to Run context.)
-        $(call Add-Tests-To-Contexts,Run,${${_suite}.TestL})
       )
+    ,
+      $(call Debug,Adding suite ${_suite} to Run context.)
+      $(call Add-Tests-To-Contexts,Run,${${_suite}.TestL})
     )
   )
   $(call Exit-Macro)

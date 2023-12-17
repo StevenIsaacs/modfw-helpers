@@ -36,11 +36,11 @@ HiddenPath := ${WorkingPath}/.${WorkingDir}
 TmpDir := ${WorkingDir}
 TmpPath := /tmp/${TmpDir}
 $(shell mkdir -p ${TmpPath})
-LogPath := ${HiddenPath}/log
-LogFile := ${LogPath}/${LOG_FILE}
+LOG_PATH ?= ${HiddenPath}/log
+LogFile := ${LOG_PATH}/${LOG_FILE}
 ifneq (${LOG_FILE},)
   ifeq (${SubMake},${False})
-    $(shell mkdir -p ${LogPath})
+    $(shell mkdir -p ${LOG_PATH})
     $(file >${LogFile},${WorkingDir} log: $(shell date))
   else
     $(file >>${LogFile},++++++++ MAKELEVEL = ${MAKELEVEL} +++++++++)
@@ -50,7 +50,7 @@ endif
 # For storing sticky options in a known location.
 DEFAULT_STICKY_PATH := ${HiddenPath}/sticky
 
-STICKY_PATH := ${DEFAULT_STICKY_PATH}
+STICKY_PATH ?= ${DEFAULT_STICKY_PATH}
 
 #++++++++++++++
 # For messages.
@@ -1374,33 +1374,41 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(eval _spl := $(subst =,${Space},$(1)))
-  $(eval _sp := $(word 1,${_spl}))
-  $(call Debug,Sticky:Var:${_sp})
-  $(eval _sv := $(word 2,${_spl}))
-  $(call Debug,Sticky:Value:${_sv})
-  $(if ${_sv},
+  $(eval _snl := $(subst =,${Space},$(1)))
+  $(eval _sn := $(word 1,${_snl}))
+  $(call Debug,Sticky:Var:${_sn})
+  $(if $(filter ${_sn},${StickyVars}),
+    $(call Signal-Error,Redefinition of sticky variable ${_sn} ignored.)
   ,
-    $(eval _sv := ${${_sp}})
-  )
-  $(call Debug,Sticky:New value:${_sv})
-  $(call Debug,Sticky:Path: ${STICKY_PATH})
-  $(if $(filter $(1),${StickyVars}),
-    $(call Signal-Error,Redefinition of sticky variable ${_sp} ignored.)
-  ,
-    $(eval StickyVars += ${_sp})
+    $(call Debug,Sticky:Path: ${STICKY_PATH})
+    ${eval _sf := ${STICKY_PATH}/${_sn}}
+    $(eval StickyVars += ${_sn})
+    $(if ${${_sn}},
+      $(eval _sv := ${${_sn}})
+    ,
+      $(eval _sv := $(word 2,${_snl}))
+    )
+    $(if ${_sv},
+    ,
+      $(if $(wildcard ${_sf}),
+        $(eval _sv := $(file <${_sf}))
+      ,
+        $(if $(2),
+          $(eval _sv := $(2))
+        )
+      )
+    )
+    $(call Debug,Sticky:Value:${_sv})
     $(if ${SubMake},
       $(call Debug,Variables are read-only in a sub-make.)
-      $(if ${${_sp}},
-      ,
-        $(call Debug,Reading variable ${${_sp}})
-        $(eval ${_sp}:=$(shell \
-          ${helpers.SegP}/sticky.sh ${_sp}= ${STICKY_PATH} $(2)))
-      )
     ,
-      $(eval ${_sp}:=$(shell \
-        ${helpers.SegP}/sticky.sh ${_sp}=${_sv} ${STICKY_PATH} $(2)))
+      $(if $(wildcard ${STICKY_PATH}),
+      ,
+        $(shell mkdir -p ${STICKY_PATH})
+      )
+      $(file >${_sf},${_sv})
     )
+    $(eval ${_sn} := ${_sv})
   )
   $(call Exit-Macro)
 endef
@@ -1439,7 +1447,7 @@ define ${_macro}
     ,
       $(call Debug,Redefining:$(1))
       $(call Debug,Resetting var:${_rsp})
-      $(call file > $(STICKY_PATH)/${_rsp},${_rsv})
+      $(file >$(STICKY_PATH)/${_rsp},${_rsv})
     )
   )
   $(call Exit-Macro)
@@ -1676,15 +1684,14 @@ Because message lists can become lengthy they are not retained in memory. The
 messages can be routed to a log file.
 
 Command line options:
+LOG_PATH = ${LOG_PATH}
+  Where log files are written to.
 LOG_FILE := ${LOG_FILE}
   When defined all messages are written to a log file and the display-messages
   goal will display them. This is the log file name only -- no path. The
   display-messages goal exists only when LOG_FILE is defined. The log file is
   reset on each run of make except when run as a submake (MAKELEVEL does not equal 0) which continues to use the same log file.
   Uses:
-    LogPath = ${LogPath}
-      Where log files are written to. This is always relative to the
-      temporary directory.
     LogFile = ${LogFile}
       The file the messages are written to.
 

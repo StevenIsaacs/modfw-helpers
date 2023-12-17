@@ -5,6 +5,11 @@
 #VERBOSE=1
 #DEBUG=1
 
+TmpTestPath := /tmp/test-helpers
+LOG_PATH := ${TmpTestPath}/log
+
+STICKY_PATH := ${TmpTestPath}/sticky
+
 include helpers.mk
 
 $(call Info,WorkingPath: ${WorkingPath})
@@ -15,6 +20,9 @@ $(call Use-Segment,test-helpers)
 $(call Run-Suites,${SUITES_PATH},${CASES})
 
 $(call Resolve-Help-Goals)
+
+clean:
+> rm -rf ${TmpTestPath}
 
 ifneq ($(filter help,$(Goals)),)
 define help-Usage

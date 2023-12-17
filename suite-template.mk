@@ -20,7 +20,6 @@ ${.TestUN}
   Verify the macro:${.TestUN}
 endef
 help-${.TestUN} := $(call _help)
-$(call Declare-Test,${.TestUN})
 ${.TestUN}.Prereqs :=
 define ${.TestUN}
   $(call Enter-Macro,$(0))
