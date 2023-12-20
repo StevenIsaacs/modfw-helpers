@@ -676,6 +676,46 @@ define ${_macro}
   )
   $(call Exit-Macro)
 endef
+
+_macro := Strings-Are-Same
+define _help
+${_macro}
+  Compare two strings and returns the number of words compared if they are the
+  same. Otherwise nothing is returned.
+  NOTE: Multiple spaces are collapsed to a single space so it is not
+  possible to detected a difference in the number of spaces separating the
+  words of a string.
+  Parameters:
+    1 = The name of the variable containing the first string.
+    2 = The name of the variable containing the second string.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1) $(2))
+  $(eval _wc1 := $(words $(1)))
+  $(eval _wc2 := $(words $(2)))
+  $(call Debug,Word count is:${_wc1} ${_wc2})
+  $(eval _r := $(intcmp 2,${_wc2}))
+  $(call Debug,intcmp returned:${_r})
+  $(if ${_r},
+    $(eval _i := 0)
+    $(foreach _w,$(1),
+      $(call Inc-Var,_i)
+      $(call Checking words at:${_i})
+      $(if $(findstring $(word ${_i},$(1)),$(word ${_i},$(2))),
+      ,
+        $(call Debug,Difference found.)
+        $(eval _r :=)
+      )
+    )
+  ,
+    $(eval _r :=)
+  )
+  $(call Debug,Returning:${_r})
+  ${_r}
+  $(call Exit-Macro)
+endef
+
 #--------------
 
 #++++++++++++++
@@ -1119,6 +1159,7 @@ define ${_macro}
     )
   )
   $(call Exit-Macro)
+$(call Test-Info,Suite run complete.)
 endef
 
 _macro := Is-Goal
@@ -1378,7 +1419,7 @@ define ${_macro}
   $(eval _sn := $(word 1,${_snl}))
   $(call Debug,Sticky:Var:${_sn})
   $(if $(filter ${_sn},${StickyVars}),
-    $(call Signal-Error,Redefinition of sticky variable ${_sn} ignored.)
+    $(call Warn,Redefinition of sticky variable ${_sn} ignored.)
   ,
     $(call Debug,Sticky:Path: ${STICKY_PATH})
     ${eval _sf := ${STICKY_PATH}/${_sn}}
@@ -1386,7 +1427,7 @@ define ${_macro}
     $(if ${${_sn}},
       $(eval _sv := ${${_sn}})
     ,
-      $(eval _sv := $(word 2,${_snl}))
+      $(eval _sv := $(wordlist 2,$(words ${_snl}),${_snl}))
     )
     $(if ${_sv},
     ,
@@ -1413,16 +1454,6 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
-_macro := Get-Sticky
-define _help
-${_macro}
-  Return the value of a sticky variable.
-  Parameters:
-    1 = Variable name.
-endef
-help-${_macro} := $(call _help)
-${_macro} = $(file < ${STICKY_PATH}/$(1))
-
 _macro := Redefine-Sticky
 define _help
 ${_macro}
@@ -1441,13 +1472,17 @@ define ${_macro}
   $(if $(filter ${_rsp},${StickyVars}),
     $(call Signal-Error,Var ${_rsp} has not been defined.)
   ,
-    $(eval _rscv := $(call Get-Sticky,${_rsp}))
+    $(eval _rscv := ${${_rsp}})
     $(if $(filter ${_rsv},${_rscv}),
       $(call Debug,Var ${_rsp} is unchanged.)
     ,
       $(call Debug,Redefining:$(1))
       $(call Debug,Resetting var:${_rsp})
-      $(file >$(STICKY_PATH)/${_rsp},${_rsv})
+      $(if ${SubMake},
+        $(call Warning,Cannot overwrite $(1) in a submake.)
+      ,
+        $(file >$(STICKY_PATH)/${_rsp},${_rsv})
+      )
     )
   )
   $(call Exit-Macro)
@@ -1498,13 +1533,13 @@ define ${_macro}
     $(foreach _sym,${$(1)},
       $(call Debug,Adding help for:${_sym})
       $(if $(filter $(origin help-${_sym}),undefined),
-        $(call Warning,Undefined help message: help-${_sym})
+        $(call Warn,Undefined help message: help-${_sym})
       ,
         $(eval $(1)_MoreHelpList += help-${_sym})
       )
     )
   ,
-    $(call Warning,Attempt to add empty help list ignored.)
+    $(call Warn,Attempt to add empty help list ignored.)
   )
   $(call Exit-Macro)
 endef
@@ -1711,11 +1746,15 @@ ${help-Require}
 
 ${help-Must-Be-One-Of}
 
+${help-Overridable}
+
+++++ Sticky (persistent) variables
+
 ${help-Sticky}
 
 ${help-Redefine-Sticky}
 
-${help-Overridable}
+$(help-Remove-Sticky)
 
 +++++ Makefile segment handling.
 ${help-Last-Segment-Id}

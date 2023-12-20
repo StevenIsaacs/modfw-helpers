@@ -502,7 +502,7 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(call Set-Warning-Callback)
   $(eval Actual_Warning := $(1))
-  $(call Debug,Actual:$(1))
+  $(call Debug,Actual warning:$(1))
   $(call Expect-String,${Expected_Warning},${Actual_Warning})
   $(call Exit-Macro)
 endef
@@ -538,7 +538,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(if ${Warning_Handler},
+  $(if ${Warning_Callback},
     $(call FAIL,Warning did not occur.)
     $(call Set-Warning-Callback)
   ,
@@ -561,7 +561,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(if ${Warning_Handler},
+  $(if ${Warning_Callback},
     $(call PASS,Warning did not occur -- as expected.)
     $(call Set-Warning-Callback)
   ,
@@ -609,13 +609,10 @@ _macro := Verify-Error
 define _help
 ${_macro}
   Verifies Oneshot-Error-Callback was called since calling Expect-Error.
-  A PASS is emitted if the error occurred. Otherwise a FAIL is emitted.
+  A PASS is recorded if the error occurred. Otherwise, a FAIL is recorded.
   This also disables the error handler to avoid confusing subsequent tests.
   NOTE: For this to work Expect-Error must be called to arm the one-shot
   handler.
-  Parameters:
-    1 = If not active then the handler should have been called. Otherwise, the
-        handler should not have been called.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
@@ -624,7 +621,7 @@ define ${_macro}
     $(call Set-Error-Callback)
   ,
     $(call PASS,Error occurred -- as expected.)
-    $(call Expect-String,${Expected_Error},$(1))
+    $(call Expect-String,${Expected_Error},${Actual_Error})
   )
 endef
 
@@ -632,14 +629,11 @@ _macro := Verify-No-Error
 define _help
 ${_macro}
   Verifies Oneshot-Error-Callback was not called since calling Expect-Error.
-  A PASS is emitted If the error has NOT occurred. Otherwise a FAIL is
-  emitted.
+  A PASS is recorded If the error has NOT occurred. Otherwise a FAIL is
+  recorded.
   This also disables the error handler to avoid confusing subsequent tests.
   NOTE: For this to work Expect-Error must be called to arm the one-shot
   handler.
-  Parameters:
-    1 = If not active then the handler should have been called. Otherwise, the
-        handler should not have been called.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
@@ -1252,7 +1246,6 @@ define ${_macro}
   ,
     $(call Warning,No tests in the Run.TestL list.)
   )
-
   $(call Exit-Macro)
 endef
 endif

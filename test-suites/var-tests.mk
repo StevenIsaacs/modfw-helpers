@@ -245,6 +245,91 @@ define ${.TestUN}
   $(call Exit-Macro)
 endef
 
+$(call Declare-Test,Strings-Are-Same)
+define _help
+${.TestUN}
+  Verify the helper macro:${.TestUN}
+endef
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs :=
+define ${.TestUN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _s1 := abc)
+  $(eval _s2 := abc)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2})
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call PASS,Strings _s1 and _s2 are the same.)
+  ,
+    $(call FAIL,Strings _s1 and _s2 should have been the same.)
+  )
+
+  $(eval _s1 := xxx)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2})
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call FAIL,Strings _s1 and _s2 are the same.)
+  ,
+    $(call PASS,Strings _s1 and _s2 are not the same.)
+  )
+
+  $(eval _s1 := abc def)
+  $(eval _s2 := abc def)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2})
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call PASS,Strings _s1 and _s2 are the same.)
+  ,
+    $(call FAIL,Strings _s1 and _s2 should have been the same.)
+  )
+
+  $(eval _s1 := abc xxx)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2})
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call FAIL,Strings _s1 and _s2 are the same.)
+  ,
+    $(call PASS,Strings _s1 and _s2 are not the same.)
+  )
+
+  $(eval _s1 := abc)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2})
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call FAIL,Strings _s1 and _s2 are the same.)
+  ,
+    $(call PASS,Strings _s1 and _s2 are not the same.)
+  )
+
+  $(eval _s1 := This is a line.)
+  $(eval _s2 := This is a line.)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2}.)
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call PASS,Strings _s1 and _s2 are the same.)
+  ,
+    $(call FAIL,Strings _s1 and _s2 should have been the same.)
+  )
+
+  $(eval _s1 := this is a line.)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2}.)
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call FAIL,Strings _s1 and _s2 are the same.)
+  ,
+    $(call PASS,Strings _s1 and _s2 are not the same.)
+  )
+
+  $(eval _s1 := This is a line)
+  $(call Test-Info,Comparing: ${_s1} and ${_s2}.)
+  $(if $(call Strings-Are-Same,_s1,_s2),
+    $(call FAIL,Strings _s1 and _s2 are the same.)
+  ,
+    $(call PASS,Strings _s1 and _s2 are not the same.)
+  )
+
+  $(eval undefine _s1)
+  $(eval undefine _s2)
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
 $(call End-Declare-Suite)
 
 # +++++
