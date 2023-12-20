@@ -695,7 +695,7 @@ define ${_macro}
   $(eval _wc1 := $(words $(1)))
   $(eval _wc2 := $(words $(2)))
   $(call Debug,Word count is:${_wc1} ${_wc2})
-  $(eval _r := $(intcmp 2,${_wc2}))
+  $(eval _r := $(intcmp ${_wc1},${_wc2}))
   $(call Debug,intcmp returned:${_r})
   $(if ${_r},
     $(eval _i := 0)
