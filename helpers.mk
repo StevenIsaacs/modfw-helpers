@@ -56,7 +56,7 @@ STICKY_PATH ?= ${DEFAULT_STICKY_PATH}
 # For messages.
 NewLine = nlnl
 _empty :=
-Space := ${_empty} ${_empty}
+Space := ${__empty} ${__empty}
 Comma := ,
 Dlr := $
 
@@ -160,31 +160,31 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(eval _msg := \
+  $(eval __msg := \
     $(strip $(1)):${Caller}:$(lastword ${Entry_Stack}):$(strip $(2)))
   $(if ${LOG_FILE},
-    $(file >>${LogFile},${_msg})
+    $(file >>${LogFile},${__msg})
   )
   $(if ${QUIET},
   ,
     $(if $(filter $(lastword $(2)),${NewLine}),
       $(info )
     )
-    $(info ${_msg})
+    $(info ${__msg})
   )
   $(if ${Message_Callback},
     $(if ${Message_Safe},
       $(eval Message_Safe :=)
-      $(call ${Message_Callback},$(strip ${_msg}))
+      $(call ${Message_Callback},$(strip ${__msg}))
       $(eval Message_Safe := 1)
     ,
-      $(eval _msg := \
+      $(eval __msg := \
         clbk:${Seg}:$(lastword ${Entry_Stack}):$(strip \
           Recursive call to Message_Callback -- callback not called.))
       $(if ${LOG_FILE},
-        $(file >>${LogFile},${_msg})
+        $(file >>${LogFile},${__msg})
       )
-      $(info ${_msg})
+      $(info ${__msg})
     )
   )
   $(eval Messages = yes)
@@ -295,7 +295,7 @@ ifneq (${DEBUG},)
 define ${_macro}
   $(call Log-Message,dbug,$(1))
 endef
-_V:=vp --warn-undefined-variables
+__V:=vp --warn-undefined-variables
 endif
 
 _macro := Step
@@ -308,7 +308,7 @@ define ${_macro}
   $(shell read -r -p "Step: Press Enter to continue...")
 endef
 
-define _Push-Entry
+define __Push-Entry
   $(if $(filter $(1),${Entry_Stack}),
     $(call Attention,Recursive entry to $(1) detected.)
   )
@@ -321,14 +321,14 @@ define _Push-Entry
   )
 endef
 
-define _Pop-Entry
+define __Pop-Entry
   $(if ${DEBUG},
     $(call Log-Message, \
       <--$(words ${Entry_Stack}),Exiting:$(lastword ${Entry_Stack}))
   )
-  $(eval _l := $(words ${Entry_Stack}))
-  $(call Dec-Var,_l)
-  $(eval Entry_Stack := $(wordlist 1,${_l},${Entry_Stack}))
+  $(eval __l := $(words ${Entry_Stack}))
+  $(call Dec-Var,__l)
+  $(eval Entry_Stack := $(wordlist 1,${__l},${Entry_Stack}))
   $(eval Caller := $(lastword ${Entry_Stack}))
 endef
 
@@ -342,7 +342,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call _Push-Entry,$(1))
+  $(call __Push-Entry,$(1))
   $(if $(and ${DEBUG},$(2)),
     $(call Log-Message,====,$(2))
   )
@@ -356,7 +356,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(call _Pop-Entry)
+  $(call __Pop-Entry)
 endef
 
 _macro := Set-Message-Callback
@@ -425,7 +425,7 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
-MAKEFLAGS += --debug=${_V}
+MAKEFLAGS += --debug=${__V}
 
 _var := Error_Callback
 define _help
@@ -608,20 +608,20 @@ define ${_macro}
 $(strip \
   $(call Enter-Macro,$(0),$(1))
   $(call Debug,Requiring defined variables:$(1))
-  $(eval _r :=)
+  $(eval __r :=)
   $(foreach _v,$(1),
-    $(call Debug,Requiring: ${_v})
-    $(if $(findstring undefined,$(flavor ${_v})),
-      $(eval _r += ${_v})
-      $(call Signal-Error,${Caller} requires variable ${_v} must be defined.)
+    $(call Debug,Requiring: ${__v})
+    $(if $(findstring undefined,$(flavor ${__v})),
+      $(eval __r += ${__v})
+      $(call Signal-Error,${Caller} requires variable ${__v} must be defined.)
     )
   )
   $(call Exit-Macro)
-  ${_r}
+  ${__r}
 )
 endef
 
-define _mbof
+define __mbof
   $(if $(filter ${$(1)},$(2)),
     $(call Debug,$(1)=${$(1)} and is a valid option) 1
   ,
@@ -643,7 +643,7 @@ help-${_macro} := $(call _help)
 define ${_macro}
 $(strip
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(call _mbof,$(1),$(2))
+  $(call __mbof,$(1),$(2))
   $(call Exit-Macro)
 )
 endef
@@ -677,42 +677,41 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
-_macro := Strings-Are-Same
+_macro := Compare-Strings
 define _help
 ${_macro}
-  Compare two strings and returns the number of words compared if they are the
-  same. Otherwise nothing is returned.
+  Compare two strings and return a list of indexes of the words which do not
+  match.  If the strings are identical then nothing is returned.If the lengths of the strings are not the same then the difference in lengths is returned as "d <diff>".
   NOTE: Multiple spaces are collapsed to a single space so it is not
   possible to detected a difference in the number of spaces separating the
   words of a string.
   Parameters:
-    1 = The name of the variable containing the first string.
-    2 = The name of the variable containing the second string.
+    1 = The first string.
+    2 = The second string.
+    3 = The name of the variable in which to return the result of the compare.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(eval _wc1 := $(words $(1)))
-  $(eval _wc2 := $(words $(2)))
-  $(call Debug,Word count is:${_wc1} ${_wc2})
-  $(eval _r := $(intcmp ${_wc1},${_wc2}))
-  $(call Debug,intcmp returned:${_r})
-  $(if ${_r},
-    $(eval _i := 0)
-    $(foreach _w,$(1),
-      $(call Inc-Var,_i)
-      $(call Checking words at:${_i})
-      $(if $(findstring $(word ${_i},$(1)),$(word ${_i},$(2))),
+  $(eval __d := $(words ${$(1)}))
+  $(call Sub-Var,__d,$(words ${$(2)}))
+  $(if $(filter 0,${__d}),
+    $(eval $(3) :=)
+    $(eval __i := 0)
+    $(foreach __w,${$(1)},
+      $(call Inc-Var,__i)
+      $(call Checking words at:${__i})
+      $(if $(filter ${__w},$(word ${__i},${$(2)})),
       ,
         $(call Debug,Difference found.)
-        $(eval _r :=)
+        $(eval $(3) += ${__i})
       )
     )
   ,
-    $(eval _r :=)
+    $(call Debug,String lengths differ by ${__d} words.)
+    $(eval $(3) := d ${__d})
   )
-  $(call Debug,Returning:${_r})
-  ${_r}
+  $(call Debug,Returning:${$(3)})
   $(call Exit-Macro)
 endef
 
@@ -850,10 +849,10 @@ define ${_macro}
   $(eval $(2) := )
   $(call Debug,Locating segment: $(1))
   $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegID}))
-  $(foreach _p,${SegPaths} $(call Get-Segment-Path,${SegID}),
-    $(call Debug,Trying: ${_p})
-    $(if $(wildcard ${_p}/$(1).mk),
-      $(eval $(2) := ${_p}/$(1).mk)
+  $(foreach __p,${SegPaths} $(call Get-Segment-Path,${SegID}),
+    $(call Debug,Trying: ${__p})
+    $(if $(wildcard ${__p}/$(1).mk),
+      $(eval $(2) := ${__p}/$(1).mk)
     )
   )
   $(if ${$(2)},
@@ -908,9 +907,9 @@ define ${_macro}
     $(if ${$(1).SegID},
       $(call Debug,Segment $(1) is already loaded.)
     ,
-      $(call Find-Segment,$(1),_seg)
-      $(call Debug,Using segment:${_seg})
-      $(eval include ${_seg})
+      $(call Find-Segment,$(1),__seg)
+      $(call Debug,Using segment:${__seg})
+      $(eval include ${__seg})
     )
   )
   $(call Exit-Macro)
@@ -944,7 +943,7 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
-define _Push-SegID
+define __Push-SegID
   $(if $(filter ${SegID},${SegID_Stack}),
     $(call Attention,Recursive entry to ${SegID} detected.)
   )
@@ -956,12 +955,12 @@ define _Push-SegID
   )
 endef
 
-define _Pop-SegID
+define __Pop-SegID
   $(if ${DEBUG},
     $(call Log-Message, \
       <--$(words ${SegID_Stack}),Restoring SegID:$(lastword ${SegID_Stack}))
   )
-  $(eval _PrvSegID := $(lastword ${SegID_Stack}))
+  $(eval __PrvSegID := $(lastword ${SegID_Stack}))
   $(eval \
     SegID_Stack := $(filter-out $(lastword ${SegID_Stack}),${SegID_Stack})
   )
@@ -991,15 +990,16 @@ define ${_macro}
   $(call Enter-Macro,$(0))
   $(eval __s := $(call Last-Segment-Basename))
   $(eval ${__s}.SegID := $(call Last-Segment-Id))
-  $(eval $(call Debug,Entering segment: $(call Get-Segment-Basename,${${__s}.SegID})))
+  $(eval $(call Debug,\
+    Entering segment: $(call Get-Segment-Basename,${${__s}.SegID})))
   $(eval ${__s}.Seg := $(call Last-Segment-Basename))
   $(eval ${__s}.SegP := $(call Last-Segment-Path))
   $(eval ${__s}.SegF := $(call Last-Segment-File))
   $(eval ${__s}.SegV := $(call To-Shell-Var,${__s}))
-  $(call _Push-SegID)
+  $(call __Push-SegID)
   $(call Set-Segment-Context,${${__s}.SegID})
   $(call Exit-Macro)
-  $(call _Push-Entry,${Seg})
+  $(call __Push-Entry,${Seg})
 endef
 
 _macro := Exit-Segment
@@ -1012,10 +1012,10 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
   $(call Debug,Exiting segment: ${Seg})
-  $(call _Pop-SegID)
-  $(eval $(call Set-Segment-Context,${_PrvSegID}))
+  $(call __Pop-SegID)
+  $(eval $(call Set-Segment-Context,${__PrvSegID}))
   $(call Exit-Macro)
-  $(call _Pop-Entry)
+  $(call __Pop-Entry)
 endef
 
 _macro := Check-Segment-Conflicts
@@ -1142,20 +1142,20 @@ define ${_macro}
   $(call Enter-Macro,$(0))
   $(call Debug,Resolving help goals.)
   $(call Debug,Help goals: $(filter help-%,${Goals}))
-  $(foreach _s,$(patsubst help-%,%,$(filter help-%,${Goals})),
-    $(call Debug,Resolving help for help-${_s})
-    $(if $(findstring undefined,$(flavor help-${_s})),
-      $(if $(filter ${_s}.mk,${MAKEFILE_LIST}),
-        $(call Debug,Segment ${_s} already loaded.)
+  $(foreach __s,$(patsubst help-%,%,$(filter help-%,${Goals})),
+    $(call Debug,Resolving help for help-${__s})
+    $(if $(findstring undefined,$(flavor help-${__s})),
+      $(if $(filter ${__s}.mk,${MAKEFILE_LIST}),
+        $(call Debug,Segment ${__s} already loaded.)
       ,
-        $(call Use-Segment,${_s})
-        $(if $(findstring undefined,$(flavor help-${_s})),
-          $(eval help-${_s} := help-${_s} is undefined.)
-          $(call Signal-Error,${help-${_s}})
+        $(call Use-Segment,${__s})
+        $(if $(findstring undefined,$(flavor help-${__s})),
+          $(eval help-${__s} := help-${__s} is undefined.)
+          $(call Signal-Error,${help-${__s}})
         )
       )
     ,
-      $(call Debug,Help help-${_s} is defined.)
+      $(call Debug,Help help-${__s} is defined.)
     )
   )
   $(call Exit-Macro)
@@ -1343,10 +1343,10 @@ endef
 
 # Set SegID to the segment that included helpers so that the previous segment
 # set by Enter-Segment and used by Exit-Segment will have a valid value.
-_i := $(call Last-Segment-Id)
-$(call Dec-Var,_i)
+__i := $(call Last-Segment-Id)
+$(call Dec-Var,__i)
 # Initialize the top level context.
-$(call Set-Segment-Context,${_i})
+$(call Set-Segment-Context,${__i})
 $(call Debug,Included from: SegID = ${SegID})
 ${Seg}.Seg := ${Seg}
 ${Seg}.SegID := ${SegID}
@@ -1415,31 +1415,31 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(eval _snl := $(subst =,${Space},$(1)))
-  $(eval _sn := $(word 1,${_snl}))
-  $(call Debug,Sticky:Var:${_sn})
-  $(if $(filter ${_sn},${StickyVars}),
-    $(call Warn,Redefinition of sticky variable ${_sn} ignored.)
+  $(eval __snl := $(subst =,${Space},$(1)))
+  $(eval __sn := $(word 1,${__snl}))
+  $(call Debug,Sticky:Var:${__sn})
+  $(if $(filter ${__sn},${StickyVars}),
+    $(call Warn,Redefinition of sticky variable ${__sn} ignored.)
   ,
     $(call Debug,Sticky:Path: ${STICKY_PATH})
-    ${eval _sf := ${STICKY_PATH}/${_sn}}
-    $(eval StickyVars += ${_sn})
-    $(if ${${_sn}},
-      $(eval _sv := ${${_sn}})
+    ${eval __sf := ${STICKY_PATH}/${__sn}}
+    $(eval StickyVars += ${__sn})
+    $(if ${${__sn}},
+      $(eval __sv := ${${__sn}})
     ,
-      $(eval _sv := $(wordlist 2,$(words ${_snl}),${_snl}))
+      $(eval __sv := $(wordlist 2,$(words ${__snl}),${__snl}))
     )
-    $(if ${_sv},
+    $(if ${__sv},
     ,
-      $(if $(wildcard ${_sf}),
-        $(eval _sv := $(file <${_sf}))
+      $(if $(wildcard ${__sf}),
+        $(eval __sv := $(file <${__sf}))
       ,
         $(if $(2),
-          $(eval _sv := $(2))
+          $(eval __sv := $(2))
         )
       )
     )
-    $(call Debug,Sticky:Value:${_sv})
+    $(call Debug,Sticky:Value:${__sv})
     $(if ${SubMake},
       $(call Debug,Variables are read-only in a sub-make.)
     ,
@@ -1447,9 +1447,9 @@ define ${_macro}
       ,
         $(shell mkdir -p ${STICKY_PATH})
       )
-      $(file >${_sf},${_sv})
+      $(file >${__sf},${__sv})
     )
-    $(eval ${_sn} := ${_sv})
+    $(eval ${__sn} := ${__sv})
   )
   $(call Exit-Macro)
 endef
@@ -1466,22 +1466,22 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
-  $(eval _rspl := $(subst =,${Space},$(1)))
-  $(eval _rsp := $(word 1,${_rspl}))
-  $(eval _rsv := $(word 2,${_rspl}))
-  $(if $(filter ${_rsp},${StickyVars}),
-    $(call Signal-Error,Var ${_rsp} has not been defined.)
+  $(eval __rspl := $(subst =,${Space},$(1)))
+  $(eval __rsp := $(word 1,${__rspl}))
+  $(eval __rsv := $(word 2,${__rspl}))
+  $(if $(filter ${__rsp},${StickyVars}),
+    $(call Signal-Error,Var ${__rsp} has not been defined.)
   ,
-    $(eval _rscv := ${${_rsp}})
-    $(if $(filter ${_rsv},${_rscv}),
-      $(call Debug,Var ${_rsp} is unchanged.)
+    $(eval __rscv := ${${__rsp}})
+    $(if $(filter ${__rsv},${__rscv}),
+      $(call Debug,Var ${__rsp} is unchanged.)
     ,
       $(call Debug,Redefining:$(1))
-      $(call Debug,Resetting var:${_rsp})
+      $(call Debug,Resetting var:${__rsp})
       $(if ${SubMake},
         $(call Warning,Cannot overwrite $(1) in a submake.)
       ,
-        $(file >$(STICKY_PATH)/${_rsp},${_rsv})
+        $(file >$(STICKY_PATH)/${__rsp},${__rsv})
       )
     )
   )
@@ -1524,18 +1524,18 @@ ${_macro}
     MoreHelpList
       The list of help messages to append to the help output.
 endef
-help-${_macro} := $(call ${_help})
+help-${_macro} := $(call ${__help})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(1),
     $(call Debug,Help list for:$(1):${$(1)})
     $(eval $(1)_MoreHelpList := )
-    $(foreach _sym,${$(1)},
-      $(call Debug,Adding help for:${_sym})
-      $(if $(filter $(origin help-${_sym}),undefined),
-        $(call Warn,Undefined help message: help-${_sym})
+    $(foreach __sym,${$(1)},
+      $(call Debug,Adding help for:${__sym})
+      $(if $(filter $(origin help-${__sym}),undefined),
+        $(call Warn,Undefined help message: help-${__sym})
       ,
-        $(eval $(1)_MoreHelpList += help-${_sym})
+        $(eval $(1)_MoreHelpList += help-${__sym})
       )
     )
   ,
@@ -1586,9 +1586,9 @@ show-%:
 > @echo '$*=$($*)'
 
 define _Call-Macro
-$(eval _w := $(subst :, ,$(2)))
+$(eval __w := $(subst :, ,$(2)))
 $(foreach pn,1 2 3,
-  $(eval p${pn} := $(subst +, ,$(word ${pn},${_w})))
+  $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
   $(call Debug,p${pn}:${p${pn}})
 )
 $(call $(1),${p1},${p2},${p3})
@@ -1603,8 +1603,8 @@ help-%:
 > $(file >${TmpPath}/help-$*,${help-$*})
 > $(if ${$*_MoreHelpList},\
     $(foreach _h,${$*_MoreHelpList},\
-      $(file >>${TmpPath}/help-$*,==== ${_h} ====)\
-      $(file >>${TmpPath}/help-$*,${${_h}})))
+      $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
+      $(file >>${TmpPath}/help-$*,${${__h}})))
 > less ${TmpPath}/help-$*
 > rm ${TmpPath}/help-$*
 
