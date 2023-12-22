@@ -520,6 +520,7 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(eval Expected_Warning := $(1))
+  $(eval Actual_Warning :=)
   $(call Set-Warning-Callback,Oneshot-Warning-Callback)
   $(call Exit-Macro)
 endef
@@ -538,11 +539,12 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(if ${Warning_Callback},
+  $(if ${Actual_Warning},
+    $(call PASS,Warning occurred -- as expected.)
+    $(call Expect-String,${Expected_Warning},${Actual_Warning})
+  ,
     $(call FAIL,Warning did not occur.)
     $(call Set-Warning-Callback)
-  ,
-    $(call PASS,Warning occurred -- as expected.)
   )
 endef
 
@@ -561,11 +563,11 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(if ${Warning_Callback},
+  $(if ${Actual_Warning},
+    $(call FAIL,An unexpected warning occurred.)
+  ,
     $(call PASS,Warning did not occur -- as expected.)
     $(call Set-Warning-Callback)
-  ,
-    $(call FAIL,An unexpected warning occurred.)
   )
 endef
 
@@ -602,6 +604,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(eval Expected_Error := $(1))
+  $(eval Actual_Error :=)
   $(call Set-Error-Callback,Oneshot-Error-Callback)
 endef
 
@@ -616,12 +619,12 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(if ${Error_Handler},
-    $(call FAIL,Error did not occur.)
-    $(call Set-Error-Callback)
-  ,
+  $(if ${Actual_Error},
     $(call PASS,Error occurred -- as expected.)
     $(call Expect-String,${Expected_Error},${Actual_Error})
+  ,
+    $(call FAIL,Error did not occur.)
+    $(call Set-Error-Callback)
   )
 endef
 
@@ -637,11 +640,11 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
-  $(if ${Error_Handler},
+  $(if ${Actual_Error},
+    $(call FAIL,An unexpected error occurred.)
+  ,
     $(call PASS,Error did not occur -- as expected.)
     $(call Set-Error-Callback)
-  ,
-    $(call FAIL,An unexpected error occurred.)
   )
 endef
 

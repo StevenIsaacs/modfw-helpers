@@ -143,21 +143,42 @@ ${.TestUN}
 
 endef
 help-${.TestUN} := $(call _help)
-${.TestUN}.Prereqs := ${.SuiteN}.Get-Sticky
+${.TestUN}.Prereqs := ${.SuiteN}.Sticky
 define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
   $(eval _vn1 := redefine-sticky1)
-  $(eval _vn1v := get ${_vn1})
+  $(eval _vn1v := defining ${_vn1})
   $(call Sticky,${_vn1}=${_vn1v})
+  $(eval _vn1g := ${${_vn1}})
   $(call Test-Info,Verifying ${_vn1} = "${_vn1v}")
   $(call Expect-String,${_vn1g},${${_vn1}})
 
   $(eval _vn1v := new ${_vn1})
+  $(call Expect-Error,Var ${_vn1} has not been defined.)
   $(call Redefine-Sticky,${_vn1}=${_vn1v})
+  $(call Verify-No-Error)
+  $(eval _vn1g := ${${_vn1}})
   $(call Test-Info,Verifying ${_vn1} = "${_vn1v}")
   $(call Expect-String,${_vn1g},${${_vn1}})
+
+  $(eval _vn1v := new ${_vn1})
+  $(eval SubMake := 1)
+  $(call Expect-Warning,Cannot overwrite ${_vn1} in a submake.)
+  $(call Expect-Error,Var ${_vn1} has not been defined.)
+  $(call Redefine-Sticky,${_vn1}=${_vn1v})
+  $(call Verify-No-Error)
+  $(call Verify-Warning)
+  $(eval SubMake :=)
+  $(call Test-Info,Verifying ${_vn1} = "${_vn1v}")
+  $(call Expect-String,${_vn1g},${${_vn1}})
+
+  $(eval _vn1 := does-not-exist)
+  $(eval _vn1v := defining ${_vn1})
+  $(call Expect-Error,Var ${_vn1} has not been defined.)
+  $(call Redefine-Sticky,${_vn1}=${_vn1v})
+  $(call Verify-Error)
 
   $(call Test-Info,Cleanup...)
   $(foreach _v,_vn1,
@@ -181,7 +202,7 @@ ${.TestUN}
 
 endef
 help-${.TestUN} := $(call _help)
-${.TestUN}.Prereqs := ${.SuiteN}.Get-Sticky
+${.TestUN}.Prereqs := ${.SuiteN}.Redefine-Sticky
 define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
@@ -195,9 +216,13 @@ define ${.TestUN}
 
   $(call Test-Info,Verify sticky variable has been removed.)
   $(call Expect-Error,Var ${_vn1} has not been defined.)
-  $(call Sticky,${_vn1},Redefined)
-  $(call Verify-Error)
+  $(call Remove-Sticky,${_vn1},Redefined)
+  $(call Verify-No-Error)
 
+  $(call Test-Info,Verify sticky variable has been removed.)
+  $(call Expect-Error,Var ${_vn1} has not been defined.)
+  $(call Remove-Sticky,${_vn1},Redefined)
+  $(call Verify-Error)
 
   $(call End-Test)
   $(call Exit-Macro)

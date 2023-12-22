@@ -1468,22 +1468,24 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(eval __rspl := $(subst =,${Space},$(1)))
   $(eval __rsp := $(word 1,${__rspl}))
-  $(eval __rsv := $(word 2,${__rspl}))
+  $(eval __rsv := $(wordlist 2,$(words ${__rspl}),${__rspl}))
   $(if $(filter ${__rsp},${StickyVars}),
-    $(call Signal-Error,Var ${__rsp} has not been defined.)
-  ,
     $(eval __rscv := ${${__rsp}})
-    $(if $(filter ${__rsv},${__rscv}),
-      $(call Debug,Var ${__rsp} is unchanged.)
-    ,
-      $(call Debug,Redefining:$(1))
-      $(call Debug,Resetting var:${__rsp})
+    $(call Compare-Strings,__rsv,__rscv,__diff)
+    $(call Debug,Old and new diff:${__diff})
+    $(if ${__diff},
+      $(call Debug,Redefining:${__rsp})
+      $(call Debug,SubMake:${SubMake})
       $(if ${SubMake},
-        $(call Warning,Cannot overwrite $(1) in a submake.)
+        $(call Warn,Cannot overwrite ${__rsp} in a submake.)
       ,
         $(file >$(STICKY_PATH)/${__rsp},${__rsv})
       )
+    ,
+      $(call Debug,Var ${__rsp} is unchanged:"${__rsv}" "${__rscv}")
     )
+  ,
+    $(call Signal-Error,Var ${__rsp} has not been defined.)
   )
   $(call Exit-Macro)
 endef
