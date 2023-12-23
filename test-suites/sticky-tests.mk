@@ -31,17 +31,24 @@ define ${.TestUN}
   $(call Test-Info,Verifying existing sticky variables.)
   $(foreach _vn,CASES SUITES_PATH,
     $(eval _tmp := $(file <${STICKY_PATH}/${_vn}))
-    $(call Test-Info,Verifying ${_vn} equals ${${_vn}}.)
-    $(if $(filter ${_tmp},${${_vn}}),
-      $(call PASS,${_vn} has correct value.)
+    $(call Test-Info,Verifying "${_vn}" equals "${${_vn}}".)
+    $(if ${${_vn}},
+      $(if $(filter ${_tmp},${${_vn}}),
+        $(call PASS,${_vn} has correct value.)
+      ,
+        $(call FAIL,${_vn} has incorrect sticky value:"${_tmp}")
+      )
     ,
-      $(call FAIL,${_vn} has incorrect sticky value:${_tmp})
+      $(if ${_tmp},
+        $(call FAIL,${_vn} has incorrect sticky value:"${_tmp}")
+      ,
+        $(call PASS,${_vn} has correct value.)
+      )
     )
   )
 
   $(call Test-Info,Creating a new sticky variable using default.)
   $(eval _vn1 := sticky1)
-  $(eval ${_vn1} :=)
   $(eval _vv1 := default)
   $(call Sticky,${_vn1},${_vv1})
   $(if $(wildcard ${STICKY_PATH}/${_vn1}),
@@ -71,7 +78,7 @@ define ${.TestUN}
 
   $(call Test-Info,New sticky -- no default.)
   $(eval _vn3 := sticky3)
-  $(eval _vv3 := new_${_vn3})
+  $(eval _vv3 := new ${_vn3})
   $(call Sticky,${_vn3}=${_vv3})
   $(if $(wildcard ${STICKY_PATH}/${_vn3}),
     $(call PASS,Sticky var ${_vn3} exists.)
@@ -108,8 +115,8 @@ define ${.TestUN}
 
   $(call Test-Info,Existing sticky -- new value.)
   $(eval _vn5 := sticky5)
-  $(eval _vv5 := new ${_vn5})
   $(file >${STICKY_PATH}/${_vn5},existing ${_vn5})
+  $(eval _vv5 := new ${_vn5})
   $(call Sticky,${_vn5}=${_vv5})
   $(if $(wildcard ${STICKY_PATH}/${_vn5}),
     $(call PASS,Sticky var ${_vn5} exists.)
@@ -143,7 +150,7 @@ ${.TestUN}
 
 endef
 help-${.TestUN} := $(call _help)
-${.TestUN}.Prereqs := ${.SuiteN}.Sticky
+${.TestUN}.Prereqs := ${.SuiteN}.Sticky test-vars.Compare-Strings
 define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
@@ -174,14 +181,14 @@ define ${.TestUN}
   $(call Test-Info,Verifying ${_vn1} = "${_vn1v}")
   $(call Expect-String,${_vn1g},${${_vn1}})
 
-  $(eval _vn1 := does-not-exist)
-  $(eval _vn1v := defining ${_vn1})
-  $(call Expect-Error,Var ${_vn1} has not been defined.)
-  $(call Redefine-Sticky,${_vn1}=${_vn1v})
+  $(eval _vn2 := does-not-exist)
+  $(eval _vn2v := defining ${_vn2})
+  $(call Expect-Error,Var ${_vn2} has not been defined.)
+  $(call Redefine-Sticky,${_vn2}=${_vn2v})
   $(call Verify-Error)
 
   $(call Test-Info,Cleanup...)
-  $(foreach _v,_vn1,
+  $(foreach _v,_vn1 _vn2,
     $(call Test-Info,Removing test var:${_v})
     $(eval StickyVars := $(filter-out ${${_v}},${StickyVars}))
     $(shell rm ${STICKY_PATH}/${${_v}})

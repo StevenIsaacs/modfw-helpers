@@ -1378,16 +1378,11 @@ define _help
 ${_macro}
   A sticky variable is persistent and needs to be defined on the command line
   at least once or have a default value as an argument.
-  Uses sticky.sh to make a variable sticky. If the variable has not been
-  declared when this macro is called then the previous value is used. Defining
-  the variable will overwrite the previous sticky value.
+  If the variable has not been defined when this macro is called then the previous value is used. Defining the variable will overwrite the previous sticky value.
   Only the first call to Sticky for a given variable will be accepted.
   Additional calls will produce a redefinition error.
   Sticky variables are read only in a sub-make (MAKELEVEL != 0).
   Variables used:
-    helpers.SegP=${helpers.SegP}
-      The path to the helpers directory. Defaults to the directory
-      containing this makefile segment.
     StickyVars=${StickyVars}
       The list of declared sticky variables. This is used to detect when a
       sticky variable is being redefined.
@@ -1400,14 +1395,24 @@ ${_macro}
   Returns:
     The variable value.
   Examples:
+    $$(call Sticky,<var>,<default>)
+      Restores the previously saved <value> or sets <var> equal to
+      <default>.
     $$(call Sticky,<var>=<value>)
       Sets the sticky variable equal to <value>. The <value> is saved
       for retrieval at a later time.
-    $$(call Sticky,<var>[=])
-      Restores the previously saved <value>.
-    $$(call Sticky,<var>[=],<default>)
-      Restores the previously saved <value> or sets <var> equal to
-      <default>.
+    $$(call Sticky,<var>=<value>,<default>)
+      Sets the sticky variable equal to <value>. The <value> is saved
+      for retrieval at a later time. The default is ignored in this case.
+    $$(call Sticky,<var>)
+      Restores the previously saved <value>. If no value has been previously
+      saved then an empty value is saved.
+    $$(call Sticky,<var>=)
+      Sets the sticky variable to an empty value. This is useful when saving
+      flags.
+    $$(call Sticky,<var>=,<default>)
+      Also sets the sticky variable to an empty value. This is useful when
+      saving flags. The default is ignored in this case.
   To ignore a sticky variable and instead use its default, from the command
   line use:
     <var>=""
@@ -1418,38 +1423,62 @@ define ${_macro}
   $(eval __snl := $(subst =,${Space},$(1)))
   $(eval __sn := $(word 1,${__snl}))
   $(call Debug,Sticky:Var:${__sn})
+
   $(if $(filter ${__sn},${StickyVars}),
     $(call Warn,Redefinition of sticky variable ${__sn} ignored.)
   ,
-    $(call Debug,Sticky:Path: ${STICKY_PATH})
-    ${eval __sf := ${STICKY_PATH}/${__sn}}
     $(eval StickyVars += ${__sn})
-    $(if ${${__sn}},
-      $(eval __sv := ${${__sn}})
+    $(eval __sf := ${STICKY_PATH}/${__sn})
+    $(if $(wildcard ${STICKY_PATH}),
     ,
-      $(eval __sv := $(wordlist 2,$(words ${__snl}),${__snl}))
+      $(shell mkdir -p ${STICKY_PATH})
     )
-    $(if ${__sv},
-    ,
-      $(if $(wildcard ${__sf}),
-        $(eval __sv := $(file <${__sf}))
+    $(call Debug,Flavor of ${__sn} is:$(flavor ${__sn}))
+    $(eval __save :=)
+    $(if $(filter $(flavor ${__sn}),undefined),
+      $(call Debug,Defining ${__sn})
+      $(if $(findstring =,$(1)),
+        $(eval __sv := $(wordlist 2,$(words ${__snl}),${__snl}))
+        $(eval __save := 1)
+        $(call Debug,Setting ${__sn} to:"${__sv}".)
       ,
-        $(if $(2),
-          $(eval __sv := $(2))
+        $(if $(wildcard ${__sf}),
+          $(call Debug,Reading previously saved value for ${__sn})
+          $(eval __sv := $(file <${__sf}))
+        ,
+          $(if $(2),
+            $(eval __sv := $(2))
+            $(call Debug,Setting ${__sn} to default:"${__sv}")
+            $(eval __save := 1)
+          )
         )
       )
-    )
-    $(call Debug,Sticky:Value:${__sv})
-    $(if ${SubMake},
-      $(call Debug,Variables are read-only in a sub-make.)
-    ,
-      $(if $(wildcard ${STICKY_PATH}),
+      $(eval ${__sn} := ${__sv})
+      $(if ${SubMake},
+        $(call Debug,Variables are read-only in a sub-make.)
       ,
-        $(shell mkdir -p ${STICKY_PATH})
+        $(if ${__save},
+          $(call Debug,Creating sticky:${__sn})
+          $(file >${__sf},${__sv})
+        )
       )
-      $(file >${__sf},${__sv})
+    ,
+      $(call Debug,${__sn} is defined.)
+      $(if $(findstring =,$(1)),
+        $(eval ${__sn} := $(wordlist 2,$(words ${__snl}),${__snl}))
+      )
+      $(call Debug,Saving sticky:${__sn}=${${__sn}})
+      $(if ${SubMake},
+        $(call Debug,Variables are read-only in a sub-make.)
+      ,
+        $(if $(wildcard ${__sf}),
+          $(call Debug,Replacing sticky:${__sf})
+        ,
+          $(call Debug,Creating sticky:${__sf})
+        )
+        $(file >${__sf},${${__sn}})
+      )
     )
-    $(eval ${__sn} := ${__sv})
   )
   $(call Exit-Macro)
 endef

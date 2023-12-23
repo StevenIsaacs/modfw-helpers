@@ -361,7 +361,8 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(call Debug,Expecting:($(1)) Actual:($(2)))
+  $(call Debug,Expecting:"$(1)")
+  $(call Debug,Actual:"$(2)")
   $(eval _i := 0)
   $(eval _ex := )
   $(foreach _w,$(1),
@@ -395,7 +396,8 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(call Debug,Expecting:($(1)) Actual:($(2)))
+  $(call Debug,Expecting:"$(1)")
+  $(call Debug,Actual:"$(2)")
   $(call Expect-List,$(1),$(2))
   $(call Exit-Macro)
 endef
