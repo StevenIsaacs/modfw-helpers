@@ -1056,6 +1056,18 @@ $.ifndef $(1).SegID
 $$(call Enter-Segment)
 # -----
 
+_macro := $(1).init
+$.define _help
+$${_macro}
+  Run the initialization for the segment. This is designed to be called
+  immediately after the segment has been loaded.
+$.endef
+$.define $${_macro}
+$$(call Enter-Macro,$$(0),$$(1))
+$$(call Info,Initializing $(1).)
+$$(call Exit-Macro)
+$.endef
+
 $$(call Info,New segment: Add variables, macros, goals, and recipes here.)
 
 # The command line goal for the segment.
@@ -1073,6 +1085,8 @@ Make segment: $${Seg}.mk
 # Add help messages here.
 
 Defines:
+${help-$(1).init}
+
   # Describe each variable or macro.
 
 Command line goals:
@@ -1115,13 +1129,13 @@ ${_macro}
   Parameters:
     1 = The segment name. This is used to name the segment file, associated
         variable and, specific goals.
-    2 = A one line description.
-    3 = The full path to where to write the segment file.
+    2 = The full path to where to write the segment file.
+    3 = A one line description.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2) $(3))
-  $(file >$(3),$(call Gen-Segment-Text,$(1),$(2)))
+  $(file >$(2),$(call Gen-Segment-Text,$(1),$(3)))
   $(call Exit-Macro)
 endef
 #--------------
@@ -1283,7 +1297,7 @@ ${_macro}
         semicolons (;) or AND (&&) OR (||) conditionals.
   Returns:
     Run_Output
-      The console output with the return code appended at the enf of the last
+      The console output with the return code appended at the end of the last
       line.
     Run_Rc
       The return code from the output.
@@ -1378,7 +1392,9 @@ define _help
 ${_macro}
   A sticky variable is persistent and needs to be defined on the command line
   at least once or have a default value as an argument.
-  If the variable has not been defined when this macro is called then the previous value is used. Defining the variable will overwrite the previous sticky value.
+  If the variable has not been defined when this macro is called then the
+  previous value is used. Defining the variable will overwrite the previous
+  sticky value.
   Only the first call to Sticky for a given variable will be accepted.
   Additional calls will produce a redefinition error.
   Sticky variables are read only in a sub-make (MAKELEVEL != 0).
@@ -1396,11 +1412,13 @@ ${_macro}
     The variable value.
   Examples:
     $$(call Sticky,<var>,<default>)
-      Restores the previously saved <value> or sets <var> equal to
-      <default>.
+      If <var> is undefined then restores the previously saved <value> or sets
+      <var> equal to <default>.
+      If <var> is defined then <var> is saved as a new value.
     $$(call Sticky,<var>=<value>)
       Sets the sticky variable equal to <value>. The <value> is saved
-      for retrieval at a later time.
+      for retrieval at a later time. NOTE: This form can override the variable
+      if it was defined before calling Sticky (e.g on the command line).
     $$(call Sticky,<var>=<value>,<default>)
       Sets the sticky variable equal to <value>. The <value> is saved
       for retrieval at a later time. The default is ignored in this case.
