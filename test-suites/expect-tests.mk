@@ -1,7 +1,6 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Verify the helper macros for expecting values and results.
 #----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
 $(call Last-Segment-UN)
 ifndef ${LastSegUN}.SegID

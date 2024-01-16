@@ -1147,11 +1147,9 @@ define ${_macro}
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # $(strip $(2))
 #----------------------------------------------------------------------------
-# The prefix $(1) must be unique for all files.
-# The format of all the $(1) based names is required.
 # +++++
 $(call Last-Segment-UN)
-$.ifndef $(1).SegID
+$.ifndef $${LastSegUN}.SegID
 $$(call Enter-Segment)
 # -----
 

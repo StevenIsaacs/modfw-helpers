@@ -1,8 +1,6 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Test detection of segment name conflict.
 #----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
-# This deliberately uses tm to force a conflict with test-macros.mk.
 $(call Info,+++++ $(call Last-Segment-Basename) entry. +++++)
 # +++++
 $(call Last-Segment-UN)

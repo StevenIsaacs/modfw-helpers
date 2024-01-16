@@ -1,7 +1,6 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Test the macros and variables related to Sticky variables.
 #----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
 $(call Last-Segment-UN)
 ifndef ${LastSegUN}.SegID

@@ -1,8 +1,6 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # For test only.
 #----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
-# +++++
 $(call Last-Segment-UN)
 ifndef ${LastSegUN}.SegID
 $(call Enter-Segment)
