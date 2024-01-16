@@ -5,8 +5,8 @@
 # This deliberately uses tm to force a conflict with test-macros.mk.
 $(call Info,+++++ $(call Last-Segment-Basename) entry. +++++)
 # +++++
-# Preamble
-ifndef $(call Last-Segment-Basename).SegID
+$(call Last-Segment-UN)
+ifndef ${LastSegUN}.SegID
 $(call Enter-Segment)
 # -----
 

@@ -1,10 +1,10 @@
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# This make segment is designed to test macros.mk.
+# This make segment is designed to test helpers.mk.
 #-----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
-# Preamble
-ifndef $(call Last-Segment-Basename).SegID
+$(call Last-Segment-UN)
+$(call Debug,$(call Last-Segment-Basename) UN:${LastSegUN})
+ifndef ${LastSegUN}.SegID
 $(call Enter-Segment)
 # -----
 

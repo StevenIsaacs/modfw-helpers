@@ -47,11 +47,6 @@ ifneq (${LOG_FILE},)
   endif
 endif
 
-# For storing sticky options in a known location.
-DEFAULT_STICKY_PATH := ${HiddenPath}/sticky
-
-STICKY_PATH ?= ${DEFAULT_STICKY_PATH}
-
 #++++++++++++++
 # For messages.
 NewLine = nlnl
@@ -576,7 +571,7 @@ ${_macro}
     A string which can be used as the name of a shell variable.
 endef
 help-${_macro} := $(call _help)
-${_macro} = _$(subst -,_,$(1))
+${_macro} = _$(subst /,_,$(subst -,_,$(1)))
 
 _macro := To-Lower
 define _help
@@ -719,7 +714,98 @@ endef
 
 #++++++++++++++
 # Makefile segment handling.
-_macro := Last-Segment-Id
+_var := SegAttributes
+${_var} := SegUN SegID Seg SegP SegF SegV
+define _help
+${_var} = ${${_var}}
+  Each makefile segment is managed using a set of attributes.
+    <segun>.SegUN
+      The pseudo unique name for the segment <segun>. This is then used as the
+      key to access the attributes for a given segment.
+      This name is a combination of the directory containing the segment and the
+      directory one level up in dot notation. In other words the last two
+      directories in the full path to the segment file.
+      For example:
+        If the path is: /dir1/dir2/dir3/seg.mk
+        The resulting pseudo unique name is: dir2.dir3
+    <segun>.SegID
+      The ID for the segment. This is basically the index in MAKEFILE_LIST for
+      the segment.
+    <segun>.Seg
+      The segment name.
+    <segun>.SegV
+      The name of the segment converted to a shell compatible variable name.
+    <segun>.SegP
+      The path to the makefile segment.
+    <segun>.SegF
+      The path and name of the makefile segment. This can be used as part of a
+      dependency list.
+endef
+help-${_var} := $(call _help)
+
+_macro := Path-To-UN
+define _help
+${_macro}
+  Return a pseudo unique identifier for a given path.
+  Parameters:
+    1 = The path for the UN.
+    2 = The variable in which to store the UN.
+endef
+define ${_macro}
+  $(eval __pw := $(subst /, ,$(realpath $(1))))
+  $(eval __i := $(words ${__pw}))
+  $(call Dec-Var,__i)
+  $(eval __c := ${__i})
+  $(call Dec-Var,__i)
+  $(eval __p := ${__i})
+  $(eval $(2) := $(word \
+    ${__p},${__pw}).$(word \
+    ${__c},${__pw}).$(basename $(notdir \
+    $(1))))
+endef
+
+_macro := Last-Segment-UN
+define _help
+${_macro}
+  Returns a pseudo unique name for the most recently included makefile segment.
+  Returns:
+    LastSegUN
+      The pseudo unique name for the last segment in MAKEFILE_LIST.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0))
+  $(call Path-To-UN,$(lastword ${MAKEFILE_LIST}),LastSegUN)
+  $(call Debug,Path-To-UN returned:${LastSegUN})
+  $(call Exit-Macro)
+endef
+
+_macro := First-Segment-UN
+define _help
+${_macro}
+  Returns a pseudo unique name for the first makefile segment.
+  NOTE: This should be the makefile which included helpers.
+  Returns:
+    FirstSegUN
+      The pseudo unique name for the first segment in MAKEFILE_LIST.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0))
+  $(call Path-To-UN,$(firstword ${MAKEFILE_LIST}),FirstSegUN)
+  $(call Exit-Macro)
+endef
+
+_var := SegUNs
+$(call Path-To-UN,$(firstword ${MAKEFILE_LIST}),${_var})
+define _help
+${_var}
+  The list of pseudo unique names for all loaded segments. This can be indexed
+  using SegID.
+endef
+help-${_var} := $(call _help)
+
+_macro := Last-Segment-ID
 define _help
 ${_macro}
   Returns the ID of the most recently included makefile segment.
@@ -733,7 +819,7 @@ ${_macro}
   Returns the file name of the most recently included makefile segment.
 endef
 help-${_macro} := $(call _help)
-${_macro} = $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})
+${_macro} = $(lastword ${MAKEFILE_LIST})
 
 _macro := Last-Segment-Basename
 define _help
@@ -742,7 +828,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 ${_macro} = \
-  $(basename $(notdir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
+  $(basename $(notdir $(lastword ${MAKEFILE_LIST})))
 
 _macro := Last-Segment-Var
 define _help
@@ -750,8 +836,7 @@ ${_macro}
   Returns the name of the most recently included makefile segment.
 endef
 help-${_macro} := $(call _help)
-${_macro} = \
-  $(subst -,_,$(call Last-Segment-Basename))
+${_macro} = $(call To-Shell-Var,$(call Last-Segment-Basename))
 
 _macro := Last-Segment-Path
 define _help
@@ -760,7 +845,15 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 ${_macro} = \
-  $(realpath $(dir $(word $(words ${MAKEFILE_LIST}),${MAKEFILE_LIST})))
+  $(realpath $(dir $(lastword ${MAKEFILE_LIST})))
+
+_macro := Get-Segment-UN
+define _help
+${_macro}
+  Returns a unique ID for the makefile segment corresponding to ID.
+endef
+help-${_macro} := $(call _help)
+${_macro} = $(word $(1),${SegUNs})
 
 _macro := Get-Segment-File
 define _help
@@ -924,22 +1017,18 @@ ${_macro}
   The context defaults to the top makefile (ID = 1).
   Parameters:
     1 = ID of the segment.
-  Sets current context variables:
-    SegID   The makefile segment ID for the new context.
-    Seg   The makefile segment basename for the new context.
-    SegP  The path to the makefile segment for the new context.
-    SegF  The makefile segment file for the new context.
-    SegV  A string which can be used as all or part of a ${SHELL} compatible
-          variable name.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
+
   $(eval SegID := $(1))
+  $(eval SegUN := $(call Get-Segment-UN,$(1)))
   $(eval Seg := $(call Get-Segment-Basename,$(1)))
   $(eval SegP := $(call Get-Segment-Path,$(1)))
   $(eval SegF := $(call Get-Segment-File,$(1)))
-  $(eval SegV := $(call To-Shell-Var,${Seg}))
+  $(eval SegV := $(call To-Shell-Var,${SegUN}))
+
   $(call Exit-Macro)
 endef
 
@@ -950,7 +1039,7 @@ define __Push-SegID
   $(eval SegID_Stack += ${SegID})
   $(if ${DEBUG},
     $(call Log-Message, \
-      $(words ${SegID_Stack})-->,${SegID_Stack})
+      $(words ${SegID_Stack})~~>,SegID_Stack:${SegID_Stack})
     $(if ${Single_Step},$(call Step))
   )
 endef
@@ -958,12 +1047,32 @@ endef
 define __Pop-SegID
   $(if ${DEBUG},
     $(call Log-Message, \
-      <--$(words ${SegID_Stack}),Restoring SegID:$(lastword ${SegID_Stack}))
+      <~~$(words ${SegID_Stack}),Restoring SegID:$(lastword ${SegID_Stack}))
   )
   $(eval __PrvSegID := $(lastword ${SegID_Stack}))
   $(eval \
-    SegID_Stack := $(filter-out $(lastword ${SegID_Stack}),${SegID_Stack})
+    SegID_Stack := $(filter-out ${__PrvSegID},${SegID_Stack})
   )
+endef
+
+_macro := __Init-Segment-Context
+define _help
+${_macro}
+  Initialize the segment context for the first segment in MAKEFILE_LIST. This
+  should be called before any other segment related macros are used.
+endef
+define ${_macro}
+  $(call Enter-Macro,$(0))
+
+  $(call Set-Segment-Context,1)
+  $(eval ${SegUN}.SegID := ${SegID})
+  $(eval ${SegUN}.SegUN := ${SegUN})
+  $(eval ${SegUN}.Seg := ${Seg})
+  $(eval ${SegUN}.SegP := ${SegP})
+  $(eval ${SegUN}.SegF := ${SegF})
+  $(eval ${SegUN}.SegV := ${SegV})
+
+  $(call Exit-Macro)
 endef
 
 _macro := Enter-Segment
@@ -971,35 +1080,26 @@ define _help
 ${_macro}
   This initializes the context for a new segment and saves information so
   that the context of the previous segment can be restored in the postamble.
-  Sets the segment specific context variables:
-    <seg>.SegID
-      The ID for the segment. This is basically the index in MAKEFILE_LIST for
-      the segment.
-    <seg>.Seg
-      The segment name.
-    <seg>.SegV
-      The name of the segment converted to a shell compatible variable name.
-    <seg>.SegP
-      The path to the makefile segment.
-    <seg>.SegF
-      The path and name of the makefile segment. This can be used as part of a
-      dependency list.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(eval __s := $(call Last-Segment-Basename))
-  $(eval ${__s}.SegID := $(call Last-Segment-Id))
+  $(call Last-Segment-UN)
+  $(eval SegUNs += ${LastSegUN})
+  $(eval ${LastSegUN}.SegID := $(call Last-Segment-ID))
+  $(eval ${LastSegUN}.SegUN := ${LastSegUN})
+  $(eval ${LastSegUN}.Seg := $(call Last-Segment-Basename))
+  $(eval ${LastSegUN}.SegP := $(call Last-Segment-Path))
+  $(eval ${LastSegUN}.SegF := $(call Last-Segment-File))
+  $(eval ${LastSegUN}.SegV := $(call To-Shell-Var,${LastSegUN}))
   $(eval $(call Debug,\
-    Entering segment: $(call Get-Segment-Basename,${${__s}.SegID})))
-  $(eval ${__s}.Seg := $(call Last-Segment-Basename))
-  $(eval ${__s}.SegP := $(call Last-Segment-Path))
-  $(eval ${__s}.SegF := $(call Last-Segment-File))
-  $(eval ${__s}.SegV := $(call To-Shell-Var,${__s}))
+    Entering segment: $(call Get-Segment-Basename,${${LastSegUN}.SegID})))
+  $(call Debug,${LastSegUN}.SegID:${${LastSegUN}.SegID})
+  $(call Debug,Setting context:${${LastSegUN}.SegID})
   $(call __Push-SegID)
-  $(call Set-Segment-Context,${${__s}.SegID})
+  $(call Set-Segment-Context,${${LastSegUN}.SegID})
   $(call Exit-Macro)
-  $(call __Push-Entry,${Seg})
+  $(call __Push-Entry,${LastSegUN})
 endef
 
 _macro := Exit-Segment
@@ -1011,7 +1111,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(call Debug,Exiting segment: ${Seg})
+  $(call Debug,Exiting segment: ${${SegUN}.Seg})
   $(call __Pop-SegID)
   $(eval $(call Set-Segment-Context,${__PrvSegID}))
   $(call Exit-Macro)
@@ -1028,17 +1128,16 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(eval __s := $(call Last-Segment-Basename))
   $(call Debug,\
-    Segment exists: ID = ${${__s}.SegID}: file = $(call Get-Segment-File,${${__s}.SegID}))
+    Segment exists: ID = ${${LastSegUN}.SegID}: file = $(call Get-Segment-File,${${LastSegUN}.SegID}))
   $(if \
     $(findstring \
-      $(call Last-Segment-File),$(call Get-Segment-File,${${__s}.SegID})),
+      $(call Last-Segment-File),$(call Get-Segment-File,${${LastSegUN}.SegID})),
     $(call Info,\
-      $(call Get-Segment-File,${${__s}.SegID}) has already been included.)
+      $(call Get-Segment-File,${${LastSegUN}.SegID}) has already been included.)
   ,
     $(call Signal-Error,\
-      Prefix conflict with $(${__s}.Seg) in $(call Last-Segment-File).)
+      Context conflict with $(${LastSegUN}.Seg) in $(call Last-Segment-File).)
   )
   $(call Exit-Macro)
 endef
@@ -1051,7 +1150,7 @@ define ${_macro}
 # The prefix $(1) must be unique for all files.
 # The format of all the $(1) based names is required.
 # +++++
-# Preamble
+$(call Last-Segment-UN)
 $.ifndef $(1).SegID
 $$(call Enter-Segment)
 # -----
@@ -1060,7 +1159,8 @@ _macro := $(1).init
 $.define _help
 $${_macro}
   Run the initialization for the segment. This is designed to be called
-  immediately after the segment has been loaded.
+  some time after the segment has been loaded. This is useful when this
+  segment uses variables from other segments which haven't been loaded.
 $.endef
 $.define $${_macro}
 $$(call Enter-Macro,$$(0),$$(1))
@@ -1136,6 +1236,8 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2) $(3))
   $(file >$(2),$(call Gen-Segment-Text,$(1),$(3)))
+  $(call Attention,\
+    Segment file for $(1) has been generated -- remember to customize.)
   $(call Exit-Macro)
 endef
 #--------------
@@ -1357,27 +1459,38 @@ endef
 
 # Set SegID to the segment that included helpers so that the previous segment
 # set by Enter-Segment and used by Exit-Segment will have a valid value.
-__i := $(call Last-Segment-Id)
-$(call Dec-Var,__i)
+$(call Debug,MAKEFILE_LIST:${MAKEFILE_LIST})
+$(call Debug,$(realpath $(firstword ${MAKEFILE_LIST})))
+$(call Debug,__i:$(call Last-Segment-ID))
 # Initialize the top level context.
-$(call Set-Segment-Context,${__i})
-$(call Debug,Included from: SegID = ${SegID})
-${Seg}.Seg := ${Seg}
-${Seg}.SegID := ${SegID}
-${Seg}.SegP := $(call Get-Segment-Path,${SegID})
-${Seg}.SegF := $(call Get-Segment-File,${SegID})
-${Seg}.SegV := $(call To-Shell-Var,${Seg})
+$(call __Init-Segment-Context)
+
+$(call Debug,Helpers Seg:${Seg})
+$(call Debug,Helpers UN:${SegUN})
+$(call Debug,Included from:$(realpath $(firstword ${MAKEFILE_LIST})))
+$(call Debug,SegUNs:${SegUNs})
 
 $(call Enter-Segment)
+$(call Debug,In segment:${Seg})
 
 # These are helper functions for shell scripts (Bash).
-HELPER_FUNCTIONS := ${${Seg}.SegP}/modfw-functions.sh
+HELPER_FUNCTIONS := ${${SegUN}.SegP}/modfw-functions.sh
 export HELPER_FUNCTIONS
 
 #++++++++++++++
 # Sticky variables.
 # These need a proper segment context so context has been setup before
 # defining the sticky macros.
+# For storing sticky options in a known location.
+DEFAULT_STICKY_PATH := ${HiddenPath}/sticky
+
+_var := STICKY_PATH
+${_var} ?= ${DEFAULT_STICKY_PATH}
+define _help
+${_var} = ${${_var}}
+  The path to where sticky variables are stored.
+endef
+
 _var := StickyVars
 ${_var} :=
 define _help
@@ -1398,13 +1511,6 @@ ${_macro}
   Only the first call to Sticky for a given variable will be accepted.
   Additional calls will produce a redefinition error.
   Sticky variables are read only in a sub-make (MAKELEVEL != 0).
-  Variables used:
-    StickyVars=${StickyVars}
-      The list of declared sticky variables. This is used to detect when a
-      sticky variable is being redefined.
-    STICKY_PATH=${STICKY_PATH}
-      Where to store the sticky variable values.
-      Default:${DEFAULT_STICKY_PATH}
   Parameters:
     1 = Variable name[=<value>]
     2 = Optional default value.
@@ -1498,6 +1604,18 @@ define ${_macro}
       )
     )
   )
+  $(call Exit-Macro)
+endef
+
+_macro := Redirect-Sticky
+define _help
+Change the path to where sticky variables are stored.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+  $(call Attention,Redirecting sticky variables to:$(1))
+  $(eval STICKY_PATH := $(1))
   $(call Exit-Macro)
 endef
 
@@ -1665,8 +1783,8 @@ origin-%:
 
 ifneq ($(call Is-Goal,help-${Seg}),)
 
-define help-${helpers.Seg}
-Make segment: ${helpers.Seg}.mk
+define help-${Seg}
+Make segment: ${Seg}.mk
 
 This collection of variables and macros help simplify and improve consistency
 across different projects using make. Projects should include this makefile
@@ -1755,6 +1873,8 @@ Platform = $(Platform)
 Errors = ${Errors}
   If not empty then errors have been reported.
 
+${help-SegUNs}
+
 ${help-SegID_Stack}
 
 ${help-Entry_Stack}
@@ -1806,7 +1926,13 @@ ${help-Redefine-Sticky}
 $(help-Remove-Sticky)
 
 +++++ Makefile segment handling.
-${help-Last-Segment-Id}
+${help-SegAttributes}
+
+${help-Last-Segment-ID}
+
+${help-Path-To-UN}
+
+${help-Last-Segment-UN}
 
 ${help-Last-Segment-File}
 
@@ -1978,7 +2104,7 @@ display-errors
 
 endef
 endif # help goal
-$(call Debug,Last-Segment-Id:$(call Last-Segment-Id))
+$(call Debug,Last-Segment-ID:$(call Last-Segment-ID))
 $(call Debug,${helpers.Seg}.SegID:${${helpers.Seg}.SegID})
 $(call Exit-Segment)
 else # Already loaded.
