@@ -1148,7 +1148,7 @@ define ${_macro}
 # $(strip $(2))
 #----------------------------------------------------------------------------
 # +++++
-$(call Last-Segment-UN)
+$$(call Last-Segment-UN)
 $.ifndef $${LastSegUN}.SegID
 $$(call Enter-Segment)
 # -----
