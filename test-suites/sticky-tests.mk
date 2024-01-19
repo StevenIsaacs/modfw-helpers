@@ -4,10 +4,10 @@
 # +++++
 $(call Last-Segment-UN)
 ifndef ${LastSegUN}.SegID
-$(call Enter-Segment)
+$(call Enter-Segment,Test the macros and variables related to Sticky variables.)
 # -----
 
-$(call Declare-Suite,${Seg},Verify the Sticky variable macros.)
+$(call Declare-Suite,${SegUN},Verify the Sticky variable macros.)
 
 ${.SuiteN}.Prereqs :=
 
@@ -239,19 +239,20 @@ $(call End-Declare-Suite)
 # +++++
 # Postamble
 # Define help only if needed.
-#ifneq ($(call Is-Goal,help-${Seg}),)
-define help-${Seg}
+__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
 Make test suite: ${Seg}.mk
 
 Verify the macros and variables used for maintaining sticky variables.
 
 Command line goals:
-  help-${Seg}
+  help-${SegUN}
     Display this help.
-  show-${Seg}.TestL
+  show-${SegUN}.TestL
     Display the list of tests included in this suite.
 endef
-#endif # help goal message.
+endif # help goal message.
 
 $(call Exit-Segment)
 else # <u>SegID exists

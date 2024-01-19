@@ -4,10 +4,10 @@
 # +++++
 $(call Last-Segment-UN)
 ifndef ${LastSegUN}.SegID
-$(call Enter-Segment)
+$(call Enter-Segment,<purpose for this test suite segment>.)
 # -----
 
-$(call Declare-Suite,${Seg},<description>)
+$(call Declare-Suite,${SegUN},<description>)
 
 ${.SuiteN}.Prereqs :=
 
@@ -35,19 +35,21 @@ $(call End-Declare-Suite)
 # +++++
 # Postamble
 # Define help only if needed.
-#ifneq ($(call Is-Goal,help-${Seg}),)
-define help-${Seg}
+__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
 Make test suite: ${Seg}.mk
 
 <make test suite help messages>
 
 Command line goals:
-  help-${Seg}
+  help-${SegUN}
     Display this help.
-  show-${Seg}.TestL
+  show-${SegUN}.TestL
     Display the list of tests included in this suite.
 endef
-#endif # help goal message.
+${__h} := ${__help}
+endif # help goal message.
 
 $(call Exit-Segment)
 else # <u>SegID exists

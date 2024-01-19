@@ -14,7 +14,7 @@ False :=
 
 
 ifeq (${MAKECMDGOALS},)
-  DefaultGoal := help
+  DefaultGoal := help-1
 else
   DefaultGoal :=
 endif
@@ -54,6 +54,15 @@ _empty :=
 Space := ${__empty} ${__empty}
 Comma := ,
 Dlr := $
+
+_var := MakeD
+MakeD ?= MakeD is UNDEFINED.
+define _help
+${_var} := ${MakeD}
+  The one line description for the makefile which included the helpers.
+  This must be defined before including helpers.mk.
+endef
+help-${_var} := $(call _help)
 
 _macro := Div
 define _help
@@ -174,7 +183,7 @@ define ${_macro}
       $(eval Message_Safe := 1)
     ,
       $(eval __msg := \
-        clbk:${Seg}:$(lastword ${Entry_Stack}):$(strip \
+        clbk:${SegUN}:$(lastword ${Entry_Stack}):$(strip \
           Recursive call to Message_Callback -- callback not called.))
       $(if ${LOG_FILE},
         $(file >>${LogFile},${__msg})
@@ -486,7 +495,7 @@ define ${_macro}
   $(eval ErrorList += ${NewLine}ERR!:${Caller}:$(1))
   $(call Log-Message,ERR!,$(1))
   $(eval Errors = yes)
-  $(warning Error:${Seg}:$(1))
+  $(warning Error:${SegUN}:$(1))
   $(call Debug,Handler: ${Error_Callback} Safe:${Error_Safe})
   $(if ${Error_Callback},
     $(if ${Error_Safe},
@@ -715,7 +724,7 @@ endef
 #++++++++++++++
 # Makefile segment handling.
 _var := SegAttributes
-${_var} := SegUN SegID Seg SegP SegF SegV
+${_var} := SegUN SegID Seg SegP SegF SegV SegD
 define _help
 ${_var} = ${${_var}}
   Each makefile segment is managed using a set of attributes.
@@ -740,6 +749,8 @@ ${_var} = ${${_var}}
     <segun>.SegF
       The path and name of the makefile segment. This can be used as part of a
       dependency list.
+    <segun>.SegD
+      A one line description for the segment.
 endef
 help-${_var} := $(call _help)
 
@@ -1028,6 +1039,7 @@ define ${_macro}
   $(eval SegP := $(call Get-Segment-Path,$(1)))
   $(eval SegF := $(call Get-Segment-File,$(1)))
   $(eval SegV := $(call To-Shell-Var,${SegUN}))
+  $(eval SegD := ${${SegUN}.SegD})
 
   $(call Exit-Macro)
 endef
@@ -1060,17 +1072,21 @@ define _help
 ${_macro}
   Initialize the segment context for the first segment in MAKEFILE_LIST. This
   should be called before any other segment related macros are used.
+  Parameters:
+    1 = A one line description for the initial segment.
 endef
 define ${_macro}
   $(call Enter-Macro,$(0))
 
   $(call Set-Segment-Context,1)
+  $(eval SegD := $(1))
   $(eval ${SegUN}.SegID := ${SegID})
   $(eval ${SegUN}.SegUN := ${SegUN})
   $(eval ${SegUN}.Seg := ${Seg})
   $(eval ${SegUN}.SegP := ${SegP})
   $(eval ${SegUN}.SegF := ${SegF})
   $(eval ${SegUN}.SegV := ${SegV})
+  $(eval ${SegUN}.SegD := ${SegD})
 
   $(call Exit-Macro)
 endef
@@ -1080,6 +1096,8 @@ define _help
 ${_macro}
   This initializes the context for a new segment and saves information so
   that the context of the previous segment can be restored in the postamble.
+  Parameters:
+    1 = A one line description of the segment.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
@@ -1092,6 +1110,7 @@ define ${_macro}
   $(eval ${LastSegUN}.SegP := $(call Last-Segment-Path))
   $(eval ${LastSegUN}.SegF := $(call Last-Segment-File))
   $(eval ${LastSegUN}.SegV := $(call To-Shell-Var,${LastSegUN}))
+  $(eval ${LastSegUN}.SegD := $(strip $(1)))
   $(eval $(call Debug,\
     Entering segment: $(call Get-Segment-Basename,${${LastSegUN}.SegID})))
   $(call Debug,${LastSegUN}.SegID:${${LastSegUN}.SegID})
@@ -1150,10 +1169,10 @@ define ${_macro}
 # +++++
 $$(call Last-Segment-UN)
 $.ifndef $${LastSegUN}.SegID
-$$(call Enter-Segment)
+$$(call Enter-Segment,$(2))
 # -----
 
-_macro := $(1).init
+_macro := $${SegUN}.init
 $.define _help
 $${_macro}
   Run the initialization for the segment. This is designed to be called
@@ -1169,12 +1188,12 @@ $.endef
 $$(call Info,New segment: Add variables, macros, goals, and recipes here.)
 
 # The command line goal for the segment.
-$${Seg}: $${SegF}
+$${LastSegUN}: $${SegF}
 
 # +++++
 # Postamble
 # Define help only if needed.
-$.ifneq ($$(call Is-Goal,help-$${Seg}),)
+$.ifneq ($$(call Is-Goal,help-$${SegUN}),)
 $.define help_$${SegV}_msg
 Make segment: $${Seg}.mk
 
@@ -1188,10 +1207,10 @@ ${help-$(1).init}
   # Describe each variable or macro.
 
 Command line goals:
-  $${Seg}
+  $${SegUN}
     Build this component.
   # Describe additional goals provided by the segment.
-  help-$${Seg}
+  help-$${SegUN}
     Display this help.
 $.endef
 $.endif # help goal message.
@@ -1255,17 +1274,19 @@ help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0))
   $(call Debug,Resolving help goals.)
-  $(call Debug,Help goals: $(filter help-%,${Goals}))
+  $(call Debug,Help goals: $(filter help%,${Goals}))
   $(foreach __s,$(patsubst help-%,%,$(filter help-%,${Goals})),
-    $(call Debug,Resolving help for help-${__s})
     $(if $(findstring undefined,$(flavor help-${__s})),
-      $(if $(filter ${__s}.mk,${MAKEFILE_LIST}),
-        $(call Debug,Segment ${__s} already loaded.)
+      $(call Debug,Resolving help for help-${__s})
+      $(if $(filter \
+        ${__s},2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20),
+        $(eval help-${__s} := \
+          SegID ${__s} does not exist -- help unavailable.)
+        $(call Signal-Error,Segment ID ${__s} does not exist -- no help.)
       ,
-        $(call Use-Segment,${__s})
+        $(call Use-Segment,$(subst .,/,${__s}).mk)
         $(if $(findstring undefined,$(flavor help-${__s})),
-          $(eval help-${__s} := help-${__s} is undefined.)
-          $(call Signal-Error,${help-${__s}})
+          $(call Signal-Error,help-${__s} is undefined.)
         )
       )
     ,
@@ -1461,15 +1482,15 @@ $(call Debug,MAKEFILE_LIST:${MAKEFILE_LIST})
 $(call Debug,$(realpath $(firstword ${MAKEFILE_LIST})))
 $(call Debug,__i:$(call Last-Segment-ID))
 # Initialize the top level context.
-$(call __Init-Segment-Context)
+$(call __Init-Segment-Context,${MakeD})
 
 $(call Debug,Helpers Seg:${Seg})
 $(call Debug,Helpers UN:${SegUN})
 $(call Debug,Included from:$(realpath $(firstword ${MAKEFILE_LIST})))
 $(call Debug,SegUNs:${SegUNs})
 
-$(call Enter-Segment)
-$(call Debug,In segment:${Seg})
+$(call Enter-Segment,Helper macros for makefiles.)
+$(call Debug,In segment:${SegUN})
 
 # These are helper functions for shell scripts (Bash).
 HELPER_FUNCTIONS := ${${SegUN}.SegP}/modfw-functions.sh
@@ -1678,6 +1699,24 @@ endef
 #++++++++++++++
 # Other macros.
 
+_macro := Display-Segs
+define _help
+${_macro}
+  Display a list of loaded segments. Each segment is listed as:
+    <SegID>:<Seg>:<SegUN>:<SegD>
+  This information can the be used to determine the pseudo unique name for
+  displaying the help of a segment.
+  See help-SegAttributes for more information.
+endef
+define ${_macro}
+  $(call Enter-Macro,$(0))
+    $(call Info,SegID:Seg:SegUN:SegD.)
+    $(foreach __s,${SegUNs},
+      $(call Info,${${__s}.SegID}:${${__s}.Seg}:${${__s}.SegUN}:${${__s}.SegD})
+    )
+  $(call Exist-Macro)
+endef
+
 _macro := More-Help
 define _help
 ${_macro}
@@ -1773,15 +1812,15 @@ help-%:
 > less ${TmpPath}/help-$*
 > rm ${TmpPath}/help-$*
 
-#.PHONY: help help-Usage
-help: help-Usage
+.PHONY: help
+help: help-1
 
 origin-%:
 > @echo 'Origin:$*=$(origin $*)'
 
-ifneq ($(call Is-Goal,help-${Seg}),)
-
-define help-${Seg}
+__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
 Make segment: ${Seg}.mk
 
 This collection of variables and macros help simplify and improve consistency
@@ -1966,12 +2005,17 @@ ${help-Gen-Segment-Text}
 
 ${help-Gen-Segment-File}
 
+${help-Display-Segs}
+
 +++++ Make goals or targets
 ${help-Is-Goal}
 
 ${help-Resolve-Help-Goals}
 
 ${help-Add-To-Manifest}
+
++++++ Defined by the makefile which includes helpers.mk.
+${help-MakeD}
 
 +++++ Strings and messaging
 
@@ -2101,6 +2145,7 @@ display-errors
   This goal displays a list of accumulated errors if defined.
 
 endef
+${__h} := ${__help}
 endif # help goal
 $(call Debug,Last-Segment-ID:$(call Last-Segment-ID))
 $(call Debug,${helpers.Seg}.SegID:${${helpers.Seg}.SegID})

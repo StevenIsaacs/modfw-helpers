@@ -1,11 +1,12 @@
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# This make segment is designed to test helpers.mk.
+# Use this to help test macros and variables.
 #-----------------------------------------------------------------------------
 # +++++
 $(call Last-Segment-UN)
 $(call Debug,$(call Last-Segment-Basename) UN:${LastSegUN})
 ifndef ${LastSegUN}.SegID
-$(call Enter-Segment)
+$(call Enter-Segment,\
+  Test helpers for testing makefile segments and macros.)
 # -----
 
 DEFAULT_SUITES_PATH := test-suites
@@ -686,11 +687,13 @@ define ${_macro}
     SegV \
     SegP \
     SegF \
-    ${Seg}.SegID \
-    ${Seg}.Seg \
-    ${Seg}.SegV \
-    ${Seg}.SegP \
-    ${Seg}.SegF \
+    SegD \
+    ${SegUN}.SegID \
+    ${SegUN}.Seg \
+    ${SegUN}.SegV \
+    ${SegUN}.SegP \
+    ${SegUN}.SegF \
+    ${SegUN}.SegD \
   )
 
   $(call Test-Info,\
@@ -703,13 +706,13 @@ define ${_macro}
   Get-Segment-Path:SegID:$(call Get-Segment-Path,${SegID}))
 
   $(call Test-Info,\
-  Get-Segment-File:${Seg}.SegID:$(call Get-Segment-File,${${Seg}.SegID}))
+  Get-Segment-File:${SegUN}.SegID:$(call Get-Segment-File,${${SegUN}.SegID}))
   $(call Test-Info,\
-  Get-Segment-Basename:${Seg}.SegID:$(call Get-Segment-Basename,${${Seg}.SegID}))
+  Get-Segment-Basename:${SegUN}.SegID:$(call Get-Segment-Basename,${${SegUN}.SegID}))
   $(call Test-Info,\
-  Get-Segment-Var:${Seg}.SegID:$(call Get-Segment-Var,${${Seg}.SegID}))
+  Get-Segment-Var:${SegUN}.SegID:$(call Get-Segment-Var,${${SegUN}.SegID}))
   $(call Test-Info,\
-  Get-Segment-Path:${Seg}.SegID:$(call Get-Segment-Path,${${Seg}.SegID}))
+  Get-Segment-Path:${SegUN}.SegID:$(call Get-Segment-Path,${${SegUN}.SegID}))
 
   $(call Test-Info,Last-Segment-Id:$(call Last-Segment-Id))
   $(call Test-Info,Last-Segment-Basename:$(call Last-Segment-Basename))
@@ -1161,7 +1164,7 @@ define ${_macro}
     $(if ${_s},
       $(eval _suite := ${_s})
     ,
-      $(eval _suite := ${Seg})
+      $(eval _suite := ${SegUN})
     )
     $(if ${${_suite}.ID},
       $(call Verbose,Test suite ${_suite} has already been initialized.)
@@ -1260,8 +1263,12 @@ test:
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${Seg}),)
-define help-${Seg}
+__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+$(call Attention,Generating help for:${Seg})
+define __help
+Makefile segment: ${Seg}.mk
+
 This make segment provides test support macros. These are designed to run
 before any goals are processed and when makefile segments are loaded. The
 concept is similar to that of a C preprocessor.
@@ -1381,7 +1388,7 @@ Test results:
 
 Test implementation recommendations:
   For consistency and to help avoid naming conflicts each test suite should
-  be contained in a single makefile segment. The name of the segment ($${Seg})
+  be contained in a single makefile segment. The name of the segment ($${SegUN})
   can then be passed to Declare-Suite to serve as the suite name (SuiteN). This
   is most important when using Use-Segment to load test suites to avoid loading
   the same suite more than once. Declare-Test uses .SuiteN as a prefix for
@@ -1491,7 +1498,7 @@ Goals:
       Use this goal to run all of the specified test suites.
 
 endef
-$(call Test-Info,help-${Seg})
+${__h} := ${__help}
 endif
 $(call Exit-Segment)
 else # SegID exists
