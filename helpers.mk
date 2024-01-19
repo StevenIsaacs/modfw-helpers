@@ -1193,8 +1193,9 @@ $${LastSegUN}: $${SegF}
 # +++++
 # Postamble
 # Define help only if needed.
-$.ifneq ($$(call Is-Goal,help-$${SegUN}),)
-$.define help_$${SegV}_msg
+$.__h := $$(or $$(call Is-Goal,help-$${SegUN}),$$(call Is-Goal,help-$${SegID}))
+$.ifneq ($${__h},)
+$.define __help
 Make segment: $${Seg}.mk
 
 # Place overview here.
@@ -1202,13 +1203,10 @@ Make segment: $${Seg}.mk
 # Add help messages here.
 
 Defines:
-${help-$(1).init}
 
   # Describe each variable or macro.
 
 Command line goals:
-  $${SegUN}
-    Build this component.
   # Describe additional goals provided by the segment.
   help-$${SegUN}
     Display this help.
