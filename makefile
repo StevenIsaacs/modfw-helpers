@@ -1,6 +1,5 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# helpers - A set of helper scripts and utilities designed to be used by
-# other projects.
+# Test the helpers.
 #----------------------------------------------------------------------------
 #VERBOSE=1
 #DEBUG=1
@@ -9,6 +8,8 @@ TmpTestPath := /tmp/test-helpers
 LOG_PATH := ${TmpTestPath}/log
 
 STICKY_PATH := ${TmpTestPath}/sticky
+
+MakeD := Run the test suites to test the helpers.
 
 include helpers.mk
 
@@ -19,13 +20,18 @@ $(call Use-Segment,test-helpers)
 
 $(call Run-Suites,${SUITES_PATH},${CASES})
 
-$(call Resolve-Help-Goals)
+$(call Display-Segs)
 
 clean:
 > rm -rf ${TmpTestPath}
 
-ifneq ($(filter help,$(Goals)),)
-define help-Usage
+__h := $(or \
+  $(call Is-Goal,help-${SegUN}), \
+  $(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+$(call Attention,Defining ${__h} for:${Seg})
+define __help
+Makefile: ${Seg}
 Usage: make [<option>=<value> ...] [<goal> [<goal> ...]]
 
 NOTE: This help is displayed if no goal is specified.
@@ -39,5 +45,6 @@ information.
 Use the test goal. See help-test-helpers for more information.
 
 endef
-
+${__h} := ${__help}
 endif
+$(call Resolve-Help-Goals)

@@ -1,26 +1,25 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Test detection of segment name conflict.
 #----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
-# This deliberately uses tm to force a conflict with test-macros.mk.
 $(call Info,+++++ $(call Last-Segment-Basename) entry. +++++)
 # +++++
-# Preamble
-ifndef $(call Last-Segment-Basename).SegID
-$(call Enter-Segment)
+$(call Last-Segment-UN)
+ifndef ${LastSegUN}.SegID
+$(call Enter-Segment,Test detection of segment name conflict.)
 # -----
 
 #<segment body here>
 
 # +++++
 # Postamble
-ifneq ($(call Is-Goal,help-${Seg}),)
-$(call Info,Declaring help message for ${Seg}.)
-define help-${Seg}
+__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
 This make segment is designed to test detection of a prefix conflict between
 two or more files. Displaying this help should not be possible because this
 file uses the same prefix as test-macros.mk.
 endef
+${__h} := ${__help}
 endif
 
 $(call Exit-Segment)

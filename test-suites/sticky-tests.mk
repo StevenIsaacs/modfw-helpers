@@ -1,11 +1,10 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Test the macros and variables related to Sticky variables.
 #----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
-# Preamble
-ifndef $(call Last-Segment-Basename).SegID
-$(call Enter-Segment)
+$(call Last-Segment-UN)
+ifndef ${LastSegUN}.SegID
+$(call Enter-Segment,Test the macros and variables related to Sticky variables.)
 # -----
 
 $(call Declare-Suite,${Seg},Verify the Sticky variable macros.)
@@ -223,12 +222,12 @@ define ${.TestUN}
 
   $(call Test-Info,Verify sticky variable has been removed.)
   $(call Expect-Error,Var ${_vn1} has not been defined.)
-  $(call Remove-Sticky,${_vn1},Redefined)
+  $(call Remove-Sticky,${_vn1})
   $(call Verify-No-Error)
 
   $(call Test-Info,Verify sticky variable has been removed.)
   $(call Expect-Error,Var ${_vn1} has not been defined.)
-  $(call Remove-Sticky,${_vn1},Redefined)
+  $(call Remove-Sticky,${_vn1})
   $(call Verify-Error)
 
   $(call End-Test)
@@ -240,19 +239,20 @@ $(call End-Declare-Suite)
 # +++++
 # Postamble
 # Define help only if needed.
-#ifneq ($(call Is-Goal,help-${Seg}),)
-define help-${Seg}
+__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
 Make test suite: ${Seg}.mk
 
 Verify the macros and variables used for maintaining sticky variables.
 
 Command line goals:
-  help-${Seg}
+  help-${SegUN}
     Display this help.
-  show-${Seg}.TestL
+  show-${SegUN}.TestL
     Display the list of tests included in this suite.
 endef
-#endif # help goal message.
+endif # help goal message.
 
 $(call Exit-Segment)
 else # <u>SegID exists

@@ -1,11 +1,10 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Verify the helper macros for manipulating variables.
 #----------------------------------------------------------------------------
-# The prefix $(call Last-Segment-Basename) must be unique for all files.
 # +++++
-# Preamble
-ifndef $(call Last-Segment-Basename).SegID
-$(call Enter-Segment)
+$(call Last-Segment-UN)
+ifndef ${LastSegUN}.SegID
+$(call Enter-Segment,Verify the helper macros for manipulating variables.)
 # -----
 
 $(call Declare-Suite,${Seg},Verify the variable related helper macros.)
@@ -371,21 +370,22 @@ $(call End-Declare-Suite)
 # +++++
 # Postamble
 # Define help only if needed.
-#ifneq ($(call Is-Goal,help-${Seg}),)
-define _help
+__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
 Make test suite: ${Seg}.mk
 
 <make test suite help messages>
 
 Command line goals:
-  help-${Seg}
+  help-${SegUN}
     Display this help.
-  show-${Seg}.TestL
+  show-${SegUN}.TestL
     Display the list of tests included in this suite.
 endef
-help-${Seg} := $(call _help)
+help-${SegUN} := $(call _help)
 
-#endif # help goal message.
+endif # help goal message.
 
 $(call Exit-Segment)
 else # <u>SegID exists
