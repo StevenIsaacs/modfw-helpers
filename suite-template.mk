@@ -7,7 +7,7 @@ ifndef ${LastSegUN}.SegID
 $(call Enter-Segment,<purpose for this test suite segment>.)
 # -----
 
-$(call Declare-Suite,${SegUN},<description>)
+$(call Declare-Suite,${Seg},<description>)
 
 ${.SuiteN}.Prereqs :=
 

@@ -7,7 +7,7 @@ ifndef ${LastSegUN}.SegID
 $(call Enter-Segment,Test the macros and variables related to Sticky variables.)
 # -----
 
-$(call Declare-Suite,${SegUN},Verify the Sticky variable macros.)
+$(call Declare-Suite,${Seg},Verify the Sticky variable macros.)
 
 ${.SuiteN}.Prereqs :=
 
@@ -222,12 +222,12 @@ define ${.TestUN}
 
   $(call Test-Info,Verify sticky variable has been removed.)
   $(call Expect-Error,Var ${_vn1} has not been defined.)
-  $(call Remove-Sticky,${_vn1},Redefined)
+  $(call Remove-Sticky,${_vn1})
   $(call Verify-No-Error)
 
   $(call Test-Info,Verify sticky variable has been removed.)
   $(call Expect-Error,Var ${_vn1} has not been defined.)
-  $(call Remove-Sticky,${_vn1},Redefined)
+  $(call Remove-Sticky,${_vn1})
   $(call Verify-Error)
 
   $(call End-Test)

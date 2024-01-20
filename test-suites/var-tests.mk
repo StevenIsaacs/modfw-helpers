@@ -7,7 +7,7 @@ ifndef ${LastSegUN}.SegID
 $(call Enter-Segment,Verify the helper macros for manipulating variables.)
 # -----
 
-$(call Declare-Suite,${SegUN},Verify the variable related helper macros.)
+$(call Declare-Suite,${Seg},Verify the variable related helper macros.)
 
 # Define the tests in the order in which they should be run.
 

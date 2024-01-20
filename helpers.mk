@@ -299,7 +299,7 @@ ifneq (${DEBUG},)
 define ${_macro}
   $(call Log-Message,dbug,$(1))
 endef
-__V:=vp --warn-undefined-variables
+__V:=--debug=vp --warn-undefined-variables
 endif
 
 _macro := Step
@@ -429,7 +429,7 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
-MAKEFLAGS += --debug=${__V}
+MAKEFLAGS += ${__V}
 
 _var := Error_Callback
 define _help
@@ -613,7 +613,7 @@ $(strip \
   $(call Enter-Macro,$(0),$(1))
   $(call Debug,Requiring defined variables:$(1))
   $(eval __r :=)
-  $(foreach _v,$(1),
+  $(foreach __v,$(1),
     $(call Debug,Requiring: ${__v})
     $(if $(findstring undefined,$(flavor ${__v})),
       $(eval __r += ${__v})
@@ -1688,7 +1688,7 @@ define ${_macro}
     $(eval undefine $(1))
     $(shell rm ${STICKY_PATH}/$(1))
   ,
-    $(call Debug,Var $(1) has not been defined.)\
+    $(call Signal-Error,Var $(1) has not been defined.)\
   )
   $(call Exit-Macro)
 endef

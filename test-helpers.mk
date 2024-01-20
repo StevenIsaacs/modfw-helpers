@@ -1164,10 +1164,10 @@ define ${_macro}
     $(if ${_s},
       $(eval _suite := ${_s})
     ,
-      $(eval _suite := ${SegUN})
+      $(eval _suite := ${Seg})
     )
     $(if ${${_suite}.ID},
-      $(call Verbose,Test suite ${_suite} has already been initialized.)
+      $(call Verbose,Test suite ${_suite} has already been loaded.)
     ,
       $(if $(wildcard ${SUITES_PATH}/${_suite}.mk),
         $(call Use-Segment,${_suite})
