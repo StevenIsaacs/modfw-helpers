@@ -1187,6 +1187,8 @@ $$(call Exit-Macro)
 $.endef
 
 $$(call Info,New segment: Add variables, macros, goals, and recipes here.)
+# Remove the following line after completing this segment.
+$$(call Signal-Error,This segment has not yet been completed.)
 
 # The command line goal for the segment.
 $${LastSegUN}: $${SegF}
