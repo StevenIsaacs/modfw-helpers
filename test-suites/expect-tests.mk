@@ -166,30 +166,32 @@ define ${.TestUN}
   $(call Exit-Macro)
 endef
 
-$(call End-Declare-Suite)
-
 # +++++
 # Postamble
 # Define help only if needed.
-__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 define __help
 Make test suite: ${Seg}.mk
 
 This test suite verifies the variety of expect macros.
 
-Verifies these macros:
-${help-Expect-Vars}
+Tests:
+$(foreach __t,${${.SuiteN}.TestL},
+${help-${__t}})
 
 Command line goals:
   help-${SegUN}
     Display this help.
-  show-${SegUN}.TestL
-    Display the list of tests included in this suite.
 endef
-help-${SegUN} := $(call _help)
-
+${__h} := ${__help}
 endif # help goal message.
+
+$(call End-Declare-Suite)
 
 $(call Exit-Segment)
 else # <u>SegID exists

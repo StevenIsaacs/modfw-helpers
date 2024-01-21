@@ -762,6 +762,7 @@ ${_macro}
     1 = The path for the UN.
     2 = The variable in which to store the UN.
 endef
+help-${_macro} := $(call _help)
 define ${_macro}
   $(eval __pw := $(subst /, ,$(realpath $(1))))
   $(eval __i := $(words ${__pw}))
@@ -1816,7 +1817,11 @@ help: help-1
 origin-%:
 > @echo 'Origin:$*=$(origin $*)'
 
-__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 define __help
 Make segment: ${Seg}.mk
