@@ -1263,7 +1263,11 @@ test:
 
 # +++++
 # Postamble
-__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 $(call Attention,Generating help for:${Seg})
 define __help

@@ -1817,7 +1817,11 @@ help: help-1
 origin-%:
 > @echo 'Origin:$*=$(origin $*)'
 
-__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 define __help
 Make segment: ${Seg}.mk

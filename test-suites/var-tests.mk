@@ -14,7 +14,7 @@ $(call Declare-Suite,${Seg},Verify the variable related helper macros.)
 $(call Declare-Test,Inc-Var)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-Vars
@@ -35,7 +35,7 @@ endef
 $(call Declare-Test,Dec-Var)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-Vars
@@ -56,7 +56,7 @@ endef
 $(call Declare-Test,Add-Var)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-Vars
@@ -95,7 +95,7 @@ endef
 $(call Declare-Test,Sub-Var)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-Vars
@@ -134,7 +134,7 @@ endef
 $(call Declare-Test,To-Shell-Var)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-Vars
@@ -152,7 +152,7 @@ endef
 $(call Declare-Test,To-Lower)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-Vars
@@ -173,7 +173,7 @@ endef
 $(call Declare-Test,To-Upper)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-Vars
@@ -198,7 +198,7 @@ endef
 $(call Declare-Test,Require)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := expect-tests.Expect-List
@@ -247,7 +247,7 @@ endef
 $(call Declare-Test,Compare-Strings)
 define _help
 ${.TestUN}
-  Verify the helper macro:${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs :=
@@ -365,27 +365,32 @@ define ${.TestUN}
   $(call Exit-Macro)
 endef
 
-$(call End-Declare-Suite)
-
 # +++++
 # Postamble
 # Define help only if needed.
-__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 define __help
 Make test suite: ${Seg}.mk
 
-<make test suite help messages>
+A series of tests to verify the helpers variable related macros.
+
+Tests:
+$(foreach __t,${${.SuiteN}.TestL},
+${help-${__t}})
 
 Command line goals:
-  help-${SegUN}
+  help-${Seg} or help-${SegUN} or help-${SegID}
     Display this help.
-  show-${SegUN}.TestL
-    Display the list of tests included in this suite.
 endef
-help-${SegUN} := $(call _help)
-
+${__h} := ${__help}
 endif # help goal message.
+
+$(call End-Declare-Suite)
 
 $(call Exit-Segment)
 else # <u>SegID exists

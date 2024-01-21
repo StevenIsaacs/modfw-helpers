@@ -16,7 +16,7 @@ ${.SuiteN}.Prereqs :=
 $(call Declare-Test,Sticky)
 define _help
 ${.TestUN}
-  Verify the macro:${.TestUN}
+  Verify the macro:$(call Get-Test-Name,${.TestUN})
   This verifies the logic of sticky variables (see help-Sticky).
   Two sticky variables, CASES and SUITES_PATH, should already exist by the time
   this macro is called. These are first verified to have correct values.
@@ -145,8 +145,7 @@ endef
 $(call Declare-Test,Redefine-Sticky)
 define _help
 ${.TestUN}
-  Verify the macro:${.TestUN}
-
+  Verify the macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := ${.SuiteN}.Sticky test-vars.Compare-Strings
@@ -204,8 +203,7 @@ endef
 $(call Declare-Test,Remove-Sticky)
 define _help
 ${.TestUN}
-  Verify the macro:${.TestUN}
-
+  Verify the macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
 ${.TestUN}.Prereqs := ${.SuiteN}.Redefine-Sticky
@@ -234,25 +232,32 @@ define ${.TestUN}
   $(call Exit-Macro)
 endef
 
-$(call End-Declare-Suite)
-
 # +++++
 # Postamble
 # Define help only if needed.
-__h := $(or $(call Is-Goal,help-${SegUN}),$(call Is-Goal,help-${SegID}))
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 define __help
 Make test suite: ${Seg}.mk
 
 Verify the macros and variables used for maintaining sticky variables.
 
+Tests:
+$(foreach __t,${${.SuiteN}.TestL},
+${help-${__t}})
+
 Command line goals:
   help-${SegUN}
     Display this help.
-  show-${SegUN}.TestL
-    Display the list of tests included in this suite.
 endef
+${__h} := ${__help}
 endif # help goal message.
+
+$(call End-Declare-Suite)
 
 $(call Exit-Segment)
 else # <u>SegID exists
