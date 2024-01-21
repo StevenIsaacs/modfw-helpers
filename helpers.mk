@@ -1804,10 +1804,11 @@ call-%:
 
 help-%:
 > $(file >${TmpPath}/help-$*,${help-$*})
-> $(if ${$*.MoreHelpList},\
-    $(foreach _h,${$*.MoreHelpList},\
-      $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
-      $(file >>${TmpPath}/help-$*,${${__h}})))
+> $(if $(findstring undefined,$(flavor $*.MoreHelpList)),,\
+    $(if ${$*.MoreHelpList},\
+      $(foreach _h,${$*.MoreHelpList},\
+        $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
+        $(file >>${TmpPath}/help-$*,${${__h}}))))
 > less ${TmpPath}/help-$*
 > rm ${TmpPath}/help-$*
 
