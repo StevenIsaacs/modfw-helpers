@@ -1732,13 +1732,13 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(1),
     $(call Debug,Help list for:$(1):${$(1)})
-    $(eval $(1)_MoreHelpList := )
+    $(eval $(1).MoreHelpList := )
     $(foreach __sym,${$(1)},
       $(call Debug,Adding help for:${__sym})
       $(if $(filter $(origin help-${__sym}),undefined),
         $(call Warn,Undefined help message: help-${__sym})
       ,
-        $(eval $(1)_MoreHelpList += help-${__sym})
+        $(eval $(1).MoreHelpList += help-${__sym})
       )
     )
   ,
@@ -1804,8 +1804,8 @@ call-%:
 
 help-%:
 > $(file >${TmpPath}/help-$*,${help-$*})
-> $(if ${$*_MoreHelpList},\
-    $(foreach _h,${$*_MoreHelpList},\
+> $(if ${$*.MoreHelpList},\
+    $(foreach _h,${$*.MoreHelpList},\
       $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
       $(file >>${TmpPath}/help-$*,${${__h}})))
 > less ${TmpPath}/help-$*
