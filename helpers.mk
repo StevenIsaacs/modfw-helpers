@@ -601,7 +601,7 @@ ${_macro} = $(shell tr '[:lower:]' '[:upper:]' <<< $(1))
 _macro := Is-Not-Defined
 define _help
 ${_macro}
-  Returns a non-empty value if a variable is not defined.
+  Returns an non-empty value if a variable is not defined.
   Parameters:
     1 = The name of the variable to check.
 endef
@@ -625,7 +625,7 @@ $(strip \
   $(eval __r :=)
   $(foreach __v,$(1),
     $(call Debug,Requiring: ${__v})
-    $(if $(findstring undefined,$(flavor ${__v})),
+    $(if $(call Is-Not-Defined,${__v}),
       $(eval __r += ${__v})
       $(call Signal-Error,${Caller} requires variable ${__v} must be defined.)
     )
@@ -682,7 +682,7 @@ define ${_macro}
     $(call Signal-Error,Var $(1) has already been declared.)
   ,
     $(eval OverridableVars += $(1))
-    $(if $(filter $(origin $(1)),undefined),
+    $(if $(call Is-Not-Defined,$(1)),
       $(eval $(1) := $(2))
     ,
       $(call Debug,Var $(1) has override value: ${$(1)})
@@ -1287,7 +1287,7 @@ define ${_macro}
   $(call Debug,Resolving help goals.)
   $(call Debug,Help goals: $(filter help%,${Goals}))
   $(foreach __s,$(patsubst help-%,%,$(filter help-%,${Goals})),
-    $(if $(findstring undefined,$(flavor help-${__s})),
+    $(if $(call Is-Not-Defined,help-${__s}),
       $(call Debug,Resolving help for help-${__s})
       $(if $(filter \
         ${__s},2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20),
@@ -1296,7 +1296,7 @@ define ${_macro}
         $(call Signal-Error,Segment ID ${__s} does not exist -- no help.)
       ,
         $(call Use-Segment,$(subst .,/,${__s}).mk)
-        $(if $(findstring undefined,$(flavor help-${__s})),
+        $(if $(call Is-Not-Defined,help-${__s}),
           $(call Signal-Error,help-${__s} is undefined.)
         )
       )
@@ -1589,7 +1589,7 @@ define ${_macro}
     )
     $(call Debug,Flavor of ${__sn} is:$(flavor ${__sn}))
     $(eval __save :=)
-    $(if $(filter $(flavor ${__sn}),undefined),
+    $(if $(call Is-Not-Defined,${__sn}),
       $(call Debug,Defining ${__sn})
       $(if $(findstring =,$(1)),
         $(eval __sv := $(wordlist 2,$(words ${__snl}),${__snl}))
@@ -1747,7 +1747,7 @@ define ${_macro}
     $(eval $(1).MoreHelpList := )
     $(foreach __sym,${$(1)},
       $(call Debug,Adding help for:${__sym})
-      $(if $(filter $(origin help-${__sym}),undefined),
+      $(if $(call Is-Not-Defined,help-${__sym}),
         $(call Warn,Undefined help message: help-${__sym})
       ,
         $(eval $(1).MoreHelpList += help-${__sym})
@@ -1816,7 +1816,7 @@ call-%:
 
 help-%:
 > $(file >${TmpPath}/help-$*,${help-$*})
-> $(if $(findstring undefined,$(flavor $*.MoreHelpList)),,\
+> $(if $(call Is-Not-Defined,$*.MoreHelpList),,\
     $(if ${$*.MoreHelpList},\
       $(foreach _h,${$*.MoreHelpList},\
         $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
