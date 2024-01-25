@@ -191,6 +191,39 @@ define ${.TestUN}
   $(call Exit-Macro)
 endef
 
+$(call Declare-Test,Is-Not-Defined)
+define _help
+${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
+endef
+help-${.TestUN} := $(call _help)
+${.TestUN}.Prereqs :=
+define ${.TestUN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+  $(eval _v := not-defined)
+  $(call Test-Info,Var _v is: $(flavor ${_v}))
+  $(eval _r := $(call Is-Not-Defined,${_v}))
+  $(call Test-Info,Is-Not-Defined returned:${_r})
+  $(if $(call Is-Not-Defined,${_v}),
+    $(call PASS,Is-Not-Defined says "${_v}" is not defined.)
+  ,
+    $(call FAIL,Is-Not-Defined says "${_v}" is defined.)
+  )
+  $(eval _v := is-defined)
+  $(eval ${_v} :=)
+  $(call Test-Info,Var _v is: $(flavor ${_v}))
+  $(eval _r := $(call Is-Not-Defined,${_v}))
+  $(call Test-Info,Is-Not-Defined returned:${_r})
+  $(if $(call Is-Not-Defined,${_v}),
+    $(call FAIL,Is-Not-Defined says "${_v}" is not defined.)
+  ,
+    $(call PASS,Is-Not-Defined says "${_v}" is defined.)
+  )
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
 define _Require-Callback
 
 endef

@@ -598,6 +598,16 @@ endef
 help-${_macro} := $(call _help)
 ${_macro} = $(shell tr '[:lower:]' '[:upper:]' <<< $(1))
 
+_macro := Is-Not-Defined
+define _help
+${_macro}
+  Returns a non-empty value if a variable is not defined.
+  Parameters:
+    1 = The name of the variable to check.
+endef
+help-${_macro} := $(call _help)
+${_macro} = $(filter undefined,$(flavor $(1)))
+
 _macro := Require
 define _help
 ${_macro}
@@ -1953,6 +1963,8 @@ ${help-Add-Var}
 ${help-Sub-Var}
 
 ${help-To-Shell-Var}
+
+${help-Is-Not-Defined}
 
 ${help-Require}
 
