@@ -71,7 +71,7 @@ define ${.TestUN}
 
   $(call Test-Info,Verify NO redefinition warning.)
   $(eval _vn2 := sticky2)
-  $(call Expect-Warning,Redefinition of sticky variable ${_vn2} ignored.)
+  $(call Expect-No-Warning)
   $(call Sticky,${_vn2},new)
   $(call Verify-No-Warning)
 
@@ -161,7 +161,7 @@ define ${.TestUN}
   $(call Expect-String,${_vn1g},${${_vn1}})
 
   $(eval _vn1v := new ${_vn1})
-  $(call Expect-Error,Var ${_vn1} has not been defined.)
+  $(call Expect-No-Error)
   $(call Redefine-Sticky,${_vn1}=${_vn1v})
   $(call Verify-No-Error)
   $(eval _vn1g := ${${_vn1}})
@@ -171,7 +171,7 @@ define ${.TestUN}
   $(eval _vn1v := new ${_vn1})
   $(eval SubMake := 1)
   $(call Expect-Warning,Cannot overwrite ${_vn1} in a submake.)
-  $(call Expect-Error,Var ${_vn1} has not been defined.)
+  $(call Expect-No-Error)
   $(call Redefine-Sticky,${_vn1}=${_vn1v})
   $(call Verify-No-Error)
   $(call Verify-Warning)
@@ -219,7 +219,7 @@ define ${.TestUN}
   $(call Expect-String,${_vn1g},${${_vn1}})
 
   $(call Test-Info,Verify sticky variable has been removed.)
-  $(call Expect-Error,Var ${_vn1} has not been defined.)
+  $(call Expect-No-Error)
   $(call Remove-Sticky,${_vn1})
   $(call Verify-No-Error)
 

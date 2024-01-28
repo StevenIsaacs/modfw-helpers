@@ -551,6 +551,22 @@ define ${_macro}
   )
 endef
 
+_macro := Expect-No-Warning
+define _help
+${_macro}
+  Enables (arm) Oneshot-Warning-Callback as a callback and sets
+  Expected_Warning to empty. The next call should be one which could generate a
+  warning. That should be followed by a call to Verify-No-Warning.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0))
+  $(eval Expected_Warning :=)
+  $(eval Actual_Warning :=)
+  $(call Set-Warning-Callback,Oneshot-Warning-Callback)
+  $(call Exit-Macro)
+endef
+
 _macro := Verify-No-Warning
 define _help
 ${_macro}
@@ -567,7 +583,7 @@ endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(if ${Actual_Warning},
-    $(call FAIL,An unexpected warning occurred.)
+    $(call FAIL,Unexpected:${Actual_Warning})
   ,
     $(call PASS,Warning did not occur -- as expected.)
     $(call Set-Warning-Callback)
@@ -631,20 +647,34 @@ define ${_macro}
   )
 endef
 
+_macro := Expect-No-Error
+define _help
+${_macro}
+  Enables (arm) Oneshot-Error-Callback as an error handler and sets
+  Expected_Error to empty. NOTE: Verify-No-Error must be called to verify that
+  the error did not occur.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(eval Expected_Error :=)
+  $(eval Actual_Error :=)
+  $(call Set-Error-Callback,Oneshot-Error-Callback)
+endef
+
 _macro := Verify-No-Error
 define _help
 ${_macro}
-  Verifies Oneshot-Error-Callback was not called since calling Expect-Error.
+  Verifies Oneshot-Error-Callback was not called since calling Expect-No-Error.
   A PASS is recorded If the error has NOT occurred. Otherwise a FAIL is
   recorded.
   This also disables the error handler to avoid confusing subsequent tests.
-  NOTE: For this to work Expect-Error must be called to arm the one-shot
+  NOTE: For this to work Expect-No-Error must be called to arm the one-shot
   handler.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(if ${Actual_Error},
-    $(call FAIL,An unexpected error occurred.)
+    $(call FAIL,Unexpected:${Actual_Error})
   ,
     $(call PASS,Error did not occur -- as expected.)
     $(call Set-Error-Callback)
@@ -967,6 +997,9 @@ ${_macro}
   it will be skipped. A reference to a prerequisite test has the format:
     <seg>.<test>
   The segment <seg> is loaded if it has not already been loaded.
+
+  Prerequisite tests are run recursively. If a prerequisite test has
+  prerequisites then its prerequisites are run first.
 
   Parameters:
     1 = The test for which the prerequisites should be run.
@@ -1482,6 +1515,8 @@ ${help-Oneshot-Error-Callback}
 ${help-Expect-Error}
 
 ${help-Verify-Error}
+
+${help-Expect-No-Error}
 
 ${help-Verify-No-Error}
 
