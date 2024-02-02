@@ -1725,7 +1725,7 @@ define ${_macro}
     $(foreach __s,${SegUNs},
       $(call Info,${${__s}.SegID}:${${__s}.Seg}:${${__s}.SegUN}:${${__s}.SegD})
     )
-  $(call Exist-Macro)
+  $(call Exit-Macro)
 endef
 
 _macro := More-Help
