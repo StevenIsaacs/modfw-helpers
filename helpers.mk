@@ -1530,6 +1530,17 @@ ${_var} = ${${_var}}
 endef
 help-${_var} := $(call _help)
 
+_macro := Is-Sticky
+define _help
+${_macro}
+  Returns the variable name if the variable is a sticky variable -- meaning
+  its value has been saved.
+  Parameters:
+    1 = The sticky variable to check.
+endef
+help-${_macro} := $(call _help)
+${_macro} = $(wildcard ${STICKY_PATH}/$(1))
+
 _macro := Sticky
 define _help
 ${_macro}
@@ -1596,7 +1607,7 @@ define ${_macro}
         $(eval __save := 1)
         $(call Debug,Setting ${__sn} to:"${__sv}".)
       ,
-        $(if $(wildcard ${__sf}),
+        $(if $(call Is-Sticky,${__sn}),
           $(call Debug,Reading previously saved value for ${__sn})
           $(eval __sv := $(file <${__sf}))
         ,
@@ -1625,7 +1636,7 @@ define ${_macro}
       $(if ${SubMake},
         $(call Debug,Variables are read-only in a sub-make.)
       ,
-        $(if $(wildcard ${__sf}),
+        $(if $(call Is-Sticky,${__sn}),
           $(call Debug,Replacing sticky:${__sf})
         ,
           $(call Debug,Creating sticky:${__sf})
@@ -1975,6 +1986,10 @@ ${help-Overridable}
 ++++ Sticky (persistent) variables
 
 ${help-Sticky}
+
+${help-Is-Sticky}
+
+${help-Redirect-Sticky}
 
 ${help-Redefine-Sticky}
 
