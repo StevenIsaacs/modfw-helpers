@@ -1530,10 +1530,22 @@ ${_var} = ${${_var}}
 endef
 help-${_var} := $(call _help)
 
+_macro := Is-Sticky-Var
+define _help
+${_macro}
+  Returns the variable name if the variable is defined as a sticky variable --
+  meaning the variable has been defined to be a sticky variable using the
+  Sticky macro.
+  Parameters:
+    1 = The sticky variable to check.
+endef
+help-${_macro} := $(call _help)
+${_macro} = $(filter $(1),${StickyVars})
+
 _macro := Is-Sticky
 define _help
 ${_macro}
-  Returns the variable name if the variable is a sticky variable -- meaning
+  Returns the variable name if the variable is sticky -- meaning
   its value has been saved.
   Parameters:
     1 = The sticky variable to check.
@@ -1589,7 +1601,7 @@ define ${_macro}
   $(eval __sn := $(word 1,${__snl}))
   $(call Debug,Sticky:Var:${__sn})
 
-  $(if $(filter ${__sn},${StickyVars}),
+  $(if $(call Is-Sticky-Var,${__sn}),
     $(call Warn,Redefinition of sticky variable ${__sn} ignored.)
   ,
     $(eval StickyVars += ${__sn})
@@ -1675,7 +1687,7 @@ define ${_macro}
   $(eval __rspl := $(subst =,${Space},$(1)))
   $(eval __rsp := $(word 1,${__rspl}))
   $(eval __rsv := $(wordlist 2,$(words ${__rspl}),${__rspl}))
-  $(if $(filter ${__rsp},${StickyVars}),
+  $(if $(call Is-Sticky-Var,${__rsp}),
     $(eval __rscv := ${${__rsp}})
     $(call Compare-Strings,__rsv,__rscv,__diff)
     $(call Debug,Old and new diff:${__diff})
@@ -1696,20 +1708,40 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
+_macro := Undefine-Sticky
+define _help
+${_macro}
+  Undefine a sticky variable. The sticky variable file is retained.
+  Parameters:
+    1 = Variable name to undefine.
+endef
+help-${_macro} := $(call _help)
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+  $(if $(call Is-Sticky-Var,$(1)),
+    $(call Debug,Undefining sticky variable: $(1))
+    $(eval StickyVars := $(filter-out $(1),${StickyVars}))
+    $(eval undefine $(1))
+  ,
+    $(call Signal-Error,Var $(1) is not a sticky variable.)\
+  )
+  $(call Exit-Macro)
+endef
+
 _macro := Remove-Sticky
 define _help
 ${_macro}
-  Remove (unstick) a sticky variable.
+  Remove (unstick) a sticky variable. This deletes the sticky variable file
+  and undefines the sticky variable.
   Parameters:
     1 = Variable name to remove.
 endef
 help-${_macro} := $(call _help)
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
-  $(if $(filter $(1),${StickyVars}),
+  $(if $(call Is-Sticky-Var,$(1)),
+    $(call Undefine-Sticky,$(1))
     $(call Debug,Removing sticky variable: $(1))
-    $(eval StickyVars := $(filter-out $(1),${StickyVars}))
-    $(eval undefine $(1))
     $(shell rm ${STICKY_PATH}/$(1))
   ,
     $(call Signal-Error,Var $(1) has not been defined.)\
@@ -1986,6 +2018,8 @@ ${help-Overridable}
 ++++ Sticky (persistent) variables
 
 ${help-Sticky}
+
+${help-Is-Sticky-Var}
 
 ${help-Is-Sticky}
 
