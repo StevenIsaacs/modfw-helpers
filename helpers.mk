@@ -2,6 +2,40 @@
 # Helper macros for makefiles.
 #----------------------------------------------------------------------------
 ifndef helpers.SegID
+SegID := $(words ${MAKEFILE_LIST})
+helpers.SegID := ${SegID}
+$(info helpers.SegID:${helpers.SegID})
+
+_macro := Declare-Help
+define _help
+${_macro}
+  Declare a help message and add it to the help list for the current context
+  identified by SegID (see help-SegAttributes).
+  Parameters:
+    1 = The name of the variable or macro to declare help for.
+endef
+${SegID}.HelpL :=
+define ${_macro}
+  $(eval ${SegID}.HelpL += $(1))
+endef
+help-${_macro} := $(call _help)
+$(call Declare-Help,${_macro})
+
+_macro := Display-Help-List
+define _help
+${_macro}
+  This macro can be called from a segment help to display the accumulated list
+  of help messages.
+  Parameters:
+    1 = The segment ID for which to display the help list.
+endef
+help-${_macro} := $(call _help)
+$(call Declare-Help,${_macro})
+define ${_macro}
+$(foreach _h,${$(1).HelpL},
+
+${help-${_h}})
+endef
 
 # Changing the prefix because some editors, like vscode, don't handle tabs
 # in make files very well. This also slightly improves readability.
@@ -737,8 +771,10 @@ _var := SegAttributes
 ${_var} := SegUN SegID Seg SegP SegF SegV SegD
 define _help
 ${_var} = ${${_var}}
-  Each makefile segment is managed using a set of attributes.
-    <segun>.SegUN
+  Each makefile segment is managed using a set of attributes. The context for
+  a given segment is prefixed by its unique name <segun>. The current context
+  has no prefix.
+    SegUN or <segun>.SegUN
       The pseudo unique name for the segment <segun>. This is then used as the
       key to access the attributes for a given segment.
       This name is a combination of the directory containing the segment and the
@@ -747,19 +783,19 @@ ${_var} = ${${_var}}
       For example:
         If the path is: /dir1/dir2/dir3/seg.mk
         The resulting pseudo unique name is: dir2.dir3
-    <segun>.SegID
+    SegID or <segun>.SegID
       The ID for the segment. This is basically the index in MAKEFILE_LIST for
       the segment.
-    <segun>.Seg
+    Seg or <segun>.Seg
       The segment name.
-    <segun>.SegV
+    SegV or <segun>.SegV
       The name of the segment converted to a shell compatible variable name.
-    <segun>.SegP
+    SegP or <segun>.SegP
       The path to the makefile segment.
-    <segun>.SegF
+    SegF or <segun>.SegF
       The path and name of the makefile segment. This can be used as part of a
       dependency list.
-    <segun>.SegD
+    SegD or <segun>.SegD
       A one line description for the segment.
 endef
 help-${_var} := $(call _help)
@@ -1920,6 +1956,8 @@ Callable-Macro  The name of a callable macro available to all segments.
 _private-macro or _Private-Macro
                 A private macro specific to a segment.
 
+$(call Display-Help-List,${SegID})
+
 Optionally defined before including helpers:
 DefaultGoal = ${DefaultGoal}
   This sets .DEFAULT_GOAL only if no other goals have been set and defaults
@@ -1968,6 +2006,7 @@ Platform = $(Platform)
   Microsoft, Linux, or OsX.
 Errors = ${Errors}
   If not empty then errors have been reported.
+
 
 ${help-SegUNs}
 
