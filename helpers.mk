@@ -657,6 +657,8 @@ ${_macro}
   Emit a debugging message. All debug messages are automatically added to the
   message list. Debug messages are prefixed with dbug.
   This is disabled unless DEBUG is not empty.
+  Debug messages are reserved for development. After development is complete
+  either remove the Debug messages or change them to Verbose.
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The message to display.
