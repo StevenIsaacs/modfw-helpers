@@ -830,12 +830,12 @@ define ${_macro}
   $(call Log-Message,ERR!,$(1))
   $(eval Errors = yes)
   $(warning Error:${SegUN}:$(1))
-  $(call Debug,Handler: ${Error_Callback} Safe:${Error_Safe})
+  $(call Verbose,Handler: ${Error_Callback} Safe:${Error_Safe})
   $(if ${Error_Callback},
     $(if ${Error_Safe},
       $(eval Error_Safe := )
-      $(call Debug,Calling ${Error_Callback}.)
-      $(call Debug,Message:$(1).)
+      $(call Verbose,Calling ${Error_Callback}.)
+      $(call Verbose,Message:$(1).)
       $(call ${Error_Callback},$(1))
       $(eval Error_Safe := 1)
     ,
@@ -966,10 +966,10 @@ $(call Add-Help,${_macro})
 define ${_macro}
 $(strip \
   $(call Enter-Macro,$(0),$(1))
-  $(call Debug,Requiring defined variables:$(1))
+  $(call Verbose,Requiring defined variables:$(1))
   $(eval __r :=)
   $(foreach __v,$(1),
-    $(call Debug,Requiring: ${__v})
+    $(call Verbose,Requiring: ${__v})
     $(if $(call Is-Not-Defined,${__v}),
       $(eval __r += ${__v})
       $(call Signal-Error,${Caller} requires variable ${__v} must be defined.)
@@ -982,7 +982,7 @@ endef
 
 define __mbof
   $(if $(filter ${$(1)},$(2)),
-    $(call Debug,$(1)=${$(1)} and is a valid option) 1
+    $(call Verbose,$(1)=${$(1)} and is a valid option) 1
   ,
     $(call Signal-Error,Variable $(1)=${$(1)} must equal one of: $(2))
   )
@@ -1032,7 +1032,7 @@ define ${_macro}
     $(if $(call Is-Not-Defined,$(1)),
       $(eval $(1) := $(2))
     ,
-      $(call Debug,Var $(1) has override value: ${$(1)})
+      $(call Verbose,Var $(1) has override value: ${$(1)})
     )
   )
   $(call Exit-Macro)
@@ -1065,15 +1065,15 @@ define ${_macro}
       $(call Checking words at:${__i})
       $(if $(filter ${__w},$(word ${__i},${$(2)})),
       ,
-        $(call Debug,Difference found.)
+        $(call Verbose,Difference found.)
         $(eval $(3) += ${__i})
       )
     )
   ,
-    $(call Debug,String lengths differ by ${__d} words.)
+    $(call Verbose,String lengths differ by ${__d} words.)
     $(eval $(3) := d ${__d})
   )
-  $(call Debug,Returning:${$(3)})
+  $(call Verbose,Returning:${$(3)})
   $(call Exit-Macro)
 endef
 
@@ -1128,14 +1128,14 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Debug,MAKEFILE_LIST:${MAKEFILE_LIST})
-  $(call Debug,path:$(realpath $(1)))
+  $(call Verbose,MAKEFILE_LIST:${MAKEFILE_LIST})
+  $(call Verbose,path:$(realpath $(1)))
   $(eval __seg := $(basename $(notdir $(1))))
-  $(call Debug,__seg:${__seg})
+  $(call Verbose,__seg:${__seg})
   $(eval __p := $(subst /.,,$(dir $(realpath $(1))).))
-  $(call Debug,__p:${__p})
+  $(call Verbose,__p:${__p})
   $(eval $(2) := $(lastword $(subst /, ,${__p}.$(strip ${__seg}))))
-  $(call Debug,$(2):${$(2)})
+  $(call Verbose,$(2):${$(2)})
 endef
 
 _macro := Last-Segment-UN
@@ -1151,7 +1151,7 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0))
   $(call Path-To-UN,$(lastword ${MAKEFILE_LIST}),LastSegUN)
-  $(call Debug,Path-To-UN returned:${LastSegUN})
+  $(call Verbose,Path-To-UN returned:${LastSegUN})
   $(call Exit-Macro)
 endef
 
@@ -1330,16 +1330,16 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
   $(eval $(2) := )
-  $(call Debug,Locating segment: $(1))
-  $(call Debug,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegID}))
+  $(call Verbose,Locating segment: $(1))
+  $(call Verbose,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegID}))
   $(foreach __p,${SegPaths} $(call Get-Segment-Path,${SegID}),
-    $(call Debug,Trying: ${__p})
+    $(call Verbose,Trying: ${__p})
     $(if $(wildcard ${__p}/$(1).mk),
       $(eval $(2) := ${__p}/$(1).mk)
     )
   )
   $(if ${$(2)},
-    $(call Debug,Found segment:${$(2)})
+    $(call Verbose,Found segment:${$(2)})
   ,
     $(call Signal-Error,$(1).mk not found.)
   )
@@ -1385,14 +1385,14 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(findstring .mk,$(1)),
-    $(call Debug,Including segment:${1})
+    $(call Verbose,Including segment:${1})
     $(eval include $(1))
   ,
     $(if ${$(1).SegID},
-      $(call Debug,Segment $(1) is already loaded.)
+      $(call Verbose,Segment $(1) is already loaded.)
     ,
       $(call Find-Segment,$(1),__seg)
-      $(call Debug,Using segment:${__seg})
+      $(call Verbose,Using segment:${__seg})
       $(eval include ${__seg})
     )
   )
@@ -1493,10 +1493,10 @@ define ${_macro}
   $(eval ${LastSegUN}.SegF := $(call Last-Segment-File))
   $(eval ${LastSegUN}.SegV := $(call To-Shell-Var,${LastSegUN}))
   $(eval ${LastSegUN}.SegD := $(strip $(1)))
-  $(eval $(call Debug,\
+  $(eval $(call Verbose,\
     Entering segment: $(call Get-Segment-Basename,${${LastSegUN}.SegID})))
-  $(call Debug,${LastSegUN}.SegID:${${LastSegUN}.SegID})
-  $(call Debug,Setting context:${${LastSegUN}.SegID})
+  $(call Verbose,${LastSegUN}.SegID:${${LastSegUN}.SegID})
+  $(call Verbose,Setting context:${${LastSegUN}.SegID})
   $(call __Push-SegID)
   $(call Set-Segment-Context,${${LastSegUN}.SegID})
   $(call Exit-Macro)
@@ -1513,7 +1513,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(call Debug,Exiting segment: ${${SegUN}.Seg})
+  $(call Verbose,Exiting segment: ${${SegUN}.Seg})
   $(call __Pop-SegID)
   $(eval $(call Set-Segment-Context,${__PrvSegID}))
   $(call Exit-Macro)
@@ -1531,7 +1531,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(call Debug,\
+  $(call Verbose,\
     Segment exists: ID = ${${LastSegUN}.SegID}: file = $(call Get-Segment-File,${${LastSegUN}.SegID}))
   $(if \
     $(findstring \
@@ -1668,11 +1668,11 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(call Debug,Resolving help goals.)
-  $(call Debug,Help goals: $(filter help%,${Goals}))
+  $(call Verbose,Resolving help goals.)
+  $(call Verbose,Help goals: $(filter help%,${Goals}))
   $(foreach __s,$(patsubst help-%,%,$(filter help-%,${Goals})),
     $(if $(call Is-Not-Defined,help-${__s}),
-      $(call Debug,Resolving help for help-${__s})
+      $(call Verbose,Resolving help for help-${__s})
       $(if $(filter \
         ${__s},2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20),
         $(eval help-${__s} := \
@@ -1685,7 +1685,7 @@ define ${_macro}
         )
       )
     ,
-      $(call Debug,Help help-${__s} is defined.)
+      $(call Verbose,Help help-${__s} is defined.)
     )
   )
   $(call Exit-Macro)
@@ -1718,10 +1718,10 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2) $(3))
-  $(call Debug,Adding $(3) to $(1))
-  $(call Debug,Var: $(2))
+  $(call Verbose,Adding $(3) to $(1))
+  $(call Verbose,Var: $(2))
   $(eval $(2) = $(3))
-  $(call Debug,$(2)=$(3))
+  $(call Verbose,$(2)=$(3))
   $(eval $(1) += $(3))
   $(call Exit-Macro)
 endef
@@ -1833,14 +1833,14 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(call Debug,Command:$(1))
+  $(call Verbose,Command:$(1))
   $(eval Run_Output := $(shell $(1) 2>&1;echo $$?))
-  $(call Debug,Run_Output = ${Run_Output})
+  $(call Verbose,Run_Output = ${Run_Output})
   $(eval Run_Rc := $(call Return-Code,${Run_Output}))
   $(if ${Run_Rc},
     $(call Warn,Shell return code:${Run_Rc})
   )
-  $(call Debug,Run_Rc = ${Run_Rc})
+  $(call Verbose,Run_Rc = ${Run_Rc})
   $(call Exit-Macro)
 endef
 
@@ -1886,19 +1886,19 @@ endef
 
 # Set SegID to the segment that included helpers so that the previous segment
 # set by Enter-Segment and used by Exit-Segment will have a valid value.
-$(call Debug,MAKEFILE_LIST:${MAKEFILE_LIST})
-$(call Debug,$(realpath $(firstword ${MAKEFILE_LIST})))
-$(call Debug,__i:$(call Last-Segment-ID))
+$(call Verbose,MAKEFILE_LIST:${MAKEFILE_LIST})
+$(call Verbose,$(realpath $(firstword ${MAKEFILE_LIST})))
+$(call Verbose,__i:$(call Last-Segment-ID))
 # Initialize the top level context.
 $(call __Init-Segment-Context,${MakeD})
 
-$(call Debug,Helpers Seg:${Seg})
-$(call Debug,Helpers UN:${SegUN})
-$(call Debug,Included from:$(realpath $(firstword ${MAKEFILE_LIST})))
-$(call Debug,SegUNs:${SegUNs})
+$(call Verbose,Helpers Seg:${Seg})
+$(call Verbose,Helpers UN:${SegUN})
+$(call Verbose,Included from:$(realpath $(firstword ${MAKEFILE_LIST})))
+$(call Verbose,SegUNs:${SegUNs})
 
 $(call Enter-Segment,Helper macros for makefiles.)
-$(call Debug,In segment:${SegUN})
+$(call Verbose,In segment:${SegUN})
 
 # These are helper functions for shell scripts (Bash).
 $(call Add-Help-Section,ShellHelpers,Helper functions for shell scripts .)
@@ -2020,7 +2020,7 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
   $(eval __snl := $(subst =,${Space},$(1)))
   $(eval __sn := $(word 1,${__snl}))
-  $(call Debug,Sticky:Var:${__sn})
+  $(call Verbose,Sticky:Var:${__sn})
 
   $(if $(call Is-Sticky-Var,${__sn}),
     $(call Warn,Redefinition of sticky variable ${__sn} ignored.)
@@ -2031,48 +2031,48 @@ define ${_macro}
     ,
       $(shell mkdir -p ${STICKY_PATH})
     )
-    $(call Debug,Flavor of ${__sn} is:$(flavor ${__sn}))
+    $(call Verbose,Flavor of ${__sn} is:$(flavor ${__sn}))
     $(eval __save :=)
     $(if $(call Is-Not-Defined,${__sn}),
-      $(call Debug,Defining ${__sn})
+      $(call Verbose,Defining ${__sn})
       $(if $(findstring =,$(1)),
         $(eval __sv := $(wordlist 2,$(words ${__snl}),${__snl}))
         $(eval __save := 1)
-        $(call Debug,Setting ${__sn} to:"${__sv}".)
+        $(call Verbose,Setting ${__sn} to:"${__sv}".)
       ,
         $(if $(call Is-Sticky,${__sn}),
-          $(call Debug,Reading previously saved value for ${__sn})
+          $(call Verbose,Reading previously saved value for ${__sn})
           $(eval __sv := $(file <${__sf}))
         ,
           $(if $(2),
             $(eval __sv := $(2))
-            $(call Debug,Setting ${__sn} to default:"${__sv}")
+            $(call Verbose,Setting ${__sn} to default:"${__sv}")
             $(eval __save := 1)
           )
         )
       )
       $(eval ${__sn} := ${__sv})
       $(if ${SubMake},
-        $(call Debug,Variables are read-only in a sub-make.)
+        $(call Verbose,Variables are read-only in a sub-make.)
       ,
         $(if ${__save},
-          $(call Debug,Creating sticky:${__sn})
+          $(call Verbose,Creating sticky:${__sn})
           $(file >${__sf},${__sv})
         )
       )
     ,
-      $(call Debug,${__sn} is defined.)
+      $(call Verbose,${__sn} is defined.)
       $(if $(findstring =,$(1)),
         $(eval ${__sn} := $(wordlist 2,$(words ${__snl}),${__snl}))
       )
-      $(call Debug,Saving sticky:${__sn}=${${__sn}})
+      $(call Verbose,Saving sticky:${__sn}=${${__sn}})
       $(if ${SubMake},
-        $(call Debug,Variables are read-only in a sub-make.)
+        $(call Verbose,Variables are read-only in a sub-make.)
       ,
         $(if $(call Is-Sticky,${__sn}),
-          $(call Debug,Replacing sticky:${__sf})
+          $(call Verbose,Replacing sticky:${__sf})
         ,
-          $(call Debug,Creating sticky:${__sf})
+          $(call Verbose,Creating sticky:${__sf})
         )
         $(file >${__sf},${${__sn}})
       )
@@ -2113,17 +2113,17 @@ define ${_macro}
   $(if $(call Is-Sticky-Var,${__rsp}),
     $(eval __rscv := ${${__rsp}})
     $(call Compare-Strings,__rsv,__rscv,__diff)
-    $(call Debug,Old and new diff:${__diff})
+    $(call Verbose,Old and new diff:${__diff})
     $(if ${__diff},
-      $(call Debug,Redefining:${__rsp})
-      $(call Debug,SubMake:${SubMake})
+      $(call Verbose,Redefining:${__rsp})
+      $(call Verbose,SubMake:${SubMake})
       $(if ${SubMake},
         $(call Warn,Cannot overwrite ${__rsp} in a submake.)
       ,
         $(file >$(STICKY_PATH)/${__rsp},${__rsv})
       )
     ,
-      $(call Debug,Var ${__rsp} is unchanged:"${__rsv}" "${__rscv}")
+      $(call Verbose,Var ${__rsp} is unchanged:"${__rsv}" "${__rscv}")
     )
   ,
     $(call Signal-Error,Var ${__rsp} has not been defined.)
@@ -2143,7 +2143,7 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(call Is-Sticky-Var,$(1)),
-    $(call Debug,Undefining sticky variable: $(1))
+    $(call Verbose,Undefining sticky variable: $(1))
     $(eval StickyVars := $(filter-out $(1),${StickyVars}))
     $(eval undefine $(1))
   ,
@@ -2166,7 +2166,7 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(call Is-Sticky-Var,$(1)),
     $(call Undefine-Sticky,$(1))
-    $(call Debug,Removing sticky variable: $(1))
+    $(call Verbose,Removing sticky variable: $(1))
     $(shell rm ${STICKY_PATH}/$(1))
   ,
     $(call Signal-Error,Var $(1) has not been defined.)\
@@ -2215,10 +2215,10 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(1),
-    $(call Debug,Help list for:$(1):${$(1)})
+    $(call Verbose,Help list for:$(1):${$(1)})
     $(eval $(1).MoreHelpList := )
     $(foreach __sym,${$(1)},
-      $(call Debug,Adding help for:${__sym})
+      $(call Verbose,Adding help for:${__sym})
       $(if $(call Is-Not-Defined,help-${__sym}),
         $(call Warn,Undefined help message: help-${__sym})
       ,
@@ -2253,8 +2253,8 @@ else
 endif
 $(call Info,Running on: ${Platform})
 
-$(call Debug,MAKELEVEL = ${MAKELEVEL})
-$(call Debug,MAKEFLAGS = ${MAKEFLAGS})
+$(call Verbose,MAKELEVEL = ${MAKELEVEL})
+$(call Verbose,MAKEFLAGS = ${MAKEFLAGS})
 
 ifneq (${LOG_FILE},)
 display-messages: ${LogFile}
@@ -2276,7 +2276,7 @@ define _Call-Macro
 $(eval __w := $(subst :, ,$(2)))
 $(foreach pn,1 2 3,
   $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
-  $(call Debug,p${pn}:${p${pn}})
+  $(call Verbose,p${pn}:${p${pn}})
 )
 $(call $(1),${p1},${p2},${p3})
 endef
@@ -2355,8 +2355,8 @@ display-errors
 endef
 ${__h} := ${__help}
 endif # help goal
-$(call Debug,Last-Segment-ID:$(call Last-Segment-ID))
-$(call Debug,${helpers.Seg}.SegID:${${helpers.Seg}.SegID})
+$(call Verbose,Last-Segment-ID:$(call Last-Segment-ID))
+$(call Verbose,${helpers.Seg}.SegID:${${helpers.Seg}.SegID})
 $(call Exit-Segment)
 else # Already loaded.
 $(call Check-Segment-Conflicts)

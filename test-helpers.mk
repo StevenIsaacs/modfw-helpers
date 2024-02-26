@@ -3,7 +3,7 @@
 #-----------------------------------------------------------------------------
 # +++++
 $(call Last-Segment-UN)
-$(call Debug,$(call Last-Segment-Basename) UN:${LastSegUN})
+$(call Verbose,$(call Last-Segment-Basename) UN:${LastSegUN})
 ifndef ${LastSegUN}.SegID
 $(call Enter-Segment,\
   Test helpers for testing makefile segments and macros.)
@@ -499,7 +499,7 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(foreach _e,$(1),
     $(eval _ve := $(subst :,${Space},${_e}))
-    $(call Debug,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
+    $(call Verbose,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
     $(if $(word 2,${_ve}),
       $(if $(filter ${$(word 1,${_ve})},$(word 2,${_ve})),
         $(call PASS,Expecting:(${_e}))
@@ -535,14 +535,14 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(call Debug,Expecting:"$(1)")
-  $(call Debug,Actual:"$(2)")
+  $(call Verbose,Expecting:"$(1)")
+  $(call Verbose,Actual:"$(2)")
   $(eval _i := 0)
   $(eval _ex := )
   $(foreach _w,$(1),
     $(call Inc-Var,_i)
     $(if $(filter ${_w},$(word ${_i},$(2))),
-      $(call Debug,${_w} = $(word ${_i},$(2)))
+      $(call Verbose,${_w} = $(word ${_i},$(2)))
     ,
       $(eval _ex += ${_i})
     )
@@ -571,8 +571,8 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
-  $(call Debug,Expecting:"$(1)")
-  $(call Debug,Actual:"$(2)")
+  $(call Verbose,Expecting:"$(1)")
+  $(call Verbose,Actual:"$(2)")
   $(call Expect-List,$(1),$(2))
   $(call Exit-Macro)
 endef
@@ -684,7 +684,7 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(call Set-Warning-Callback)
   $(eval Actual_Warning := $(1))
-  $(call Debug,Actual warning:$(1))
+  $(call Verbose,Actual warning:$(1))
   $(call Expect-String,${Expected_Warning},${Actual_Warning})
   $(call Exit-Macro)
 endef
@@ -1025,7 +1025,7 @@ define ${_macro}
         $(call Signal-Error,\
           Suite $(2) has already been added to context ${_ctx}.)
       ,
-        $(call Debug,Adding suite $(2) to $(1) context.)
+        $(call Verbose,Adding suite $(2) to $(1) context.)
         $(call Inc-Var,${_ctx}.SuiteC)
         $(eval ${_ctx}.SuiteL += $(2))
       )
@@ -1056,7 +1056,7 @@ define ${_macro}
           $(call Signal-Error,\
             Test $(_t) has already been added to context ${_ctx}.)
         ,
-          $(call Debug,Adding test ${_t} to ${_ctx} context.)
+          $(call Verbose,Adding test ${_t} to ${_ctx} context.)
           $(call Inc-Var,${_ctx}.TestC)
           $(eval ${_ctx}.TestL += $(_t))
         )
@@ -1289,7 +1289,7 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if ${$(1).Prereqs},
     $(eval Prereq.Running := 1)
-    $(call Debug,$(1) prereqs:${$(1).Prereqs})
+    $(call Verbose,$(1) prereqs:${$(1).Prereqs})
     $(foreach _prereq,${$(1).Prereqs},
       $(if ${${_prereq}.Completed},
         $(call Test-Info,Test ${_prereq} has already completed -- skipping.)
@@ -1300,13 +1300,13 @@ define ${_macro}
       ,
         $(call Test-Info,Running prerequisite:${_prereq}.)
         $(eval _st := $(call Get-Suite-Name,${_prereq}))
-        $(call Debug,Prerequisite suite:${_st})
+        $(call Verbose,Prerequisite suite:${_st})
         $(if ${${_st}.SegID},
-          $(call Debug,The suite containing ${_prereq} is in use.)
+          $(call Verbose,The suite containing ${_prereq} is in use.)
         ,
           $(call Use-Segment,${_st})
         )
-        $(call Debug,Prereq ${_prereq} origin:$(origin ${_prereq}))
+        $(call Verbose,Prereq ${_prereq} origin:$(origin ${_prereq}))
         $(if $(filter undefined,$(origin ${_prereq})),
           $(call Signal-Error,Prereq test ${_prereq} is undefined.)
           $(eval Prereq.Failed := 1)
@@ -1404,11 +1404,11 @@ define ${_macro}
       $(eval _cases := $(call Basenames-In,${SUITES_PATH}/*.mk))
     )
   )
-  $(call Debug,Parsing:${_cases})
+  $(call Verbose,Parsing:${_cases})
   $(foreach _case,${_cases},
     $(eval _s := $(call Get-Suite-Name,${_case}))
     $(eval _t := $(call Get-Test-Name,${_case}))
-    $(call Debug,Parsing test(s):${_t})
+    $(call Verbose,Parsing test(s):${_t})
     $(if ${_s},
       $(eval _suite := ${_s})
     ,
@@ -1425,13 +1425,13 @@ define ${_macro}
     )
     $(if ${_t},
       $(eval _tl := $(subst +, ,${_t}))
-      $(call Debug,Test list:${_tl})
+      $(call Verbose,Test list:${_tl})
       $(foreach _test,${_tl},
-        $(call Debug,Parsing test(s):${_test})
+        $(call Verbose,Parsing test(s):${_test})
         $(eval _t2 := $(filter ${_suite}.${_test},${${_suite}.TestL}))
-        $(call Debug,Checking test:${_t2})
+        $(call Verbose,Checking test:${_t2})
         $(if ${_t2},
-          $(call Debug,Adding test:${_t2})
+          $(call Verbose,Adding test:${_t2})
           $(call Add-Tests-To-Contexts,Run,${_t2})
         ,
           $(call Signal-Error,\
@@ -1439,7 +1439,7 @@ define ${_macro}
         )
       )
     ,
-      $(call Debug,Adding suite ${_suite} to Run context.)
+      $(call Verbose,Adding suite ${_suite} to Run context.)
       $(call Add-Tests-To-Contexts,Run,${${_suite}.TestL})
     )
   )
@@ -1479,11 +1479,11 @@ define ${_macro}
   $(call Add-Segment-Path,$(1))
   $(call Create-Run-List,$(2))
   $(if $(call Is-Goal,help-Run.SuiteL),
-    $(call Debug,Building Run.SuiteL help list.)
+    $(call Verbose,Building Run.SuiteL help list.)
     $(call More-Help,Run.SuiteL)
   )
   $(if $(call Is-Goal,help-Run.TestL),
-    $(call Debug,Building Run.TestL help list.)
+    $(call Verbose,Building Run.TestL help list.)
     $(call More-Help,Run.TestL)
   )
   $(call Exit-Macro)

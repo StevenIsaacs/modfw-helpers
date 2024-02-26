@@ -7,6 +7,20 @@ ifndef ${LastSegUN}.SegID
 $(call Enter-Segment,Test the macros and variables related to Sticky variables.)
 # -----
 
+define _help
+Make test suite: ${Seg}.mk
+
+Verify the macros and variables used for maintaining sticky variables.
+
+Command line goals:
+  help-${SegUN}
+    Display this help.
+endef
+help-${SegID} := $(call _help)
+$(call Add-Help,${SegID})
+
+$(call Add-Help-Section,TestList,Test list.)
+
 $(call Declare-Suite,${Seg},Verify the Sticky variable macros.)
 
 ${.SuiteN}.Prereqs :=
@@ -22,6 +36,7 @@ ${.TestUN}
   this macro is called. These are first verified to have correct values.
 endef
 help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
 ${.TestUN}.Prereqs := expect-tests.Expect-String
 define ${.TestUN}
   $(call Enter-Macro,$(0))
@@ -148,6 +163,7 @@ ${.TestUN}
   Verify the macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
 ${.TestUN}.Prereqs := ${.SuiteN}.Sticky test-vars.Compare-Strings
 define ${.TestUN}
   $(call Enter-Macro,$(0))
@@ -206,6 +222,7 @@ ${.TestUN}
   Verify the macro:$(call Get-Test-Name,${.TestUN})
 endef
 help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
 ${.TestUN}.Prereqs := ${.SuiteN}.Redefine-Sticky
 define ${.TestUN}
   $(call Enter-Macro,$(0))
@@ -242,17 +259,7 @@ __h := \
     $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 define __help
-Make test suite: ${Seg}.mk
-
-Verify the macros and variables used for maintaining sticky variables.
-
-Tests:
-$(foreach __t,${${.SuiteN}.TestL},
-${help-${__t}})
-
-Command line goals:
-  help-${SegUN}
-    Display this help.
+$(call Display-Help-List,${SegID})
 endef
 ${__h} := ${__help}
 endif # help goal message.

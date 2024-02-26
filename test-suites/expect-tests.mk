@@ -7,6 +7,20 @@ ifndef ${LastSegUN}.SegID
 $(call Enter-Segment,Verify the helper macros for expecting values and results.)
 # -----
 
+define _help
+Make test suite: ${Seg}.mk
+
+This test suite verifies the variety of expect macros.
+
+Command line goals:
+  help-${SegUN}
+    Display this help.
+endef
+help-${SegID} := $(call _help)
+$(call Add-Help,${SegID})
+
+$(call Add-Help-Section,TestList,Test list.)
+
 $(call Declare-Suite,${Seg},Verify the variable related helper macros.)
 
 # Define the tests in the order in which they should be run.
@@ -17,6 +31,7 @@ ${.TestUN}
   Verify Expect-Vars for both passing and failing.
 endef
 help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
 ${.TestUN}.Prereqs := ${.SuiteN}.Set-Expected-Results
 define ${.TestUN}
   $(call Enter-Macro,$(0))
@@ -48,33 +63,34 @@ ${.TestUN}
   Verify a list of expected results will produce the correct test results.
 endef
 help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
 ${.TestUN}.Prereqs :=
 define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
   $(call Set-Expected-Results,PASS)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(call PASS,This should PASS:PASS.)
   $(if ${ExpectedResultsL},
     $(call FAIL,ExpectedResultsL should be empty.)
   ,
     $(call PASS,ExpectedResultsL is empty.)
   )
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(call PASS,This should not call Verify-Result.)
 
   $(call Set-Expected-Results,FAIL)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(call FAIL,This should PASS:FAIL.)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(call PASS,This should not call Verify-Result.)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
 
   $(call Set-Expected-Results,PASS PASS FAIL FAIL FAIL)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(call PASS,This should PASS:PASS.)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(if ${.Failed},
     $(call Test-Info,Test has already failed -- skipping FAIL reset.)
     $(call FAIL,This should FAIL:PASS.)
@@ -88,9 +104,9 @@ define ${.TestUN}
       $(call Record-FAIL)
     )
   )
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(call FAIL,This should PASS:FAIL.)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(if ${.Failed},
     $(call Test-Info,Test has already failed -- skipping FAIL reset.)
     $(call PASS,This should FAIL:FAIL.)
@@ -104,9 +120,9 @@ define ${.TestUN}
       $(call Record-FAIL)
     )
   )
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(call FAIL,This should PASS:FAIL.)
-  $(call Debug,ExpectedResultsL:${ExpectedResultsL})
+  $(call Verbose,ExpectedResultsL:${ExpectedResultsL})
   $(if ${ExpectedResultsL},
     $(call FAIL,ExpectedResultsL should be empty.)
   ,
@@ -123,6 +139,7 @@ ${.TestUN}
   Verify Expect-List for both passing and failing.
 endef
 help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
 ${.TestUN}.Prereqs := ${.SuiteN}.Set-Expected-Results
 define ${.TestUN}
   $(call Enter-Macro,$(0))
@@ -147,6 +164,7 @@ ${.TestUN}
   Verify Expect-List for both passing and failing.
 endef
 help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
 ${.TestUN}.Prereqs := ${.SuiteN}.Set-Expected-Results
 define ${.TestUN}
   $(call Enter-Macro,$(0))
@@ -176,17 +194,7 @@ __h := \
     $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
 define __help
-Make test suite: ${Seg}.mk
-
-This test suite verifies the variety of expect macros.
-
-Tests:
-$(foreach __t,${${.SuiteN}.TestL},
-${help-${__t}})
-
-Command line goals:
-  help-${SegUN}
-    Display this help.
+$(call Display-Help-List,${SegID})
 endef
 ${__h} := ${__help}
 endif # help goal message.
