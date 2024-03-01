@@ -146,8 +146,15 @@ define ${.TestUN}
     $(call FAIL,Sticky var ${_vn5} was not created.)
   )
 
+  $(eval _vn6 := sticky6)
+  $(eval ${_vn6} := from file)
+  $(call Expect-Warning,\
+    Sticky variable ${_vn6} was defined in a make segment -- not saving.)
+  $(call Sticky,${_vn6})
+  $(call Verify-Warning)
+
   $(call Test-Info,Cleanup...)
-  $(foreach _v,${_vn1} ${_vn2} ${_vn3} ${_vn4} ${_vn5},
+  $(foreach _v,${_vn1} ${_vn2} ${_vn3} ${_vn4} ${_vn5} ${_vn6},
     $(eval StickyVars := $(filter-out ${_v},${StickyVars}))
     $(shell rm ${STICKY_PATH}/${_v})
     $(eval undefine ${_v})
