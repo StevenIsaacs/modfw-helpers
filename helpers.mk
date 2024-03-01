@@ -173,7 +173,7 @@ help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
 _var := Goals
-${_var} := ${MAKECMDGOALS}
+${_var} := ${DefaultGoal} ${MAKECMDGOALS}
 define _help
 ${_var} = ${${_var}}
   This is the list of goals from the make command line.
@@ -1044,7 +1044,9 @@ _macro := Compare-Strings
 define _help
 ${_macro}
   Compare two strings and return a list of indexes of the words which do not
-  match.  If the strings are identical then nothing is returned.If the lengths of the strings are not the same then the difference in lengths is returned as "d <diff>".
+  match.  If the strings are identical then nothing is returned.If the lengths
+  of the strings are not the same then the difference in lengths is returned as
+  "d <diff>".
   NOTE: Multiple spaces are collapsed to a single space so it is not
   possible to detected a difference in the number of spaces separating the
   words of a string.
@@ -1922,8 +1924,17 @@ export HELPER_FUNCTIONS
 $(call Add-Help-Section,Sticky,For handling sticky variables.)
 
 # For storing sticky options in a known location.
+_var := STICKY_DIR
+${_var} := sticky
+define _help
+${_var} = ${${_var}}
+  The name of the directory where sticky variables are stored.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 _var := DEFAULT_STICKY_PATH
-${_var} ?= ${HiddenPath}/sticky
+${_var} ?= ${HiddenPath}/${STICKY_DIR}
 define _help
 ${_var} = ${${_var}}
   The default path to where sticky variables are stored.
@@ -1980,11 +1991,17 @@ define _help
 ${_macro}
   A sticky variable is persistent and needs to be defined on the command line
   at least once or have a default value as an argument.
+
+  If the variable has already been defined in a segment then the variable is
+  not saved as a sticky variable.
+
   If the variable has not been defined when this macro is called then the
   previous value is used. Defining the variable will overwrite the previous
   sticky value.
+
   Only the first call to Sticky for a given variable will be accepted.
   Additional calls will produce a redefinition error.
+
   Sticky variables are read only in a sub-make (MAKELEVEL != 0).
   Parameters:
     1 = Variable name[=<value>]
@@ -2028,55 +2045,61 @@ define ${_macro}
     $(call Warn,Redefinition of sticky variable ${__sn} ignored.)
   ,
     $(eval StickyVars += ${__sn})
-    $(eval __sf := ${STICKY_PATH}/${__sn})
-    $(if $(wildcard ${STICKY_PATH}),
+    $(call Debug,Stick var $(1) origin:$(origin $(1)))
+    $(if $(filter file,$(origin $(1))),
+      $(call Warn,\
+        Sticky variable $(1) was defined in a make segment -- not saving.)
     ,
-      $(shell mkdir -p ${STICKY_PATH})
-    )
-    $(call Verbose,Flavor of ${__sn} is:$(flavor ${__sn}))
-    $(eval __save :=)
-    $(if $(call Is-Not-Defined,${__sn}),
-      $(call Verbose,Defining ${__sn})
-      $(if $(findstring =,$(1)),
-        $(eval __sv := $(wordlist 2,$(words ${__snl}),${__snl}))
-        $(eval __save := 1)
-        $(call Verbose,Setting ${__sn} to:"${__sv}".)
+      $(eval __sf := ${STICKY_PATH}/${__sn})
+      $(if $(wildcard ${STICKY_PATH}),
       ,
-        $(if $(call Is-Sticky,${__sn}),
-          $(call Verbose,Reading previously saved value for ${__sn})
-          $(eval __sv := $(file <${__sf}))
+        $(shell mkdir -p ${STICKY_PATH})
+      )
+      $(call Verbose,Flavor of ${__sn} is:$(flavor ${__sn}))
+      $(eval __save :=)
+      $(if $(call Is-Not-Defined,${__sn}),
+        $(call Verbose,Defining ${__sn})
+        $(if $(findstring =,$(1)),
+          $(eval __sv := $(wordlist 2,$(words ${__snl}),${__snl}))
+          $(eval __save := 1)
+          $(call Verbose,Setting ${__sn} to:"${__sv}".)
         ,
-          $(if $(2),
-            $(eval __sv := $(2))
-            $(call Verbose,Setting ${__sn} to default:"${__sv}")
-            $(eval __save := 1)
+          $(if $(call Is-Sticky,${__sn}),
+            $(call Verbose,Reading previously saved value for ${__sn})
+            $(eval __sv := $(file <${__sf}))
+          ,
+            $(if $(2),
+              $(eval __sv := $(2))
+              $(call Verbose,Setting ${__sn} to default:"${__sv}")
+              $(eval __save := 1)
+            )
           )
         )
-      )
-      $(eval ${__sn} := ${__sv})
-      $(if ${SubMake},
-        $(call Verbose,Variables are read-only in a sub-make.)
-      ,
-        $(if ${__save},
-          $(call Verbose,Creating sticky:${__sn})
-          $(file >${__sf},${__sv})
-        )
-      )
-    ,
-      $(call Verbose,${__sn} is defined.)
-      $(if $(findstring =,$(1)),
-        $(eval ${__sn} := $(wordlist 2,$(words ${__snl}),${__snl}))
-      )
-      $(call Verbose,Saving sticky:${__sn}=${${__sn}})
-      $(if ${SubMake},
-        $(call Verbose,Variables are read-only in a sub-make.)
-      ,
-        $(if $(call Is-Sticky,${__sn}),
-          $(call Verbose,Replacing sticky:${__sf})
+        $(eval ${__sn} := ${__sv})
+        $(if ${SubMake},
+          $(call Verbose,Variables are read-only in a sub-make.)
         ,
-          $(call Verbose,Creating sticky:${__sf})
+          $(if ${__save},
+            $(call Verbose,Creating sticky:${__sn})
+            $(file >${__sf},${__sv})
+          )
         )
-        $(file >${__sf},${${__sn}})
+      ,
+        $(call Verbose,${__sn} is defined.)
+        $(if $(findstring =,$(1)),
+          $(eval ${__sn} := $(wordlist 2,$(words ${__snl}),${__snl}))
+        )
+        $(call Verbose,Saving sticky:${__sn}=${${__sn}})
+        $(if ${SubMake},
+          $(call Verbose,Variables are read-only in a sub-make.)
+        ,
+          $(if $(call Is-Sticky,${__sn}),
+            $(call Verbose,Replacing sticky:${__sf})
+          ,
+            $(call Verbose,Creating sticky:${__sf})
+          )
+          $(file >${__sf},${${__sn}})
+        )
       )
     )
   )
@@ -2240,7 +2263,7 @@ FORCE:
 
 $(call Info,Goals: ${Goals})
 
-.DEFAULT_GOAL := ${DefaultGoal}
+.DEFAULT_GOAL = ${DefaultGoal}
 
 # Some behavior depends upon which platform.
 ifeq ($(shell grep WSL /proc/version > /dev/null; echo $$?),0)
