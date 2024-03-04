@@ -1256,7 +1256,7 @@ define ${_macro}
   $(if ${.SuiteN},
     $(eval .TestUN := ${.SuiteN}.$(1))
     $(if $(filter ${.TestUN},${Declared.TestL}),
-      $(call Warning,Name conflict with test ${.TestUN}.)
+      $(call Warn,Name conflict with test ${.TestUN}.)
     ,
       $(call Test-Info,++++ Test:$(1))
       $(call Add-Tests-To-Contexts,Session Declared ${.SuiteN},${.TestUN})
@@ -1501,7 +1501,7 @@ define ${_macro}
     $(call Report-Test-Results,Prereq)
     $(call Report-Test-Results,Session)
   ,
-    $(call Warning,No tests in the Run.TestL list.)
+    $(call Warn,No tests in the Run.TestL list.)
   )
   $(call Exit-Macro)
 endef
