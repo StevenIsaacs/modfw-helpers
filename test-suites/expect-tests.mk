@@ -53,6 +53,13 @@ define ${.TestUN}
   $(call Set-Expected-Results,PASS FAIL PASS)
   $(call Expect-Vars,_v1:abc _v2:def _v3:GhIJKlmnop)
 
+  $(call Set-Expected-Results,FAIL PASS PASS)
+  $(call Expect-Vars,_v1: _v2:Def _v3:GhIJKlmnop)
+
+  $(eval _v1 :=)
+  $(call Set-Expected-Results,PASS PASS PASS)
+  $(call Expect-Vars,_v1: _v2:Def _v3:GhIJKlmnop)
+
   $(call End-Test)
   $(call Exit-Macro)
 endef
@@ -154,6 +161,12 @@ define ${.TestUN}
   $(call Set-Expected-Results,FAIL FAIL)
   $(eval _l := $(call Expect-List,a b c d,a x c y))
 
+  $(call Set-Expected-Results,FAIL)
+  $(eval _l := $(call Expect-List,a b c d,a b c))
+
+  $(call Set-Expected-Results,FAIL)
+  $(eval _l := $(call Expect-List,a b c,a b c d))
+
   $(call End-Test)
   $(call Exit-Macro)
 endef
@@ -161,7 +174,7 @@ endef
 $(call Declare-Test,Expect-String)
 define _help
 ${.TestUN}
-  Verify Expect-List for both passing and failing.
+  Verify Expect-String for both passing and failing.
 endef
 help-${.TestUN} := $(call _help)
 $(call Add-Help,${.TestUN})
@@ -179,6 +192,126 @@ define ${.TestUN}
 
   $(call Set-Expected-Results,FAIL FAIL)
   $(eval _l := $(call Expect-String,${_str},This Is A string.))
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
+$(call Declare-Test,Expect-Message)
+define _help
+${.TestUN}
+  Verify Expect-Message for both passing and failing.
+endef
+help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
+${.TestUN}.Prereqs := ${.SuiteN}.Set-Expected-Results
+define ${.TestUN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(call Test-Info,Verifying match for a message.)
+  $(eval __m := This should PASS.)
+  $(call Expect-Message,${__m})
+  $(call Info,${__m})
+  $(call Set-Expected-Results,PASS)
+  $(call Verify-Message)
+  $(if ${MatchFound},
+    $(call PASS,MatchFound is TRUE.)
+  ,
+    $(call FAIL.MatchFound is FALSE.)
+  )
+  $(if $(filter 1,${MatchCount}),
+    $(call PASS,Message was found ${MatchCount} time.)
+  ,
+    $(call FAIL,Message was found ${MatchCount} time.)
+  )
+  $(if ${MismatchFound},
+    $(call FAIL,MismatchFound is TRUE.)
+  ,
+    $(call PASS.MismatchFound is FALSE.)
+  )
+  $(if $(filter 0,${MismatchCount}),
+    $(call PASS,Message was found ${MatchCount} time.)
+  ,
+    $(call FAIL,Message was found ${MatchCount} time.)
+  )
+
+
+  $(call Test-Info,Verifying no matching messages.)
+  $(call Expect-Message,${__m})
+  $(call Info,This should FAIL.)
+  $(call Set-Expected-Results,FAIL)
+  $(call Verify-Message)
+  $(call Test-Info,Mismatch list:${MismatchList})
+  $(if ${MatchFound},
+    $(call FAIL,MatchFound is TRUE.)
+  ,
+    $(call PASS.MatchFound is FALSE.)
+  )
+  $(if $(filter 0,${MatchCount}),
+    $(call PASS,Message was found ${MatchCount} time.)
+  ,
+    $(call FAIL,Message was found ${MatchCount} time.)
+  )
+  $(if ${MismatchFound},
+    $(call PASS,MismatchFound is TRUE.)
+  ,
+    $(call FAIL.MismatchFound is FALSE.)
+  )
+  $(if $(filter 1,${MismatchFound}),
+    $(call PASS,Message was found ${MismatchFound} time.)
+  ,
+    $(call FAIL,Message was found ${MismatchFound} time.)
+  )
+
+  $(call Test-Info,Verifying multiple matches.)
+  $(eval __m := This should match.)
+
+  $(call Expect-Message,${__m})
+  $(call Info,${__m})
+  $(call Set-Expected-Results,PASS)
+  $(call Verify-Message,1)
+
+  $(call Expect-Message,${__m})
+  $(call Info,${__m})
+  $(call Info,Not a match.)
+  $(call Info,${__m})
+  $(call Set-Expected-Results,PASS)
+  $(call Verify-Message,2)
+
+  $(call Expect-Message,${__m})
+  $(call Info,${__m})
+  $(call Info,Not a match.)
+  $(call Set-Expected-Results,FAIL)
+  $(call Verify-Message,2)
+
+  $(call Expect-Message,${__m})
+  $(call Info,${__m})
+  $(call Info,Not a match.)
+  $(call Info,${__m})
+  $(call Info,${__m})
+  $(call Set-Expected-Results,FAIL)
+  $(call Verify-Message,2)
+  $(if ${MatchFound},
+    $(call PASS,MatchFound is TRUE.)
+  ,
+    $(call FAIL.MatchFound is FALSE.)
+  )
+  $(if $(filter 3,${MatchCount}),
+    $(call PASS,Message was found ${MatchCount} time.)
+  ,
+    $(call FAIL,Message was found ${MatchCount} time.)
+  )
+  $(if ${MismatchFound},
+    $(call PASS,MismatchFound is TRUE.)
+  ,
+    $(call FAIL.MismatchFound is FALSE.)
+  )
+  $(if $(filter 1,${MismatchFound}),
+    $(call PASS,Message was found ${MismatchFound} time.)
+  ,
+    $(call FAIL,Message was found ${MismatchFound} time.)
+  )
 
   $(call End-Test)
   $(call Exit-Macro)

@@ -8,7 +8,7 @@ $(call Enter-Segment,For test only.)
 # -----
 
 $(call Info,${SegUN}:Path:$(call Last-Segment-Path))
-$(call Expect-Vars,Seg:ts1 ts1Seg:ts1)
+$(call Verify-Seg-Attributes,test-segs.ts1)
 
 # +++++
 # Postamble
@@ -19,6 +19,7 @@ define __help
 Make segment: ${Seg}.mk
 
 This segment is in the helpers directory and is intended for test only.
+WARNING: This assumes a test segment directory structure.
 
 Command line goals:
   help-${SegUN}   Display this help.
