@@ -8,7 +8,16 @@ $(call Enter-Segment,For test only.)
 # -----
 
 $(call Info,${SegUN}:Path:$(call Last-Segment-Path))
-$(call Expect-Vars,Seg:ts3 ts3Seg:ts3)
+$(call Verify-Seg-Attributes,test-segs.ts3)
+
+$(call Test-Info,Recursive call to Use-Segment.)
+$(call Expect-Message,Recursive call to macro Use-Segment detected.)
+$(call Expect-No-Warning)
+$(call Expect-No-Error)
+$(call Use-Segment,ts4)
+$(call Verify-No-Error)
+$(call Verify-No-Warning)
+$(call Verify-Message)
 
 # +++++
 # Postamble

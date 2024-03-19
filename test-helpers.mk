@@ -467,6 +467,9 @@ endef
 
 $(call Add-Help-Section,Expects,Verifying expected results and variable values.)
 
+# NOTE: The expect macros should not use Enter-Macro or Exit-Macro because
+# they could influence other tets.
+
 _macro := Set-Expected-Results
 define _help
 ${_macro}
@@ -479,9 +482,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
   $(eval ExpectedResultsL := $(1))
-  $(call Exit-Macro)
 endef
 
 _macro := Expect-Vars
@@ -496,7 +497,6 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
   $(foreach _e,$(1),
     $(eval _ve := $(subst :,${Space},${_e}))
     $(call Verbose,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
@@ -504,17 +504,16 @@ define ${_macro}
       $(if $(filter ${$(word 1,${_ve})},$(word 2,${_ve})),
         $(call PASS,Expecting:(${_e}))
       ,
-        $(call FAIL,Expecting:(${_e}) = (${$(word 1,${_ve})}))
+        $(call FAIL,Expecting:(${_e}) actual (${$(word 1,${_ve})}))
       )
     ,
       $(if $(strip ${$(word 1,${_ve})}),
-        $(call FAIL,Expecting:(${_e}) = (${$(word 1,${_ve})}))
+        $(call FAIL,Expecting:(${_e}) actual (${$(word 1,${_ve})}))
       ,
         $(call PASS,Expecting:(${_e}))
       )
     )
   )
-  $(call Exit-Macro)
 endef
 
 _macro := Expect-List
@@ -534,29 +533,33 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1) $(2))
-  $(call Verbose,Expecting:"$(1)")
-  $(call Verbose,Actual:"$(2)")
-  $(eval _i := 0)
-  $(eval _ex := )
-  $(foreach _w,$(1),
-    $(call Inc-Var,_i)
-    $(if $(filter ${_w},$(word ${_i},$(2))),
-      $(call Verbose,${_w} = $(word ${_i},$(2)))
-    ,
-      $(eval _ex += ${_i})
+  $(call Test-Info,Expecting:"$(1)")
+  $(call Test-Info,Actual:"$(2)")
+  $(eval __le := $(words $(1)))
+  $(eval __la := $(words $(2)))
+  $(if $(filter ${__le},${__la}),
+    $(eval _i := 0)
+    $(eval _ex := )
+    $(foreach _w,$(1),
+      $(call Inc-Var,_i)
+      $(if $(filter ${_w},$(word ${_i},$(2))),
+        $(call Verbose,${_w} = $(word ${_i},$(2)))
+      ,
+        $(eval _ex += ${_i})
+      )
     )
-  )
-  $(if ${_ex},
-    $(call Test-Info,Lists do not match.)
-    $(foreach _i,${_ex},
-      $(call FAIL,\
-        Expected:($(word ${_i},$(1))) Found:($(word ${_i},$(2))))
+    $(if ${_ex},
+      $(call Test-Info,Lists do not match.)
+      $(foreach _i,${_ex},
+        $(call FAIL,\
+          Expected:($(word ${_i},$(1))) Found:($(word ${_i},$(2))))
+      )
+    ,
+      $(call PASS,Lists match.)
     )
   ,
-    $(call PASS,Lists match.)
+    $(call FAIL,List lengths are not the same.)
   )
-  $(call Exit-Macro)
 endef
 
 _macro := Expect-String
@@ -570,40 +573,43 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1) $(2))
   $(call Verbose,Expecting:"$(1)")
   $(call Verbose,Actual:"$(2)")
   $(call Expect-List,$(1),$(2))
-  $(call Exit-Macro)
 endef
+
+$(call Add-Help-Section,ExpectedMessages,Expected messages.)
 
 ExpectedMessage :=
 TestingExpect :=
 MatchFound :=
 MatchCount := 0
+MismatchFound :=
+MismatchCount := 0
+MismatchList :=
 
-define _Check-Message
+define __Check-Message
   $(if ${TestingExpect},
   ,
     $(eval TestingExpect := 1)
-    $(call Enter-Macro,$(0),$(1))
+    $(call Inc-Var,MessageCount)
+    $(eval MismatchList := )
     $(eval _i := 0)
-    $(eval _no_match := )
-    $(foreach _w,${ExpectedMessage},
+    $(foreach _expected,${ExpectedMessage},
       $(call Inc-Var,_i)
-      $(if $(filter ${_w},$(word ${_i},$(1))),
+      $(eval _actual := $(word ${_i},$(1)))
+      $(if $(filter ${_expected},${_actual}),
       ,
-        $(eval _no_match += ${_i})
+        $(eval MismatchList += ${_expected}:${_actual})
       )
     )
-    $(if ${_no_match},
-      $(call Test-Info,Messages do not match.)
+    $(if ${MismatchList},
+      $(eval MismatchFound := 1)
+      $(call Inc-Var,MismatchCount)
     ,
-      $(call Test-Info,Message matched.)
       $(eval MatchFound := 1)
       $(call Inc-Var,MatchCount)
     )
-    $(call Exit-Macro)
     $(eval TestingExpect :=)
   )
 endef
@@ -623,12 +629,13 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
-  $(eval Expected_Message := $(1))
+  $(eval ExpectedMessage := $(1))
   $(eval MatchFound := )
   $(eval MatchCount := 0)
-  $(call Set-Message-Callback,Check-Message)
-  $(call Exit-Macro)
+  $(eval MismatchFound := )
+  $(eval MismatchCount := 0)
+  $(eval MessageCount := 0)
+  $(call Set-Message-Callback,__Check-Message)
 endef
 
 _macro := Verify-Message
@@ -638,29 +645,41 @@ ${_macro}
   occurred the specified number of times a PASS is emitted. Otherwise, a FAIL
   is emitted. This also clears the message callback.
   Parameters:
-    1 = The number of times the message should have matched. If active then
-        at least one match is verified to have occurred.
+    1 = The optional number of times the message should have matched. If this
+        is empty then at least one match is verified to have occurred.
+    2 = The optional number of times the message should NOT have matched. If
+        this is empty then message mismatches are not checked.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Set-Message-Callback)
-  $(call Enter-Macro,$(0),$(1))
   $(if ${MatchFound},
     $(if $(1),
       $(call Test-Info,Verifying the message matched $(1) times.)
-      $(if $(intcmp ${MessageCount},$(1)),
-        $(call PASS,The message matched ${MessageCount} times.)
+      $(if $(filter ${MatchCount},$(1)),
+        $(call PASS,The message matched ${MatchCount} times.)
       ,
-        $(call FAIL,The message matched ${MessageCount} times.)
+        $(call FAIL,The message matched ${MatchCount} times.)
       )
     ,
-      $(call PASS,The message matched ${MessageCount} times.)
+      $(call PASS,The message matched ${MatchCount} times.)
     )
   ,
     $(call FAIL,No messages matched.)
   )
-  $(call Exit-Macro)
+  $(if $(2),
+    $(if ${MismatchFound},
+      $(call Test-Info,Verifying the message mismatched $(2) times.)
+      $(if $(filter ${MismatchCount},$(2)),
+        $(call PASS,The message did not match ${MismatchCount} times.)
+      ,
+        $(call FAIL,The message did not match ${MismatchCount} times.)
+      )
+    ,
+      $(call FAIL,No mismatched messages found.)
+    )
+  )
 endef
 
 $(call Add-Help-Section,ExpectedErrors,Expected warning and error messages.)
@@ -681,12 +700,10 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
   $(call Set-Warning-Callback)
   $(eval Actual_Warning := $(1))
   $(call Verbose,Actual warning:$(1))
   $(call Expect-String,${Expected_Warning},${Actual_Warning})
-  $(call Exit-Macro)
 endef
 
 _macro := Expect-Warning
@@ -701,11 +718,9 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
   $(eval Expected_Warning := $(1))
   $(eval Actual_Warning :=)
   $(call Set-Warning-Callback,Oneshot-Warning-Callback)
-  $(call Exit-Macro)
 endef
 
 _macro := Verify-Warning
@@ -742,11 +757,9 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0))
   $(eval Expected_Warning :=)
   $(eval Actual_Warning :=)
   $(call Set-Warning-Callback,Oneshot-Warning-Callback)
-  $(call Exit-Macro)
 endef
 
 _macro := Verify-No-Warning
@@ -766,7 +779,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(if ${Actual_Warning},
-    $(call FAIL,Unexpected:${Actual_Warning})
+    $(call FAIL,Unexpected warning:${Actual_Warning})
   ,
     $(call PASS,Warning did not occur -- as expected.)
     $(call Set-Warning-Callback)
@@ -789,10 +802,8 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
   $(eval Actual_Error := $(1))
   $(call Set-Error-Callback)
-  $(call Exit-Macro)
 endef
 
 _macro := Expect-Error
@@ -862,7 +873,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(if ${Actual_Error},
-    $(call FAIL,Unexpected:${Actual_Error})
+    $(call FAIL,Unexpected error:${Actual_Error})
   ,
     $(call PASS,Error did not occur -- as expected.)
     $(call Set-Error-Callback)
@@ -908,13 +919,13 @@ define ${_macro}
     SegV \
     SegP \
     SegF \
-    SegD \
+    SegTL \
     ${SegUN}.SegID \
     ${SegUN}.Seg \
     ${SegUN}.SegV \
     ${SegUN}.SegP \
     ${SegUN}.SegF \
-    ${SegUN}.SegD \
+    ${SegUN}.SegTL \
   )
 
   $(call Test-Info,\
@@ -1292,6 +1303,7 @@ define ${_macro}
     $(call Verbose,$(1) prereqs:${$(1).Prereqs})
     $(foreach _prereq,${$(1).Prereqs},
       $(if ${${_prereq}.Completed},
+        $(eval ${_prereq}.Running := )
         $(call Test-Info,Test ${_prereq} has already completed -- skipping.)
         $(if ${${_prereq}.Failed},
           $(call Test-Info,Test ${_prereq} FAILED previously.)
@@ -1301,6 +1313,7 @@ define ${_macro}
         $(call Test-Info,Running prerequisite:${_prereq}.)
         $(eval _st := $(call Get-Suite-Name,${_prereq}))
         $(call Verbose,Prerequisite suite:${_st})
+
         $(if ${${_st}.SegID},
           $(call Verbose,The suite containing ${_prereq} is in use.)
         ,
@@ -1311,13 +1324,18 @@ define ${_macro}
           $(call Signal-Error,Prereq test ${_prereq} is undefined.)
           $(eval Prereq.Failed := 1)
         ,
-          $(call Run-Prerequisites,${_prereq})
-          $(eval RunContext := Prereq)
-          $(call ${_prereq})
-          $(eval RunContext :=)
-          $(if ${${_prereq}.Failed},
-            $(call Test-Info,Test ${_prereq} FAILED -- skipping.)
-            $(eval Prereq.Failed := 1)
+          $(if ${${_prereq}.Running},
+            $(call Signal-Error,Dependency loop for ${_prereq} detected.)
+          ,
+            $(eval ${_prereq}.Running := 1)
+            $(call Run-Prerequisites,${_prereq})
+            $(eval RunContext := Prereq)
+            $(call ${_prereq})
+            $(eval RunContext :=)
+            $(if ${${_prereq}.Failed},
+              $(call Test-Info,Test ${_prereq} FAILED -- skipping.)
+              $(eval Prereq.Failed := 1)
+            )
           )
         )
       )

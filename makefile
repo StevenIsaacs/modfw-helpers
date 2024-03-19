@@ -4,12 +4,12 @@
 #VERBOSE=1
 #DEBUG=1
 
-TmpTestPath := /tmp/test-helpers
+TmpTestPath := ${CURDIR}/tmp/test-helpers
 LOG_PATH := ${TmpTestPath}/log
 
 STICKY_PATH := ${TmpTestPath}/sticky
 
-MakeD := Run the test suites to test the helpers.
+MakeTL := Run the test suites to test the helpers.
 
 include helpers.mk
 

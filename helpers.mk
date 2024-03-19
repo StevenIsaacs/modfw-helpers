@@ -4,11 +4,11 @@
 __seg := $(basename $(lastword ${MAKEFILE_LIST}))
 ifndef ${__seg}.SegID
 # First time pre-init. This will be reset later by Set-Segment-Context.
-Seg := ${__seg}
-__p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
-SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
-SegID := $(words ${MAKEFILE_LIST})
-${Seg}.SegID := ${SegID}
+# Seg := ${__seg}
+# __p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
+# SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
+# SegID := $(words ${MAKEFILE_LIST})
+# ${Seg}.SegID := ${SegID}
 
 define _help
 Make segment: ${Seg}.mk
@@ -345,12 +345,12 @@ endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
-$(call Add-Help-Section,MakeD,Top level make.)
+$(call Add-Help-Section,MakeTL,Top level make.)
 
-_var := MakeD
-MakeD ?= MakeD is UNDEFINED.
+_var := MakeTL
+MakeTL ?= MakeTL is UNDEFINED.
 define _help
-${_var} := ${MakeD}
+${_var} := ${MakeTL}
   The one line description for the makefile which included the helpers.
   This must be defined before including helpers.mk.
 endef
@@ -370,7 +370,7 @@ endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
-_var := Entry_Stack
+_var := Macro_Stack
 ${_var} := $(basename $(notdir $(word 1,${MAKEFILE_LIST})))
 define _help
 ${_var}
@@ -382,7 +382,7 @@ help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
 _var := Caller
-${_var} := ${Entry_Stack}
+${_var} := ${Macro_Stack}
 define _help
 ${_var}
   This is the name of the file or macro calling a macro.
@@ -496,7 +496,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(eval __msg := \
-    $(strip $(1)):${Caller}:$(lastword ${Entry_Stack}):$(strip $(2)))
+    $(strip $(1)):${Caller}:$(lastword ${Macro_Stack}):$(strip $(2)))
   $(if ${LOG_FILE},
     $(file >>${LogFile},${__msg})
   )
@@ -510,11 +510,11 @@ define ${_macro}
   $(if ${Message_Callback},
     $(if ${Message_Safe},
       $(eval Message_Safe :=)
-      $(call ${Message_Callback},$(strip ${__msg}))
+      $(call ${Message_Callback},$(strip $(2)))
       $(eval Message_Safe := 1)
     ,
       $(eval __msg := \
-        clbk:${SegUN}:$(lastword ${Entry_Stack}):$(strip \
+        clbk:${SegUN}:$(lastword ${Macro_Stack}):$(strip \
           Recursive call to Message_Callback -- callback not called.))
       $(if ${LOG_FILE},
         $(file >>${LogFile},${__msg})
@@ -683,44 +683,63 @@ define ${_macro}
   $(shell read -r -p "Step: Press Enter to continue...")
 endef
 
-define __Push-Entry
-  $(if $(filter $(1),${Entry_Stack}),
-    $(call Attention,Recursive entry to $(1) detected.)
+define __Push-Macro
+  $(if $(filter $(1),${Macro_Stack}),
+    $(call Attention,Recursive call to macro $(1) detected.)
   )
-  $(eval Caller := $(lastword ${Entry_Stack}))
-  $(eval Entry_Stack += $(1))
+  $(if ${Macro_Stack},
+    $(eval Caller := $(lastword ${Macro_Stack}))
+  ,
+    $(eval Caller :=)
+  )
+  $(eval Macro_Stack += $(1))
   $(if ${DEBUG},
     $(call Log-Message, \
-      $(words ${Entry_Stack})-->,${Entry_Stack})
+      $(words ${Macro_Stack})-->,${Macro_Stack})
     $(if ${Single_Step},$(call Step))
+  )
+endef
+
+define __Pop-Macro
+  $(if ${Macro_Stack},
+    $(if ${DEBUG},
+      $(call Log-Message, \
+        <--$(words ${Macro_Stack}),Exiting:$(lastword ${Macro_Stack}))
+    )
+    $(eval Caller := )
+    $(eval __l := $(words ${Macro_Stack}))
+    $(call Dec-Var,__l)
+    $(if $(filter ${__l},0),
+      $(eval Macro_Stack := )
+      $(call Attention,Macro stack is empty.)
+    ,
+      $(eval Macro_Stack := $(wordlist 1,${__l},${Macro_Stack}))
+      $(if $(filter ${__l},1),
+      ,
+        $(call Dec-Var,__l)
+        $(eval Caller := $(word ${__l},${Macro_Stack}))
+      )
+    )
+  ,
+    $(call Signal-Error,Macro call stack is empty.)
   )
 endef
 
 $(call Add-Help-Section,MacroContext,For maintaining macro context.)
 
-define __Pop-Entry
-  $(if ${DEBUG},
-    $(call Log-Message, \
-      <--$(words ${Entry_Stack}),Exiting:$(lastword ${Entry_Stack}))
-  )
-  $(eval __l := $(words ${Entry_Stack}))
-  $(call Dec-Var,__l)
-  $(eval Entry_Stack := $(wordlist 1,${__l},${Entry_Stack}))
-  $(eval Caller := $(lastword ${Entry_Stack}))
-endef
-
 _macro := Enter-Macro
 define _help
 ${_macro}
-  Adds a macro name to the Entry_Stack. This should be called as the first
+  Adds a macro name to the Macro_Stack. This should be called as the first
   line of the macro.
   Parameter:
     1 = The name of the macro to add to the stack.
+    2 = An optional list of parameters.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call __Push-Entry,$(1))
+  $(call __Push-Macro,$(1))
   $(if $(and ${DEBUG},$(2)),
     $(call Log-Message,====,$(2))
   )
@@ -729,13 +748,13 @@ endef
 _macro := Exit-Macro
 define _help
 ${_macro}
-  Removes the last macro name from the Entry_Stack. This should be called as
+  Removes the last macro name from the Macro_Stack. This should be called as
   the last line of the macro.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call __Pop-Entry)
+  $(call __Pop-Macro)
 endef
 
 $(call Add-Help-Section,CallbackHandling,For message callbacks.)
@@ -819,6 +838,11 @@ ${_macro}
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The error message.
+  Command line options:
+    STOP_ON_ERROR
+      When not empty execution will stop when an  error is reported.
+    PAUSE_ON_ERROR
+      When not empty execution fill pause when an error is reported.
   Uses:
     Error_Callback = ${Error_Callback}
       The name of the macro to call when an error occurs.
@@ -831,7 +855,14 @@ define ${_macro}
   $(eval ErrorList += ${NewLine}ERR!:${Caller}:$(1))
   $(call Log-Message,ERR!,$(1))
   $(eval Errors = yes)
-  $(warning Error:${SegUN}:$(1))
+  $(if ${STOP_ON_ERROR},
+    $(error Error:${SegUN}:$(1))
+  ,
+    $(warning Error:${SegUN}:$(1))
+    $(if ${PAUSE_ON_ERROR},
+      $(shell read -r -p "Press Enter to continue...")
+    )
+  )
   $(call Verbose,Handler: ${Error_Callback} Safe:${Error_Safe})
   $(if ${Error_Callback},
     $(if ${Error_Safe},
@@ -1088,21 +1119,21 @@ endef
 $(call Add-Help-Section,SegManagement,For managing segments.)
 
 _var := SegAttributes
-${_var} := SegUN SegID Seg SegP SegF SegV SegD
+${_var} := SegID UserSegID SegUN Seg SegP SegD SegF SegV SegTL
 define _help
 ${_var} = ${${_var}}
   Each makefile segment is managed using a set of attributes. The context for
   a given segment is prefixed by its unique name <segun>. The current context
   has no prefix.
+    SegID or <segun>.SegID
+      The ID for the segment. This is basically the index in MAKEFILE_LIST for
+      the segment.
+    UserSegID or <segun>.UserSegID
+      The ID of the segment which used this segment. This is basically the
+      index in MAKEFILE_LIST for the using segment.
     SegUN or <segun>.SegUN
       The pseudo unique name for the segment <segun>. This is then used as the
-      key to access the attributes for a given segment.
-      This name is a combination of the directory containing the segment and the
-      directory one level up in dot notation. In other words the last two
-      directories in the full path to the segment file.
-      For example:
-        If the path is: /dir1/dir2/dir3/seg.mk
-        The resulting pseudo unique name is: dir2.dir3
+      key to access the attributes for a given segment. See help-Path-To-UN.
     SegID or <segun>.SegID
       The ID for the segment. This is basically the index in MAKEFILE_LIST for
       the segment.
@@ -1112,11 +1143,13 @@ ${_var} = ${${_var}}
       The name of the segment converted to a shell compatible variable name.
     SegP or <segun>.SegP
       The path to the makefile segment.
+    SegD or <segun>.SegD
+      The name of the directory containing the segment.
     SegF or <segun>.SegF
       The path and name of the makefile segment. This can be used as part of a
       dependency list.
-    SegD or <segun>.SegD
-      A one line description for the segment.
+    SegTL or <segun>.SegTL
+      A one line description (tag line) for the segment.
 endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
@@ -1124,22 +1157,35 @@ $(call Add-Help,${_var})
 _macro := Path-To-UN
 define _help
 ${_macro}
-  Return a pseudo unique identifier for a given path.
+  Return a pseudo unique name for a given path.
+  This name is a combination of the directory containing the segment and the
+  name of the segment in dot notation.
+  For example:
+    If the path is: /dir1/dir2/dir3/seg.mk
+    The resulting pseudo unique name is: dir3.seg
   Parameters:
-    1 = The path for the UN.
+    1 = The full file path for the UN. The path must exist.
     2 = The variable in which to store the UN.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
   $(call Verbose,MAKEFILE_LIST:${MAKEFILE_LIST})
   $(call Verbose,path:$(realpath $(1)))
-  $(eval __seg := $(basename $(notdir $(1))))
-  $(call Verbose,__seg:${__seg})
-  $(eval __p := $(subst /.,,$(dir $(realpath $(1))).))
-  $(call Verbose,__p:${__p})
-  $(eval $(2) := $(lastword $(subst /, ,${__p}.$(strip ${__seg}))))
-  $(call Verbose,$(2):${$(2)})
+  $(eval $(2) := )
+  $(if $(realpath $(1)),
+    $(eval __seg := $(basename $(notdir $(1))))
+    $(call Verbose,__seg:${__seg})
+    $(call Verbose,dir:$(dir $(realpath $(1))))
+    $(eval __p := $(subst /^,,$(dir $(realpath $(1)))^))
+    $(call Verbose,__p:${__p})
+    $(eval $(2) := $(lastword $(subst /, ,${__p}.$(strip ${__seg}))))
+    $(call Verbose,$(2):${$(2)})
+  ,
+    $(call Signal-Error,The file $(1) does not exist.)
+  )
+  $(call Exit-Macro)
 endef
 
 _macro := Last-Segment-UN
@@ -1233,6 +1279,17 @@ $(call Add-Help,${_macro})
 ${_macro} = \
   $(realpath $(dir $(lastword ${MAKEFILE_LIST})))
 
+_macro := Last-Segment-Dir
+define _help
+${_macro}
+  Returns the directory of the most recently included makefile segment.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+${_macro} = \
+  $(lastword $(subst /, ,$(subst /^,,\
+    $(dir $(realpath $(lastword ${MAKEFILE_LIST})))^)))
+
 _macro := Get-Segment-UN
 define _help
 ${_macro}
@@ -1287,20 +1344,36 @@ $(call Add-Help,${_macro})
 ${_macro} = \
   $(realpath $(dir $(word $(1),${MAKEFILE_LIST})))
 
-_macro := SegPaths
-SegPaths = ${SegPaths}
+_macro := Get-Segment-Dir
 define _help
 ${_macro}
-  The list of paths to search to find or use a segment.
+  Returns the name of the directory containing the makefile segment
+  corresponding to ID.
+  Parameters:
+    1 = ID of the segment.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
-${_macro} :=  $(call Get-Segment-Path,1)
+${_macro} = \
+  $(lastword $(subst /, ,$(subst /=,,\
+    $(dir $(realpath $(word $(1),${MAKEFILE_LIST})))=)))
+
+_var := SegPaths
+${_var} := \
+  $(realpath $(dir $(word 1,${MAKEFILE_LIST})))
+define _help
+${_var}
+  The list of paths to search to find or use a segment.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
 
 _macro := Add-Segment-Path
 define _help
 ${_macro}
-  Add one or more path(s) to the list of segment search paths (SegPaths).
+  Add one or more path(s) to the list of segment search paths (SegPaths). If
+  more than one path is added each path must be separated by a space. Each
+  path must exist at the time it is added.
   Parameters:
     1 = The path(s) to add.
 endef
@@ -1308,11 +1381,17 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
-  $(if $(filter $(1),${SegPaths}),
-    $(call Verbose,Seg path $(1) was already added.)
-  ,
-    $(eval SegPaths += $(1))
-    $(call Verbose,Added path(s):$(1))
+  $(foreach __p,$(1),
+    $(if $(wildcard ${__p}/.),
+      $(if $(filter ${__p},${SegPaths}),
+        $(call Warn,Segment path ${__p} was already added.)
+      ,
+        $(eval SegPaths += ${__p})
+        $(call Verbose,Added path(s):${__p})
+      )
+    ,
+      $(call Signal-Error,Segment path ${__p} does not exist.)
+    )
   )
   $(call Exit-Macro)
 endef
@@ -1335,17 +1414,24 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1) $(2))
   $(eval $(2) := )
   $(call Verbose,Locating segment: $(1))
-  $(call Verbose,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegID}))
-  $(foreach __p,${SegPaths} $(call Get-Segment-Path,${SegID}),
-    $(call Verbose,Trying: ${__p})
-    $(if $(wildcard ${__p}/$(1).mk),
-      $(eval $(2) := ${__p}/$(1).mk)
+  $(if $(findstring .mk,$(1)),
+    $(call Verbose,Checking seg file path:${1})
+    $(if $(wildcard $(1)),
+      $(eval $(2) := $(1))
+    )
+  ,
+    $(call Verbose,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegID}))
+    $(foreach __p,${SegPaths} $(call Get-Segment-Path,${SegID}),
+      $(call Verbose,Trying: ${__p})
+      $(if $(wildcard ${__p}/$(1).mk),
+        $(eval $(2) := ${__p}/$(1).mk)
+      )
     )
   )
   $(if ${$(2)},
     $(call Verbose,Found segment:${$(2)})
   ,
-    $(call Signal-Error,$(1).mk not found.)
+    $(call Warn,Segment $(1) not found.)
   )
   $(call Exit-Macro)
 endef
@@ -1376,7 +1462,7 @@ ${_macro}
   inclusion of the same file more than once and to use standardized ID
   variables.
 
-  Each loaded segment is added to SegDeps to trigger rebuilds when a
+  Each loaded segment is added to SegTLeps to trigger rebuilds when a
   a segment is changed. NOTE: All components will be rebuilt in this case
   because it is unknown if a change in a segment will cause a change in the
   build output of another segment.
@@ -1388,50 +1474,24 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),$(1))
-  $(if $(findstring .mk,$(1)),
-    $(call Verbose,Including segment:${1})
-    $(eval include $(1))
-  ,
-    $(if ${$(1).SegID},
-      $(call Verbose,Segment $(1) is already loaded.)
+  $(call Find-Segment,$(1),__segf)
+  $(if ${__segf},
+    $(call Path-To-UN,${__segf},__sun)
+    $(if ${${__sun}.SegID},
+      $(call Warn,Segment $(1) is already loaded.)
     ,
-      $(call Find-Segment,$(1),__seg)
-      $(call Verbose,Using segment:${__seg})
-      $(eval include ${__seg})
+      $(call Verbose,Using segment:${__segf})
+      $(eval include ${__segf})
     )
+  ,
+    $(call Signal-Error,Segment $(1) could not be found.)
   )
-  $(call Exit-Macro)
-endef
-
-_macro := Set-Segment-Context
-define _help
-${_macro}
-  Sets the context for the makefile segment corresponding to ID.
-  Among other things this is needed in order to have correct prefixes
-  prepended to messages emitted by a makefile segment.
-  The context defaults to the top makefile (ID = 1).
-  Parameters:
-    1 = ID of the segment.
-endef
-help-${_macro} := $(call _help)
-$(call Add-Help,${_macro})
-define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
-
-  $(eval SegID := $(1))
-  $(eval SegUN := $(call Get-Segment-UN,$(1)))
-  $(eval Seg := $(call Get-Segment-Basename,$(1)))
-  $(eval SegP := $(call Get-Segment-Path,$(1)))
-  $(eval SegF := $(call Get-Segment-File,$(1)))
-  $(eval SegV := $(call To-Shell-Var,${SegUN}))
-  $(eval SegD := ${${SegUN}.SegD})
-
   $(call Exit-Macro)
 endef
 
 define __Push-SegID
   $(if $(filter ${SegID},${SegID_Stack}),
-    $(call Attention,Recursive entry to ${SegID} detected.)
+    $(call Signal-Error,Recursive entry to segment ${SegID} detected.)
   )
   $(eval SegID_Stack += ${SegID})
   $(if ${DEBUG},
@@ -1446,32 +1506,78 @@ define __Pop-SegID
     $(call Log-Message, \
       <~~$(words ${SegID_Stack}),Restoring SegID:$(lastword ${SegID_Stack}))
   )
-  $(eval __PrvSegID := $(lastword ${SegID_Stack}))
-  $(eval \
-    SegID_Stack := $(filter-out ${__PrvSegID},${SegID_Stack})
+  $(if ${SegID_Stack},
+    $(eval SegID := $(lastword ${SegID_Stack}))
+    $(eval __l := $(words ${SegID_Stack}))
+    $(call Dec-Var,__l)
+    $(if $(filter ${__l},0),
+      $(eval SegID_Stack := )
+    ,
+      $(eval SegID_Stack := $(wordlist 1,${__l},${SegID_Stack}))
+      $(if ${DEBUG},
+        $(call Log-Message, \
+          $(words ${SegID_Stack})~~>,SegID_Stack:${SegID_Stack})
+        $(if ${Single_Step},$(call Step))
+      )
+    )
+  ,
+    $(call Signal-Error,SegID stack is empty.)
   )
 endef
 
-_macro := __Init-Segment-Context
+_macro := Set-Segment-Context
 define _help
 ${_macro}
-  Initialize the segment context for the first segment in MAKEFILE_LIST. This
-  should be called before any other segment related macros are used.
+  Sets the context for the makefile segment corresponding to ID.
+  Among other things this is needed in order to have correct prefixes
+  prepended to messages emitted by a makefile segment.
+  Parameters:
+    1 = ID of the segment.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+
+  $(call Attention,Setting context for SegID $(1))
+  $(eval __un := $(call Get-Segment-UN,$(1)))
+  $(foreach __att,${SegAttributes},
+    $(eval ${__att} := ${${__un}.${__att}})
+  )
+
+  $(call Exit-Macro)
+endef
+
+_macro := __Init-Makefile-Context
+define _help
+${_macro}
+  Initialize the segment context for the segment in MAKEFILE_LIST which
+  included the helpers segment. This should be called before any other segment related macros are used. Helpers MUST be the second item in MAKEFILE_LIST.
   Parameters:
     1 = A one line description for the initial segment.
 endef
 define ${_macro}
-  $(call Enter-Macro,$(0))
+  $(call Enter-Macro,$(0),$(1))
 
-  $(call Set-Segment-Context,1)
-  $(eval SegD := $(1))
-  $(eval ${SegUN}.SegID := ${SegID})
-  $(eval ${SegUN}.SegUN := ${SegUN})
-  $(eval ${SegUN}.Seg := ${Seg})
-  $(eval ${SegUN}.SegP := ${SegP})
-  $(eval ${SegUN}.SegF := ${SegF})
-  $(eval ${SegUN}.SegV := ${SegV})
-  $(eval ${SegUN}.SegD := ${SegD})
+  $(eval __pc := $(words ${MAKEFILE_LIST}))
+  $(if $(filter ${__pc},2),
+    $(call Path-To-UN,$(word 1,${MAKEFILE_LIST}),__un)
+    $(eval ${__un}.SegID := 1)
+    $(eval ${__un}.UserSegID :=)
+    $(eval ${__un}.SegUN := $(call Get-Segment-UN,1))
+    $(eval ${__un}.Seg := $(call Get-Segment-Basename,1))
+    $(eval ${__un}.SegP := $(call Get-Segment-Path,1))
+    $(eval ${__un}.SegD := $(call Get-Segment-Dir,1))
+    $(eval ${__un}.SegF := $(call Get-Segment-File,1))
+    $(eval ${__un}.SegV := $(call To-Shell-Var,${__un}))
+    $(eval ${__un}.SegTL := $(1))
+    $(eval SegID_Stack := ${${__un}.SegID})
+    $(eval SegUNs := ${__un})
+  ,
+    $(eval __mf := $(notdir $(word ${__pc},${MAKEFILE_LIST})))
+    $(call Signal-Error,\
+      ${__mf} MUST be included only by the top level makefile.)
+  )
 
   $(call Exit-Macro)
 endef
@@ -1481,6 +1587,7 @@ define _help
 ${_macro}
   This initializes the context for a new segment and saves information so
   that the context of the previous segment can be restored in the postamble.
+  This is intended to be called only ONCE for each segment.
   Parameters:
     1 = A one line description of the segment.
 endef
@@ -1489,14 +1596,17 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0))
   $(call Last-Segment-UN)
+  $(call Attention,Entering segment:${LastSegUN})
   $(eval SegUNs += ${LastSegUN})
+  $(eval ${LastSegUN}.UserSegID := ${SegID})
   $(eval ${LastSegUN}.SegID := $(call Last-Segment-ID))
   $(eval ${LastSegUN}.SegUN := ${LastSegUN})
   $(eval ${LastSegUN}.Seg := $(call Last-Segment-Basename))
   $(eval ${LastSegUN}.SegP := $(call Last-Segment-Path))
+  $(eval ${LastSegUN}.SegD := $(call Last-Segment-Dir))
   $(eval ${LastSegUN}.SegF := $(call Last-Segment-File))
   $(eval ${LastSegUN}.SegV := $(call To-Shell-Var,${LastSegUN}))
-  $(eval ${LastSegUN}.SegD := $(strip $(1)))
+  $(eval ${LastSegUN}.SegTL := $(strip $(1)))
   $(eval $(call Verbose,\
     Entering segment: $(call Get-Segment-Basename,${${LastSegUN}.SegID})))
   $(call Verbose,${LastSegUN}.SegID:${${LastSegUN}.SegID})
@@ -1504,7 +1614,7 @@ define ${_macro}
   $(call __Push-SegID)
   $(call Set-Segment-Context,${${LastSegUN}.SegID})
   $(call Exit-Macro)
-  $(call __Push-Entry,${LastSegUN})
+  $(call __Push-Macro,${LastSegUN})
 endef
 
 _macro := Exit-Segment
@@ -1519,9 +1629,9 @@ define ${_macro}
   $(call Enter-Macro,$(0))
   $(call Verbose,Exiting segment: ${${SegUN}.Seg})
   $(call __Pop-SegID)
-  $(eval $(call Set-Segment-Context,${__PrvSegID}))
+  $(eval $(call Set-Segment-Context,${SegID}))
   $(call Exit-Macro)
-  $(call __Pop-Entry)
+  $(call __Pop-Macro)
 endef
 
 _macro := Check-Segment-Conflicts
@@ -1529,7 +1639,8 @@ define _help
 ${_macro}
   This handles the case where a segment is being used more than once or
   the current segment is attempting to use the same prefix as a previously
-  loaded segment.
+  loaded segment. This should be called only when the segment ID for the seg is
+  already defined.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
@@ -1538,13 +1649,14 @@ define ${_macro}
   $(call Verbose,\
     Segment exists: ID = ${${LastSegUN}.SegID}: file = $(call Get-Segment-File,${${LastSegUN}.SegID}))
   $(if \
-    $(findstring \
+    $(filter \
       $(call Last-Segment-File),$(call Get-Segment-File,${${LastSegUN}.SegID})),
-    $(call Info,\
-      $(call Get-Segment-File,${${LastSegUN}.SegID}) has already been included.)
+    $(call Warn,Segment ${LastSegUN} has already been included.)
+    $(call Info,Segment file:$(call Last-Segment-File))
   ,
     $(call Signal-Error,\
-      Context conflict with $(${LastSegUN}.Seg) in $(call Last-Segment-File).)
+      Context conflict with $(${LastSegUN}.Seg) in ${LastSegUN}.)
+    $(call Info,Segment file:$(call Last-Segment-File))
   )
   $(call Exit-Macro)
 endef
@@ -1653,6 +1765,38 @@ define ${_macro}
     Segment file for $(1) has been generated -- remember to customize.)
   $(call Exit-Macro)
 endef
+
+_macro := Derive-Segment-File
+define _help
+${_macro}
+  Derive a new segment file from an existing segment file. Segment related
+  variables are modified to reference the new segment.
+  Parameters:
+    1 = The existing segment name.
+    2 = The full path to the existing segment file.
+    3 = The new segment name.
+    4 = The full path to the new segment file.
+endef
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1) $(2) $(3) $(4))
+  $(call Verbose,Deriving $(3) from $(1).)
+  $(eval __v1 := $(call To-Shell-Var,$(1)))
+  $(eval __v3 := $(call To-Shell-Var,$(3)))
+  $(call Run, \
+    echo "# Derived from template - $(1)" > ${$(4)} &&\
+    sed \
+      -e 's/$(1)/$(3)/g' \
+      -e 's/${__v1}/${__v3}/g' \
+      $(2) >> $(4) \
+  )
+  $(call Debug,Edit RC:(${Run_Rc}))
+  $(if ${Run_Rc},
+    $(call Signal-Error,Error during edit of $(3) segment file.)
+  )
+
+  $(call Exit-Macro)
+endef
+
 #--------------
 
 #++++++++++++++
@@ -1894,12 +2038,7 @@ $(call Verbose,MAKEFILE_LIST:${MAKEFILE_LIST})
 $(call Verbose,$(realpath $(firstword ${MAKEFILE_LIST})))
 $(call Verbose,__i:$(call Last-Segment-ID))
 # Initialize the top level context.
-$(call __Init-Segment-Context,${MakeD})
-
-$(call Verbose,Helpers Seg:${Seg})
-$(call Verbose,Helpers UN:${SegUN})
-$(call Verbose,Included from:$(realpath $(firstword ${MAKEFILE_LIST})))
-$(call Verbose,SegUNs:${SegUNs})
+$(call __Init-Makefile-Context,${MakeTL})
 
 $(call Enter-Segment,Helper macros for makefiles.)
 $(call Verbose,In segment:${SegUN})
@@ -2080,8 +2219,13 @@ define ${_macro}
           $(call Verbose,Variables are read-only in a sub-make.)
         ,
           $(if ${__save},
-            $(call Verbose,Creating sticky:${__sn})
+            $(call Verbose,Creating sticky:${__sf}=${__sv})
             $(file >${__sf},${__sv})
+            $(if $(wildcard ${__sf}),
+              $(call Verbose,Sticky variable ${__sv} was created.)
+            ,
+              $(call Signal-Error,Sticky variable ${__sv} was not created.)
+            )
           )
         )
       ,
@@ -2204,11 +2348,30 @@ endef
 # Other macros.
 $(call Add-Help-Section,MiscMacros,Miscellaneous macros.)
 
+_macro := Display-Seg-Attributes
+define _help
+${_macro}
+  Display the attributes for a segment.
+  See help-SegAttributes for more information.
+  Parameters:
+    1 = The SegUN for the attributes to display.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(call Enter-Macro,$(0),$(1))
+    $(call Info,Displaying attributes for segment $(1).)
+    $(foreach __a,${SegAttributes},
+      $(call Info,$(1).${__a} = ${$(1).${__a}})
+    )
+  $(call Exit-Macro)
+endef
+
 _macro := Display-Segs
 define _help
 ${_macro}
   Display a list of loaded segments. Each segment is listed as:
-    <SegID>:<Seg>:<SegUN>:<SegD>
+    <SegID>:<Seg>:<SegUN>:<SegTL>
   This information can the be used to determine the pseudo unique name for
   displaying the help of a segment.
   See help-SegAttributes for more information.
@@ -2217,9 +2380,10 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0))
-    $(call Info,SegID:Seg:SegUN:SegD.)
+    $(call Info,Segments:${SegUNs})
+    $(call Info,SegID:Seg:SegUN:SegTL.)
     $(foreach __s,${SegUNs},
-      $(call Info,${${__s}.SegID}:${${__s}.Seg}:${${__s}.SegUN}:${${__s}.SegD})
+      $(call Info,${${__s}.SegID}:${${__s}.Seg}:${${__s}.SegUN}:${${__s}.SegTL})
     )
   $(call Exit-Macro)
 endef

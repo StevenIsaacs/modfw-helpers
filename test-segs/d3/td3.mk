@@ -8,7 +8,29 @@ $(call Enter-Segment,For test only.)
 # -----
 
 $(call Test-Info,Path:$(call Last-Segment-Path))
-$(call Expect-Vars,Seg:td3 td3Seg:td3)
+$(call Verify-Seg-Attributes,d3.td3)
+
+$(call Test-Info,Using seg in same directory.)
+$(call Expect-No-Warning)
+$(call Expect-No-Error)
+$(call Use-Segment,tm3)
+$(call Verify-No-Error)
+$(call Verify-No-Warning)
+
+$(call Test-Info,\
+  Using seg having same name as previously loaded from another directory.)
+$(call Expect-No-Warning)
+$(call Expect-No-Error)
+$(call Use-Segment,tm2)
+$(call Verify-No-Error)
+$(call Verify-No-Warning)
+
+$(call Test-Info,Using seg in subdirectory.)
+$(call Expect-No-Warning)
+$(call Expect-No-Error)
+$(call Use-Segment,sd3/tsd3)
+$(call Verify-No-Error)
+$(call Verify-No-Warning)
 
 # +++++
 # Postamble

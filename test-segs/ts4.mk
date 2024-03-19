@@ -1,13 +1,14 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # For test only.
 #----------------------------------------------------------------------------
+# +++++
 $(call Last-Segment-UN)
 ifndef ${LastSegUN}.SegID
 $(call Enter-Segment,For test only.)
 # -----
 
 $(call Info,${SegUN}:Path:$(call Last-Segment-Path))
-$(call Verify-Seg-Attributes,test-segs.ts2)
+$(call Verify-Seg-Attributes,test-segs.ts4)
 
 # +++++
 # Postamble

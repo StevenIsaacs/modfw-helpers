@@ -235,12 +235,23 @@ define ${.TestUN}
   $(call Enter-Macro,$(0))
   $(call Begin-Test,$(0))
 
-  $(eval _vn1 := remove-sticky1)
+  $(eval _vn1 := remove_sticky)
   $(eval _vn1v := ${_vn1})
+
+  $(call Test-Info,STICKY_PATH:${STICKY_PATH})
+  $(foreach _f,$(wildcard ${STICKY_PATH}/*),
+    $(call Test-Info,Var file:${_f})
+  )
+  $(call Test-Info,Sticky vars:${StickyVars})
+  $(eval VERBOSE=1)
   $(call Sticky,${_vn1}=${_vn1v})
-  $(eval _vn1g := $(call Get-Sticky,${_vn1}))
+  $(eval VERBOSE=)
+  $(call Expect-Vars,${_vn1}:${_vn1v})
+  $(call Test-Info,Sticky vars:${StickyVars})
+  $(foreach _f,$(wildcard ${STICKY_PATH}/*),
+    $(call Test-Info,Var file:${_f})
+  )
   $(call Test-Info,Verifying ${_vn1} = "${_vn1v}")
-  $(call Expect-String,${_vn1g},${${_vn1}})
 
   $(call Test-Info,Verify sticky variable has been removed.)
   $(call Expect-No-Error)
