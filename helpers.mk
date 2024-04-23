@@ -952,7 +952,7 @@ ${_macro}
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
-${_macro} = _$(subst /,_,$(subst -,_,$(1)))
+${_macro} = _$(subst /,_,$(subst .,_,$(subst -,_,$(1))))
 
 _macro := To-Lower
 define _help
