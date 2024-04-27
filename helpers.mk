@@ -4,11 +4,11 @@
 __seg := $(basename $(lastword ${MAKEFILE_LIST}))
 ifndef ${__seg}.SegID
 # First time pre-init. This will be reset later by Set-Segment-Context.
-# Seg := ${__seg}
-# __p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
-# SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
-# SegID := $(words ${MAKEFILE_LIST})
-# ${Seg}.SegID := ${SegID}
+Seg := ${__seg}
+__p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
+SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
+SegID := $(words ${MAKEFILE_LIST})
+${Seg}.SegID := ${SegID}
 
 define _help
 Make segment: ${Seg}.mk
@@ -59,12 +59,12 @@ ${_macro}
   Declare a help message section header and add it to the help list for the
   current context identified by SegID (see help-SegAttributes).
   Parameters:
-    1 = The name of the variable or macro to declare help for.
+    1 = The name of the section to declare help for.
     2 = The section description.
 endef
 define ${_macro}
   $(eval help-${SegID}.$(1) := ---- $(2) ----)
-  $(if $${{SegID}.HelpL},
+  $(if ${${SegID}.HelpL},
     $(eval ${SegID}.HelpL += ${SegID}.$(1))
   ,
     $(eval ${SegID}.HelpL := ${SegID}.$(1))
@@ -81,7 +81,7 @@ ${_macro}
     1 = The name of the variable or macro to declare help for.
 endef
 define ${_macro}
-  $(if $${{SegID}.HelpL},
+  $(if ${${SegID}.HelpL},
     $(eval ${SegID}.HelpL += $(1))
   ,
     $(eval ${SegID}.HelpL := $(1))
@@ -1188,6 +1188,34 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
+_var := FirstSegUN
+$(call Path-To-UN,$(firstword ${MAKEFILE_LIST}),${_var})
+define _help
+${_var}
+  The pseudo unique name of the first segment in the makefile list.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := LastSegUN
+${_var} :=
+define _help
+${_var}
+  The unique name of the last included segment.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := SegUNs
+${_var} := ${FirstSegUN}
+define _help
+${_var}
+  The list of pseudo unique names for all loaded segments. This can be indexed
+  using SegID.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 _macro := Last-Segment-UN
 define _help
 ${_macro}
@@ -1204,33 +1232,6 @@ define ${_macro}
   $(call Verbose,Path-To-UN returned:${LastSegUN})
   $(call Exit-Macro)
 endef
-
-_macro := First-Segment-UN
-define _help
-${_macro}
-  Returns a pseudo unique name for the first makefile segment.
-  NOTE: This should be the makefile which included helpers.
-  Returns:
-    FirstSegUN
-      The pseudo unique name for the first segment in MAKEFILE_LIST.
-endef
-help-${_macro} := $(call _help)
-$(call Add-Help,${_macro})
-define ${_macro}
-  $(call Enter-Macro,$(0))
-  $(call Path-To-UN,$(firstword ${MAKEFILE_LIST}),FirstSegUN)
-  $(call Exit-Macro)
-endef
-
-_var := SegUNs
-$(call Path-To-UN,$(firstword ${MAKEFILE_LIST}),${_var})
-define _help
-${_var}
-  The list of pseudo unique names for all loaded segments. This can be indexed
-  using SegID.
-endef
-help-${_var} := $(call _help)
-$(call Add-Help,${_var})
 
 _macro := Last-Segment-ID
 define _help
@@ -1399,14 +1400,16 @@ endef
 _macro := Find-Segment
 define _help
 ${_macro}
-  Search a list of directories for a segment and save its path in a variable.
-  The segment can exist in multiple locations and only the last one in the
-  list will be found. If the segment is not found in any of the directories
-  then the current segment directory (Segment-Path) is searched.
+  If the segment to find is a complete path to a .mk file then the file is
+  verified to exist. Otherwise, list list of search directories are searched
+  for the segment The segment can exist in multiple locations but only the last
+  one found will be selected. If the segment is not found in any of the
+  directories then the current segment directory (Segment-Path) is searched.
   If the segment cannot be found an error message is added to the error list.
   Parameters:
     1 = The segment to find.
-    2 = The name of the variable to store the result in.
+    2 = The name of the variable to store the full path to the selected segment
+        in.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
@@ -1561,18 +1564,17 @@ define ${_macro}
 
   $(eval __pc := $(words ${MAKEFILE_LIST}))
   $(if $(filter ${__pc},2),
-    $(call Path-To-UN,$(word 1,${MAKEFILE_LIST}),__un)
-    $(eval ${__un}.SegID := 1)
-    $(eval ${__un}.UserSegID :=)
-    $(eval ${__un}.SegUN := $(call Get-Segment-UN,1))
-    $(eval ${__un}.Seg := $(call Get-Segment-Basename,1))
-    $(eval ${__un}.SegP := $(call Get-Segment-Path,1))
-    $(eval ${__un}.SegD := $(call Get-Segment-Dir,1))
-    $(eval ${__un}.SegF := $(call Get-Segment-File,1))
-    $(eval ${__un}.SegV := $(call To-Shell-Var,${__un}))
-    $(eval ${__un}.SegTL := $(1))
-    $(eval SegID_Stack := ${${__un}.SegID})
-    $(eval SegUNs := ${__un})
+    $(eval ${FirstSegUN}.SegID := 1)
+    $(eval ${FirstSegUN}.UserSegID :=)
+    $(eval ${FirstSegUN}.SegUN := $(call Get-Segment-UN,1))
+    $(eval ${FirstSegUN}.Seg := $(call Get-Segment-Basename,1))
+    $(eval ${FirstSegUN}.SegP := $(call Get-Segment-Path,1))
+    $(eval ${FirstSegUN}.SegD := $(call Get-Segment-Dir,1))
+    $(eval ${FirstSegUN}.SegF := $(call Get-Segment-File,1))
+    $(eval ${FirstSegUN}.SegV := $(call To-Shell-Var,${FirstSegUN}))
+    $(eval ${FirstSegUN}.SegTL := $(1))
+    $(eval SegID_Stack := ${${FirstSegUN}.SegID})
+    $(call Set-Segment-Context,1)
   ,
     $(eval __mf := $(notdir $(word ${__pc},${MAKEFILE_LIST})))
     $(call Signal-Error,\

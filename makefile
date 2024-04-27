@@ -22,6 +22,9 @@ $(call Run-Suites,${SUITES_PATH},${CASES})
 
 $(call Display-Segs)
 
+$(call Attention,Makefile Seg:${Seg})
+$(call Attention,Makefile SegUN:${SegUN})
+$(call Attention,Makefile SegID:${SegID})
 clean:
 > rm -rf ${TmpTestPath}
 
