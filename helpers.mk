@@ -1592,7 +1592,6 @@ define ${_macro}
     $(eval ${FirstSegUN}.SegF := $(call Get-Segment-File,1))
     $(eval ${FirstSegUN}.SegV := $(call To-Shell-Var,${FirstSegUN}))
     $(eval ${FirstSegUN}.SegTL := $(1))
-    $(eval SegID_Stack := ${${FirstSegUN}.SegID})
     $(call Set-Segment-Context,1)
   ,
     $(eval __mf := $(notdir $(word ${__pc},${MAKEFILE_LIST})))
