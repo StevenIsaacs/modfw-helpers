@@ -4,11 +4,11 @@
 __seg := $(basename $(lastword ${MAKEFILE_LIST}))
 ifndef ${__seg}.SegID
 # First time pre-init. This will be reset later by Set-Segment-Context.
-# Seg := ${__seg}
-# __p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
-# SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
-# SegID := $(words ${MAKEFILE_LIST})
-# ${Seg}.SegID := ${SegID}
+Seg := ${__seg}
+__p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
+SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
+SegID := $(words ${MAKEFILE_LIST})
+${Seg}.SegID := ${SegID}
 
 define _help
 Make segment: ${Seg}.mk
@@ -781,6 +781,25 @@ define ${_macro}
 endef
 
 $(call Add-Help-Section,Errors,For warning and error handling.)
+
+_var := Errors
+${_var} :=
+define _help
+${_var}
+  When not empty this variable indicates one or more errors have been signaled
+  and the variable ErrorList will contain a list of error messages.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := ErrorList
+${_var} :=
+define _help
+${_var}
+  This variable contains the list of errors that have been signaled.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
 
 _macro := Set-Warning-Callback
 define _help
