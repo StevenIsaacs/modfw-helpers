@@ -4,11 +4,11 @@
 __seg := $(basename $(lastword ${MAKEFILE_LIST}))
 ifndef ${__seg}.SegID
 # First time pre-init. This will be reset later by Set-Segment-Context.
-# Seg := ${__seg}
-# __p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
-# SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
-# SegID := $(words ${MAKEFILE_LIST})
-# ${Seg}.SegID := ${SegID}
+Seg := ${__seg}
+__p := $(subst /.,,$(dir $(realpath $(lastword ${MAKEFILE_LIST}))).)
+SegUN :=  $(lastword $(subst /, ,${__p}))$(strip .${Seg})
+SegID := $(words ${MAKEFILE_LIST})
+${Seg}.SegID := ${SegID}
 
 define _help
 Make segment: ${Seg}.mk
