@@ -873,7 +873,7 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(eval ErrorList += ${NewLine}ERR!:${Caller}:$(1))
   $(call Log-Message,ERR!,$(1))
-  $(eval Errors = yes)
+  $(eval Errors := yes)
   $(if ${STOP_ON_ERROR},
     $(error Error:${SegUN}:$(1))
   ,
