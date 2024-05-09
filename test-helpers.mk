@@ -1136,6 +1136,7 @@ define ${_macro}
   $(call Enter-Macro,$(0),$(1))
   $(if $(1),
     $(foreach _ctx,$(1),
+      $(call Line)
       $(call Test-Info,Results for context:${_ctx})
       $(call Test-Info,\
         Ran ${${_ctx}.StepC} steps in ${${_ctx}.CompletedTestsC} tests.)
@@ -1516,8 +1517,7 @@ define ${_macro}
   $(call Create-Run-List,$(2))
   $(if ${Run.TestL},
     $(call Run-Tests,Run.TestL)
-    $(call Report-Test-Results,Prereq)
-    $(call Report-Test-Results,Session)
+    $(call Report-Test-Results,Prereq Session)
   ,
     $(call Warn,No tests in the Run.TestL list.)
   )
