@@ -275,8 +275,9 @@ help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
 _var := LOG_FILE
+${_var} ?= ${_var}
 define _help
-${_var} = ${${_var}}
+${_var} = ${WorkingDir}
   Use this variable on the make command line to enable message logging and
   set the name of the log file in the log file directory.
 endef
@@ -284,21 +285,12 @@ help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
 _var := LogFile
-${_var} := ${LOG_PATH}/${LOG_FILE}
+${_var} :=
 define _help
 ${_var} = ${${_var}}
 endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
-
-ifneq (${LOG_FILE},)
-  ifeq (${SubMake},${False})
-    $(shell mkdir -p ${LOG_PATH})
-    $(file >${LogFile},${WorkingDir} log: $(shell date))
-  else
-    $(file >>${LogFile},++++++++ MAKELEVEL = ${MAKELEVEL} +++++++++)
-  endif
-endif
 
 $(call Add-Help-Section,BashStrings,For creating strings to be passed to bash.)
 
@@ -497,7 +489,7 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(eval __msg := \
     $(strip $(1)):${Caller}:$(lastword ${Macro_Stack}):$(strip $(2)))
-  $(if ${LOG_FILE},
+  $(if ${LogFile},
     $(file >>${LogFile},${__msg})
   )
   $(if ${QUIET},
@@ -516,7 +508,7 @@ define ${_macro}
       $(eval __msg := \
         clbk:${SegUN}:$(lastword ${Macro_Stack}):$(strip \
           Recursive call to Message_Callback -- callback not called.))
-      $(if ${LOG_FILE},
+      $(if ${LogFile},
         $(file >>${LogFile},${__msg})
       )
       $(info ${__msg})
@@ -535,7 +527,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(if ${LOG_FILE},
+  $(if ${LogFile},
     $(file >>${LogFile}, )
   )
   $(if ${QUIET},
@@ -895,6 +887,46 @@ define ${_macro}
     )
   )
 endef
+
+_macro := Enable-Log-File
+define _help
+Enable logging messages to the log file.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(if ${LogFile},
+  ,
+    $(if ${LOG_FILE},
+      $(eval LogFile := ${LOG_PATH}/${LOG_FILE})
+      $(if $(filter ${SubMake},${True}),
+        $(file >>${LogFile},++++++++ MAKELEVEL = ${MAKELEVEL} ++++++++)
+      ,
+        $(file >${LogFile},++++++++ ${WorkingDir} log: $(shell date))
+      )
+    ,
+      $(call Attention,LOG_FILE is undefined -- no log file.)
+    )
+  )
+endef
+
+_macro := Disable-Log-File
+define _help
+Disable logging messages to the log file.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(if ${LogFile},
+    $(if $(filter ${SubMake},${True}),
+      $(file >>${LogFile},-------- MAKELEVEL = ${MAKELEVEL} --------)
+    ,
+      $(file >${LogFile},-------- ${WorkingDir} log: $(shell date))
+    )
+  )
+  $(eval LogFile :=)
+endef
+
 #--------------
 
 $(call Add-Help-Section,VarMacros,For manipulating variable values.)
