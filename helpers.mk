@@ -1474,8 +1474,8 @@ define ${_macro}
       $(eval $(2) := $(1))
     )
   ,
-    $(call Verbose,Segment paths:${SegPaths} $(call Get-Segment-Path,${SegID}))
-    $(foreach __p,${SegPaths} $(call Get-Segment-Path,${SegID}),
+    $(call Verbose,Segment paths:${SegPaths} ${SegP})
+    $(foreach __p,${SegPaths} ${SegP},
       $(call Verbose,Trying: ${__p})
       $(if $(wildcard ${__p}/$(1).mk),
         $(eval $(2) := ${__p}/$(1).mk)
