@@ -857,6 +857,9 @@ ${_macro}
   Uses:
     Error_Callback = ${Error_Callback}
       The name of the macro to call when an error occurs.
+    Exit_On_Error = ${Exit_On_Error}
+      When not empty an error message is emitted and the run is halted.
+      The callback can clear this to override the error.
     Error_Safe = ${Error_Safe}
       The handler is called only when this is equal to 1.
 endef
@@ -866,14 +869,7 @@ define ${_macro}
   $(eval ErrorList += ${NewLine}ERR!:${Caller}:$(1))
   $(call Log-Message,ERR!,$(1))
   $(eval Errors := yes)
-  $(if ${STOP_ON_ERROR},
-    $(error Error:${SegUN}:$(1))
-  ,
-    $(warning Error:${SegUN}:$(1))
-    $(if ${PAUSE_ON_ERROR},
-      $(shell read -r -p "Press Enter to continue...")
-    )
-  )
+  $(eval Exit_On_Error := ${STOP_ON_ERROR})
   $(call Verbose,Handler: ${Error_Callback} Safe:${Error_Safe})
   $(if ${Error_Callback},
     $(if ${Error_Safe},
@@ -884,6 +880,14 @@ define ${_macro}
       $(eval Error_Safe := 1)
     ,
       $(call Warn,Recursive call to Signal-Error -- handler not called.)
+    )
+  )
+  $(if ${Exit_On_Error},
+    $(error Error:${SegUN}:$(1))
+  ,
+    $(warning Error:${SegUN}:$(1))
+    $(if ${PAUSE_ON_ERROR},
+      $(shell read -r -p "Press Enter to continue...")
     )
   )
 endef

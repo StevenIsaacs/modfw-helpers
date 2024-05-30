@@ -820,6 +820,7 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(eval Expected_Error := $(1))
   $(eval Actual_Error :=)
+  $(eval Exit_On_Error :=)
   $(call Set-Error-Callback,Oneshot-Error-Callback)
 endef
 
