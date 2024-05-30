@@ -1502,7 +1502,9 @@ ${_macro}
   (Segment-Path).
   If the segment cannot be found an error message is added to the error list.
   Parameters:
-    1 = The segment to load.
+      1 = The segment to load.
+      2 = The message type to emit if the segment is not found. This defaults
+          to Signal-Error.
 
   The loaded segment is expected to define a new context to be used during
   its initialization and then to restore the previous context when it has
@@ -1527,7 +1529,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),$(1) $(2))
   $(call Find-Segment,$(1),__segf)
   $(if ${__segf},
     $(call Path-To-UN,${__segf},__sun)
@@ -1536,9 +1538,18 @@ define ${_macro}
     ,
       $(call Verbose,Using segment:${__segf})
       $(eval include ${__segf})
+      $(if ${${__sun}.SegID},
+      ,
+        $(call Attention,Loaded non-ModFW format segment.)
+        $(call __Init-Last-Segment)
+      )
     )
   ,
-    $(call Signal-Error,Segment $(1) could not be found.)
+    $(if $(2),
+      $(call $(2),Optional segment $(1) does not exist -- skipping.)
+    ,
+      $(call Signal-Error,Segment $(1) could not be found.)
+    )
   )
   $(call Exit-Macro)
 endef
@@ -1595,6 +1606,8 @@ define ${_macro}
 
   $(call Attention,Setting context for SegID $(1))
   $(eval __un := $(call Get-Segment-UN,$(1)))
+  $(call Attention,SegID $(1) UN:${__un})
+  $(call Debug,Seg UN list:${SegUNs})
   $(foreach __att,${SegAttributes},
     $(eval ${__att} := ${${__un}.${__att}})
   )
@@ -1634,6 +1647,30 @@ define ${_macro}
   $(call Exit-Macro)
 endef
 
+_macro := __Init-Last-Segment
+define _help
+${_macro}
+  Add the last segment to the list of segments and init the segment attributes.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(call Enter-Macro,$(0))
+  $(call Last-Segment-UN)
+  $(call Attention,Declaring segment:${LastSegUN})
+  $(eval SegUNs += ${LastSegUN})
+  $(eval ${LastSegUN}.UserSegID := ${SegID})
+  $(eval ${LastSegUN}.SegID := $(call Last-Segment-ID))
+  $(eval ${LastSegUN}.SegUN := ${LastSegUN})
+  $(eval ${LastSegUN}.Seg := $(call Last-Segment-Basename))
+  $(eval ${LastSegUN}.SegP := $(call Last-Segment-Path))
+  $(eval ${LastSegUN}.SegD := $(call Last-Segment-Dir))
+  $(eval ${LastSegUN}.SegF := $(call Last-Segment-File))
+  $(eval ${LastSegUN}.SegV := $(call To-Shell-Var,${LastSegUN}))
+  $(eval ${LastSegUN}.SegTL := $(strip $(1)))
+  $(call Exit-Macro)
+endef
+
 _macro := Enter-Segment
 define _help
 ${_macro}
@@ -1647,18 +1684,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0))
-  $(call Last-Segment-UN)
-  $(call Attention,Entering segment:${LastSegUN})
-  $(eval SegUNs += ${LastSegUN})
-  $(eval ${LastSegUN}.UserSegID := ${SegID})
-  $(eval ${LastSegUN}.SegID := $(call Last-Segment-ID))
-  $(eval ${LastSegUN}.SegUN := ${LastSegUN})
-  $(eval ${LastSegUN}.Seg := $(call Last-Segment-Basename))
-  $(eval ${LastSegUN}.SegP := $(call Last-Segment-Path))
-  $(eval ${LastSegUN}.SegD := $(call Last-Segment-Dir))
-  $(eval ${LastSegUN}.SegF := $(call Last-Segment-File))
-  $(eval ${LastSegUN}.SegV := $(call To-Shell-Var,${LastSegUN}))
-  $(eval ${LastSegUN}.SegTL := $(strip $(1)))
+  $(call __Init-Last-Segment)
   $(eval $(call Verbose,\
     Entering segment: $(call Get-Segment-Basename,${${LastSegUN}.SegID})))
   $(call Verbose,${LastSegUN}.SegID:${${LastSegUN}.SegID})
