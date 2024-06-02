@@ -177,16 +177,16 @@ define ${.TestUN}
   $(call Begin-Test,$(0))
 
   $(eval __tp := test1/test2/test3.mk)
-  $(call Expect-Error,The file ${__tp} does not exist.)
+  $(call Expect-No-Error)
   $(call Path-To-UN,${__tp},__un)
-  $(call Verify-Error)
-  $(call Expect-Vars,__un:)
+  $(call Verify-No-Error)
+  $(call Expect-Vars,__un:test2.test3)
 
   $(eval __tp := d1/td1.mk)
-  $(call Expect-Error,The file ${__tp} does not exist.)
+  $(call Expect-No-Error)
   $(call Path-To-UN,${__tp},__un)
-  $(call Verify-Error)
-  $(call Expect-Vars,__un:)
+  $(call Verify-No-Error)
+  $(call Expect-Vars,__un:d1.td1)
 
   $(eval __tp := test-segs/d1)
   $(call Expect-No-Error)

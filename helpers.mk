@@ -1219,7 +1219,7 @@ ${_macro}
     If the path is: /dir1/dir2/dir3/seg.mk
     The resulting pseudo unique name is: dir3.seg
   Parameters:
-    1 = The full file path for the UN. The path must exist.
+    1 = The full file path for the UN.
     2 = The variable in which to store the UN.
 endef
 help-${_macro} := $(call _help)
@@ -1229,17 +1229,13 @@ define ${_macro}
   $(call Verbose,MAKEFILE_LIST:${MAKEFILE_LIST})
   $(call Verbose,path:$(realpath $(1)))
   $(eval $(2) := )
-  $(if $(realpath $(1)),
-    $(eval __seg := $(basename $(notdir $(1))))
-    $(call Verbose,__seg:${__seg})
-    $(call Verbose,dir:$(dir $(realpath $(1))))
-    $(eval __p := $(subst /^,,$(dir $(realpath $(1)))^))
-    $(call Verbose,__p:${__p})
-    $(eval $(2) := $(lastword $(subst /, ,${__p}.$(strip ${__seg}))))
-    $(call Verbose,$(2):${$(2)})
-  ,
-    $(call Signal-Error,The file $(1) does not exist.)
-  )
+  $(eval __seg := $(basename $(notdir $(1))))
+  $(call Verbose,__seg:${__seg})
+  $(call Verbose,dir:$(dir $(abspath $(1))))
+  $(eval __p := $(subst /^,,$(dir $(abspath $(1)))^))
+  $(call Verbose,__p:${__p})
+  $(eval $(2) := $(lastword $(subst /, ,${__p}.$(strip ${__seg}))))
+  $(call Verbose,$(2):${$(2)})
   $(call Exit-Macro)
 endef
 
