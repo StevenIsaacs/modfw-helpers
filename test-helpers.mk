@@ -358,7 +358,7 @@ define ${_macro}
   $(eval Undo.Failed := ${.Failed})
   $(call Inc-Var,.FailedStepsC)
   $(eval .StepFailed := 1)
-  $(eval .FailedStepsL += ${.SuiteN}:${.TestN}:${.StepC})
+  $(eval .FailedStepsL += ${.SuiteN}:${.TestN}:${.SuiteID}:${.TestID}:${.StepC})
   $(eval .Failed := 1)
 endef
 
@@ -500,6 +500,7 @@ define ${_macro}
   $(foreach _e,$(1),
     $(eval _ve := $(subst :,${Space},${_e}))
     $(call Verbose,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
+    $(call Verbose,Actual:(${$(word 1,${_ve})}))
     $(if $(word 2,${_ve}),
       $(if $(filter ${$(word 1,${_ve})},$(word 2,${_ve})),
         $(call PASS,Expecting:(${_e}))
