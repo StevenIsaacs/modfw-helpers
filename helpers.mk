@@ -1861,7 +1861,7 @@ define ${_macro}
   $(eval __v1 := $(call To-Shell-Var,$(1)))
   $(eval __v3 := $(call To-Shell-Var,$(3)))
   $(call Run, \
-    echo "# Derived from template - $(1)" > ${$(4)} &&\
+    echo '#' "Derived from template - $(1)" > $(4) &&\
     sed \
       -e 's/$(1)/$(3)/g' \
       -e 's/${__v1}/${__v3}/g' \
