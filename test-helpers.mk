@@ -198,6 +198,17 @@ endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
+$(call Add-Help-Section,Options,Testing command line options.)
+
+_var := PAUSE_ON_FAIL
+${_var} :=
+define _help
+${_var}
+  When not empty execution will pause any time a FAIL is reported.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 $(call Add-Help-Section,Context,Active test context.)
 
 # Testing context variables.
@@ -451,6 +462,9 @@ ${_macro}
   Display a test failed message. This also flags the current test and suite
   as having failed. If results are expected the FAIL result is verified using
   Verify-Result.
+  Command line options:
+    PAUSE_ON_FAIL
+      When not empty pause test execution.
   Parameters:
     1 = The message to display.
 endef
@@ -462,6 +476,9 @@ define ${_macro}
   ,
     $(call Log-Result,FAIL,$(1))
     $(call Record-FAIL)
+    $(if ${PAUSE_ON_FAIL},
+      $(call Pause)
+    )
   )
 endef
 
