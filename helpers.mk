@@ -111,6 +111,26 @@ $(foreach _h,${$(1).HelpL},
 ${help-${_h}})
 endef
 
+$(call Add-Help-Section,Options,Helper command line options.)
+
+_var := PAUSE_ON_ERROR
+${_var} :=
+define _help
+${_var}
+  When not empty execution will pause any time an error is reported.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := STOP_ON_ERROR
+${_var} :=
+define _help
+${_var}
+  When not empty execution will exit when an error is reported.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 $(call Add-Help-Section,Vars,Helper variables.)
 
 _var := .RECIPEPREFIX
@@ -849,6 +869,7 @@ ${_macro}
   NOTE: This is NOT intended to be used as part of a recipe.
   Parameters:
     1 = The error message.
+    2 = If not empty then exit after reporting the error.
   Command line options:
     STOP_ON_ERROR
       When not empty execution will stop when an  error is reported.
@@ -882,7 +903,7 @@ define ${_macro}
       $(call Warn,Recursive call to Signal-Error -- handler not called.)
     )
   )
-  $(if ${Exit_On_Error},
+  $(if $(or ${Exit_On_Error},$(2)),
     $(error Error:${SegUN}:$(1))
   ,
     $(warning Error:${SegUN}:$(1))
