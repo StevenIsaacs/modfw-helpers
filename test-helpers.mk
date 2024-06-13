@@ -420,7 +420,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Result:$(1) Msg:$(2))
+  $(call Enter-Macro,$(0),Result:$(1) Msg:$(call To-String,$(2)))
   $(if ${ExpectedResultsL},
     $(if $(filter $(1),$(word 1,${ExpectedResultsL})),
       $(call Log-Result,PASS,$(1):$(2))
@@ -912,7 +912,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Vars: $(1))
+  $(call Enter-Macro,$(0),Vars:$(call To-String,$(1)))
   $(foreach _v,$(1),
     $(call Test-Info,$(_v) = ${$(_v)})
   )
@@ -1029,7 +1029,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),ContextList: $(1))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)))
   $(foreach _ctx,$(1),
     $(call Init-Context-Manifest,${_ctx})
     $(call Init-Context-Results,${_ctx})
@@ -1048,7 +1048,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),ContextList: $(1) Suite=$(2))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)) Suite=$(2))
   $(foreach _ctx,$(1),
     $(if ${${_ctx}.SuiteC},
       $(if $(filter $(2),${${_ctx}.SuiteL}),
@@ -1078,7 +1078,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),ContextList: $(1) Tests: $(2))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)) Tests: $(2))
   $(foreach _ctx,$(1),
     $(if ${${_ctx}.TestC},
       $(foreach _t,$(2),
@@ -1112,7 +1112,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),ContextList: $(1))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)))
   $(if $(1),
     $(foreach _ctx,$(1),
       $(if ${_ctx}.ID,
@@ -1152,7 +1152,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),ContextList: $(1))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)))
   $(if $(1),
     $(foreach _ctx,$(1),
       $(call Line)
@@ -1240,7 +1240,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Suite=$(1) Msg=$(2))
+  $(call Enter-Macro,$(0),Suite=$(1) Msg=$(call To-String,$(2)))
 
   $(eval .SuiteN := $(1))
   $(eval Self := $(1))
@@ -1430,7 +1430,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Test suites=$(1))
+  $(call Enter-Macro,$(0),Test suites=$(call To-String,$(1)))
   $(call Declare-Contexts,Run)
   $(if $(1),
     $(eval _cases := $(1))
@@ -1509,7 +1509,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 ifneq ($(call Is-Goal,help%),)
 define ${_macro}
-  $(call Enter-Macro,$(0),Path=$(1) Test list=$(2))
+  $(call Enter-Macro,$(0),Path=$(1) Test-list=$(call To-String,$(2)))
   $(call Test-Info,Displaying help -- not running test suites.)
   $(call Declare-Contexts,Session Declared)
   $(eval Session.ID := ${SegID})
@@ -1528,7 +1528,7 @@ define ${_macro}
 endef
 else ifneq ($(call Is-Goal,test),)
 define ${_macro}
-  $(call Enter-Macro,$(0),Path=$(1) Test list=$(2))
+  $(call Enter-Macro,$(0),Path=$(1) Test-list=$(call To-String,$(2)))
   $(call Add-Segment-Path,$(1))
   $(call Declare-Contexts,Session Declared Prereq)
   $(eval Session.ID := ${SegID})

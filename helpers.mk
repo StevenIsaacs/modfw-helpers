@@ -537,6 +537,17 @@ define ${_macro}
   $(eval Messages = yes)
 endef
 
+_macro := To-String
+define _help
+  Convert a parameter to a string which can be displayed on one line of
+  the log file. Normally, space separated words are treated as a list.
+  Parameters:
+    1 = The list of words to be treated as a string.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+${_macro}=$(subst ${Space},$${Space},$(strip $(1)))
+
 _macro := Line
 define _help
 ${_macro}
@@ -692,7 +703,7 @@ define ${_macro}
   $(call __Push-Macro,$(1))
   $(if $(and ${DEBUG},$(2)),
     $(foreach __p,$(2),
-      $(call Log-Message,parm,${__p})
+      $(call Log-Message,parm,$(strip ${__p}))
     )
   )
 endef
@@ -1114,7 +1125,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
 $(strip
-  $(call Enter-Macro,$(0),Name=$(1) Values: $(2))
+  $(call Enter-Macro,$(0),Name=$(1) Values:$(call To-String,$(2)))
   $(call __mbof,$(1),$(2))
   $(call Exit-Macro)
 )
@@ -1136,7 +1147,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 OverridableVars :=
 define ${_macro}
-  $(call Enter-Macro,$(0),Var$(1) $(2))
+  $(call Enter-Macro,$(0),Var=$(1) Val=$(2))
   $(if $(filter $(1),${OverridableVars}),
     $(call Signal-Error,Var $(1) has already been declared.)
   ,
@@ -1168,7 +1179,10 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),String1=$(1) String2=$(2) Out=$(3))
+  $(call Enter-Macro,$(0),$(strip\
+    String1=$(call To-String,$(1))\
+    String2=$(call To-String,$(1))\
+    Out=$(3)))
   $(eval __d := $(words ${$(1)}))
   $(call Sub-Var,__d,$(words ${$(2)}))
   $(if $(filter 0,${__d}),
@@ -1707,7 +1721,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Desc=$(subst ${Space},$${Space},$(1)))
+  $(call Enter-Macro,$(0),Desc:$(call To-String,$(1)))
   $(call __Init-Last-Segment)
   $(eval $(call Verbose,\
     Entering segment: $(call Get-Segment-Basename,${${LastSegUN}.SegID})))
@@ -1861,7 +1875,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Seg=$(1) Path=$(2) Desc=$(3))
+  $(call Enter-Macro,$(0),Seg=$(1) Path=$(2) Desc=$(call To-String,$(3)))
   $(file >$(2),$(call Gen-Segment-Text,$(1),$(3)))
   $(call Attention,\
     Segment file for $(1) has been generated -- remember to customize.)
@@ -2082,7 +2096,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Out=$(1) Cmd=$(2))
+  $(call Enter-Macro,$(0),Out=$(1) Cmd=$(call To-String,$(2)))
   $(call Verbose,Command:$(1))
   $(eval Run_Output := $(shell $(1) 2>&1;echo $$?))
   $(call Verbose,Run_Output = ${Run_Output})
@@ -2108,7 +2122,10 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-$(call Enter-Macro,$(0),Goal=$(1) Commands="$(2)" Prompt:"$(3)")
+$(call Enter-Macro,$(0),\
+  Goal=$(1) \
+  Commands=$(call To-String,$(2)) \
+  Prompt:$(call To-String,$(3)))
 $(if $(call Is-Goal,$(1)),
   $(call Verbose,Generating $(1) to do "$(2)")
   $(if $(3),
