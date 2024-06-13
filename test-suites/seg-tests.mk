@@ -95,7 +95,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),SegUN=$(1))
   $(call Test-Info,Verifying context for $(1).)
   $(call Expect-Vars,\
     LastSegUN:$(1) \
@@ -122,7 +122,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Context=$(1))
   $(foreach __a,${SegAttributes},
     $(eval $(1).${__a} := ${__a})
   )
@@ -139,7 +139,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Context=$(1))
   $(eval __ch := )
   $(foreach __a,${SegAttributes},
     $(if $(filter ${$(1).${__a}},${__a}),
