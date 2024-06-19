@@ -1095,7 +1095,7 @@ $(strip \
     $(call Verbose,Requiring: ${__v})
     $(if $(call Is-Not-Defined,${__v}),
       $(eval __r += ${__v})
-      $(call Signal-Error,${Caller} requires variable ${__v} must be defined.)
+      $(call Warn,${Caller} requires variable ${__v} must be defined.)
     )
   )
   $(call Exit-Macro)
