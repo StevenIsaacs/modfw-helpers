@@ -927,6 +927,16 @@ define ${_macro}
   )
 endef
 
+_macro := Clear-Errors
+define _help
+Reset the errors flag so that past errors won't influence subsequent decisions.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(eval Errors :=)
+endef
+
 _macro := Enable-Log-File
 define _help
 Enable logging messages to the log file.
@@ -2083,8 +2093,7 @@ define _help
 ${_macro}
   Run a shell command and return the error code.
   Parameters:
-    1 = The name of a variable to store the output in.
-    2 = The command to run. This can be multiple commands separated by
+    1 = The command to run. This can be multiple commands separated by
         semicolons (;) or AND (&&) OR (||) conditionals.
   Returns:
     Run_Output
@@ -2096,7 +2105,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Out=$(1) Cmd=$(call To-String,$(2)))
+  $(call Enter-Macro,$(0),Cmd=$(call To-String,$(1)))
   $(call Verbose,Command:$(1))
   $(eval Run_Output := $(shell $(1) 2>&1;echo $$?))
   $(call Verbose,Run_Output = ${Run_Output})
