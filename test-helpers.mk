@@ -647,6 +647,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(call Test-Info,Expecting message:$(1))
   $(eval ExpectedMessage := $(1))
   $(eval MatchFound := )
   $(eval MatchCount := 0)
@@ -736,6 +737,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(call Test-Info,Expecting warning:$(1))
   $(eval Expected_Warning := $(1))
   $(eval Actual_Warning :=)
   $(call Set-Warning-Callback,Oneshot-Warning-Callback)
@@ -836,6 +838,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(call Test-Info,Expecting error:$(1))
   $(eval Expected_Error := $(1))
   $(eval Actual_Error :=)
   $(eval Exit_On_Error :=)
@@ -1177,7 +1180,7 @@ $(call Add-Help-Section,TestWrappers,Test entry and exit.)
 _macro := Begin-Test
 define _help
 ${_macro}
-  Prepare to run a test and set the suite context.
+  Prepare to run a test and set the suite context. Previous errors are cleared.
   Parameters:
     1 = The unique name of the test (defined by Declare-Test).
 endef
@@ -1186,6 +1189,7 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),TestUN=$(1))
 
+  $(call Clear-Errors)
   $(eval .TestUN := $(1))
   $(eval Self := $(1))
   $(eval .SuiteN := $(call Get-Suite-Name,$(1)))
