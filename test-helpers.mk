@@ -200,6 +200,16 @@ $(call Add-Help,${_var})
 
 $(call Add-Help-Section,Options,Testing command line options.)
 
+_var := SKIP_PREREQS
+${_var} :=
+define _help
+${_var}
+  When not empty prerequisite tests will not be executed. Their corresponding
+  segments are still loaded.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 _var := PAUSE_ON_FAIL
 ${_var} :=
 define _help
@@ -1354,7 +1364,11 @@ define ${_macro}
             $(eval ${_prereq}.Running := 1)
             $(call Run-Prerequisites,${_prereq})
             $(eval RunContext := Prereq)
-            $(call ${_prereq})
+            $(if ${SKIP_PREREQS},
+              $(call Test-Info,NOT running prereq:$(_prereq))
+            ,
+              $(call ${_prereq})
+            )
             $(eval RunContext :=)
             $(if ${${_prereq}.Failed},
               $(call Test-Info,Test ${_prereq} FAILED -- skipping.)
