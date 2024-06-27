@@ -650,11 +650,11 @@ define ${.TestUN}
   $(call Verify-Current-Context,__save)
 
   $(call Test-Info,Attempt to use same segment twice.)
-  $(call Expect-Warning,Segment ts2 is already loaded.)
+  $(call Expect-Message,Segment ts2 is already loaded.)
   $(call Expect-No-Error)
   $(call Use-Segment,ts2)
   $(call Verify-No-Error)
-  $(call Verify-Warning)
+  $(call Verify-Message)
 
   $(call Verify-Current-Context,__save)
 
@@ -692,20 +692,18 @@ define ${.TestUN}
 
   $(call Verify-Current-Context,__save)
 
-  $(call Expect-No-Warning)
-  $(call Expect-No-Error)
-
   $(call Test-Info,Full segment path (no find).)
   $(call Expect-Vars,\
     test-segs.ts3.SegP:${WorkingPath}/test-segs\
     test-segs.ts3.SegF:test-segs/ts3.mk\
     )
-  $(call Expect-Warning,\
+
+  $(call Expect-Message,\
     Segment ${WorkingPath}/${test-segs.ts3.SegF} is already loaded.)
   $(call Expect-No-Error)
   $(call Use-Segment,${WorkingPath}/${test-segs.ts3.SegF})
   $(call Verify-No-Error)
-  $(call Verify-Warning)
+  $(call Verify-Message)
 
   $(call Verify-Current-Context,__save)
 
