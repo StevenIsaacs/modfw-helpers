@@ -1582,7 +1582,7 @@ define ${_macro}
   $(if ${__segf},
     $(call Path-To-UN,${__segf},__sun)
     $(if ${${__sun}.SegID},
-      $(call Warn,Segment $(1) is already loaded.)
+      $(call Verbose,Segment $(1) is already loaded.)
     ,
       $(call Verbose,Using segment:${__segf})
       $(eval include ${__segf})
