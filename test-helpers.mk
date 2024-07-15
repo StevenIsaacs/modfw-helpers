@@ -477,6 +477,8 @@ ${_macro}
       When not empty pause test execution.
   Parameters:
     1 = The message to display.
+    2 = When not empty this parameter signals that the tests should be
+        terminated. This is done by calling Signal-Error.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
@@ -488,6 +490,9 @@ define ${_macro}
     $(call Record-FAIL)
     $(if ${PAUSE_ON_FAIL},
       $(call Pause)
+    )
+    $(if $(2),
+      $(call Signal-Error,Exiting because of failure.,exit)
     )
   )
 endef
