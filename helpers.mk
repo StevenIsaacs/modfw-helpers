@@ -1040,6 +1040,22 @@ define ${_macro}
   $(eval $(1):=$(shell expr ${$(1)} - $(2)))
 endef
 
+_macro := Are-Equal
+define _help
+${_macro}
+  Compare two values and return a non-empty value if they are equal. Leading
+  and trailing spaces are ignored.
+  Parameters:
+    1 = The first value.
+    2 = The second value.
+  Returns:
+    If the two values are the same then the value is returned. Otherwise
+    an empty value is returned.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+${_macro} = $(filter $(1),$(2))
+
 _macro := To-Shell-Var
 define _help
 ${_macro}
