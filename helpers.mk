@@ -801,9 +801,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),Callback=$(1))
   $(eval Message_Callback := $(1))
-  $(call Exit-Macro)
 endef
 
 $(call Add-Help-Section,Errors,For warning and error handling.)

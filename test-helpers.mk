@@ -499,8 +499,19 @@ endef
 
 $(call Add-Help-Section,Expects,Verifying expected results and variable values.)
 
+_var := Differences
+${_var} := 1
+define _help
+${_var}
+  This variable contains the list of detected differences between expected
+  values and actual values.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+
 # NOTE: The expect macros should not use Enter-Macro or Exit-Macro because
-# they could influence other tets.
+# they could influence other tests.
 
 _macro := Set-Expected-Results
 define _help
@@ -533,15 +544,18 @@ define ${_macro}
     $(eval _ve := $(subst :,${Space},${_e}))
     $(call Verbose,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
     $(call Verbose,Actual:(${$(word 1,${_ve})}))
+    $(eval Differences := )
     $(if $(word 2,${_ve}),
       $(if $(filter ${$(word 1,${_ve})},$(word 2,${_ve})),
         $(call PASS,Expecting:(${_e}))
       ,
         $(call FAIL,Expecting:(${_e}) actual (${$(word 1,${_ve})}))
+        $(eval Differences += ${_e}:${$(word 1,${_ve})})
       )
     ,
       $(if $(strip ${$(word 1,${_ve})}),
         $(call FAIL,Expecting:(${_e}) actual (${$(word 1,${_ve})}))
+        $(eval Differences += ${_e}:${$(word 1,${_ve})})
       ,
         $(call PASS,Expecting:(${_e}))
       )
@@ -572,18 +586,18 @@ define ${_macro}
   $(eval __la := $(words $(2)))
   $(if $(filter ${__le},${__la}),
     $(eval _i := 0)
-    $(eval _ex := )
+    $(eval Differences := )
     $(foreach _w,$(1),
       $(call Inc-Var,_i)
       $(if $(filter ${_w},$(word ${_i},$(2))),
         $(call Verbose,${_w} = $(word ${_i},$(2)))
       ,
-        $(eval _ex += ${_i})
+        $(eval Differences += ${_i})
       )
     )
-    $(if ${_ex},
+    $(if ${Differences},
       $(call Test-Info,Lists do not match.)
-      $(foreach _i,${_ex},
+      $(foreach _i,${Differences},
         $(call FAIL,\
           Expected:($(word ${_i},$(1))) Found:($(word ${_i},$(2))))
       )
@@ -866,6 +880,7 @@ ${_macro}
   Verifies Oneshot-Error-Callback was called since calling Expect-Error.
   A PASS is recorded if the error occurred. Otherwise, a FAIL is recorded.
   This also disables the error handler to avoid confusing subsequent tests.
+  The expected error is cleared.
   NOTE: For this to work Expect-Error must be called to arm the one-shot
   handler.
 endef
@@ -875,6 +890,12 @@ define ${_macro}
   $(if ${Actual_Error},
     $(call PASS,Error occurred -- as expected.)
     $(call Expect-String,${Expected_Error},${Actual_Error})
+    $(if ${Differences},
+      $(call FAIL,An unexpected error occurred.)
+    ,
+      $(call PASS,Error occurred -- as expected.)
+    )
+    $(call Clear-Errors)
   ,
     $(call FAIL,Error did not occur.)
     $(call Set-Error-Callback)
