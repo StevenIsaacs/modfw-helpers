@@ -336,6 +336,20 @@ define ${_macro}
   $(call Info,${.SuiteID}:${.TestID}:${.StepC}:$(strip $(1)))
 endef
 
+_macro := Mark-Step
+define _help
+${_macro}
+  Display a message for the current step to mark the beginning of a series
+  of related steps.
+  Parameters:
+    1 = The message for the test step.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(call Log-Message,step,.... $(1))
+endef
+
 $(call Add-Help-Section,TestLogging,Logging test results.)
 
 _macro := Log-Result
