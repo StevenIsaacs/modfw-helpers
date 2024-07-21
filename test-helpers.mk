@@ -599,18 +599,20 @@ define ${_macro}
   $(eval __le := $(words $(1)))
   $(eval __la := $(words $(2)))
   $(if $(filter ${__le},${__la}),
-    $(eval _i := 0)
+    $(eval _index := 0)
     $(eval Differences := )
     $(foreach _w,$(1),
-      $(call Inc-Var,_i)
-      $(if $(filter ${_w},$(word ${_i},$(2))),
-        $(call Verbose,${_w} = $(word ${_i},$(2)))
+      $(call Inc-Var,_index)
+      $(call Verbose,Checking word at ${_index} = ${_w})
+      $(if $(filter ${_w},$(word ${_index},$(2))),
+        $(call Verbose,${_w} = $(word ${_index},$(2)))
       ,
-        $(eval Differences += ${_i})
+        $(eval Differences += ${_index})
       )
     )
     $(if ${Differences},
       $(call Test-Info,Lists do not match.)
+      $(call Test-Info,Differences at: ${Differences})
       $(foreach _i,${Differences},
         $(call FAIL,\
           Expected:($(word ${_i},$(1))) Found:($(word ${_i},$(2))))
