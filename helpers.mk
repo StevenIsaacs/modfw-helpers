@@ -1835,7 +1835,7 @@ $.endef
 
 $$(call Info,New segment: Add variables, macros, goals, and recipes here.)
 # Remove the following line after completing this segment.
-$$(call Signal-Error,Segment $${Seg} has not yet been completed.)
+$$(call Attention,Segment $${Seg} has not yet been completed.)
 $$(call Verbose,SegUN = $${SegUN})
 
 # The command line goal for the segment.
