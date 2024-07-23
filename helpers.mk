@@ -1669,7 +1669,6 @@ define ${_macro}
   $(call Attention,Setting context for SegID $(1))
   $(eval __un := $(call Get-Segment-UN,$(1)))
   $(call Attention,SegID $(1) UN:${__un})
-  $(call Debug,Seg UN list:${SegUNs})
   $(foreach __att,${SegAttributes},
     $(eval ${__att} := ${${__un}.${__att}})
   )
@@ -1930,7 +1929,6 @@ define ${_macro}
       -e 's/${__v1}/${__v3}/g' \
       $(2) >> $(4) \
   )
-  $(call Debug,Edit RC:(${Run_Rc}))
   $(if ${Run_Rc},
     $(call Signal-Error,Error during edit of $(3) segment file.)
   )
@@ -2327,7 +2325,6 @@ define ${_macro}
     $(call Warn,Redefinition of sticky variable ${__sn} ignored.)
   ,
     $(eval StickyVars += ${__sn})
-    $(call Debug,Stick var $(1) origin:$(origin $(1)))
     $(if $(filter file,$(origin $(1))),
       $(call Warn,\
         Sticky variable $(1) was defined in a make segment -- not saving.)
