@@ -945,6 +945,7 @@ define ${_macro}
   $(if ${LogFile},
   ,
     $(if ${LOG_FILE},
+      $(shell mkdir -p ${LOG_PATH})
       $(eval LogFile := ${LOG_PATH}/${LOG_FILE})
       $(if $(filter ${SubMake},${True}),
         $(file >>${LogFile},++++++++ MAKELEVEL = ${MAKELEVEL} ++++++++)
