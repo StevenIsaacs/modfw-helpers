@@ -1600,7 +1600,7 @@ define ${_macro}
       $(call Verbose,Segment $(1) is already loaded.)
     ,
       $(call Verbose,Using segment:${__segf})
-      $(eval include ${__segf})
+      $(eval -include ${__segf})
       $(if ${${__sun}.SegID},
       ,
         $(call Attention,Loaded non-ModFW format segment.)
