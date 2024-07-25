@@ -13,6 +13,8 @@ MakeTL := Run the test suites to test the helpers.
 
 include helpers.mk
 
+$(call Enable-Log-File)
+
 $(call Info,WorkingPath: ${WorkingPath})
 $(call Info,WorkingVar: ${WorkingVar})
 

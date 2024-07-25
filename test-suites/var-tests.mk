@@ -168,6 +168,44 @@ define ${.TestUN}
   $(call Exit-Macro)
 endef
 
+$(call Declare-Test,Are-Equal)
+define _help
+${.TestUN}
+  Verify the helper macro:$(call Get-Test-Name,${.TestUN})
+endef
+help-${.TestUN} := $(call _help)
+$(call Add-Help,${.TestUN})
+${.TestUN}.Prereqs :=
+define ${.TestUN}
+  $(call Enter-Macro,$(0))
+  $(call Begin-Test,$(0))
+
+  $(eval _val1 := value)
+  $(eval _val2 := ${_val1})
+  $(if $(call Are-Equal,${_val1},${_val2}),
+    $(call PASS,Values ${_val1} and ${_val2} are equal)
+  ,
+    $(call FAIL,Values ${_val1} and ${_val2} SHOULD be equal)
+  )
+
+  $(eval _val2 := ${_val1}-not)
+  $(if $(call Are-Equal,${_val1},${_val2}),
+    $(call FAIL,Values ${_val1} and ${_val2} SHOULD NOT be equal)
+  ,
+    $(call PASS,Values ${_val1} and ${_val2} are not equal)
+  )
+
+  $(eval _val2 := different)
+  $(if $(call Are-Equal,${_val1},${_val2}),
+    $(call FAIL,Values ${_val1} and ${_val2} SHOULD NOT be equal)
+  ,
+    $(call PASS,Values ${_val1} and ${_val2} are not equal)
+  )
+
+  $(call End-Test)
+  $(call Exit-Macro)
+endef
+
 $(call Declare-Test,To-Lower)
 define _help
 ${.TestUN}

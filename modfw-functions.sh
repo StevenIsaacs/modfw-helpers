@@ -43,8 +43,8 @@ function reset_setting() {
 
 function init_setting() {
   # Parameters:
-  #   1: The setting name and default value pair delimited by the delimeter (2)
-  #   2: An optional delimeter character (defaults to '=')
+  #   1: The setting name and default value pair delimited by the delimiter (2)
+  #   2: An optional delimiter character (defaults to '=')
   if [ -z "$2" ]; then
     d='='
   else

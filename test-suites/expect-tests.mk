@@ -226,6 +226,7 @@ define ${.TestUN}
     $(call FAIL,Message was found ${MatchCount} time.)
   )
   $(if ${MismatchFound},
+    $(call Test-Info,MismatchList=${MismatchList})
     $(call FAIL,MismatchFound is TRUE.)
   ,
     $(call PASS.MismatchFound is FALSE.)

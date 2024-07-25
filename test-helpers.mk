@@ -198,6 +198,27 @@ endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
+$(call Add-Help-Section,Options,Testing command line options.)
+
+_var := SKIP_PREREQS
+${_var} :=
+define _help
+${_var}
+  When not empty prerequisite tests will not be executed. Their corresponding
+  segments are still loaded.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := PAUSE_ON_FAIL
+${_var} :=
+define _help
+${_var}
+  When not empty execution will pause any time a FAIL is reported.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 $(call Add-Help-Section,Context,Active test context.)
 
 # Testing context variables.
@@ -315,6 +336,20 @@ define ${_macro}
   $(call Info,${.SuiteID}:${.TestID}:${.StepC}:$(strip $(1)))
 endef
 
+_macro := Mark-Step
+define _help
+${_macro}
+  Display a message for the current step to mark the beginning of a series
+  of related steps.
+  Parameters:
+    1 = The message for the test step.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(call Log-Message,step,.... $(1))
+endef
+
 $(call Add-Help-Section,TestLogging,Logging test results.)
 
 _macro := Log-Result
@@ -358,7 +393,7 @@ define ${_macro}
   $(eval Undo.Failed := ${.Failed})
   $(call Inc-Var,.FailedStepsC)
   $(eval .StepFailed := 1)
-  $(eval .FailedStepsL += ${.SuiteN}:${.TestN}:${.StepC})
+  $(eval .FailedStepsL += ${.SuiteN}:${.TestN}:${.SuiteID}:${.TestID}:${.StepC})
   $(eval .Failed := 1)
 endef
 
@@ -409,7 +444,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Result:$(1) Msg:$(call To-String,$(2)))
   $(if ${ExpectedResultsL},
     $(if $(filter $(1),$(word 1,${ExpectedResultsL})),
       $(call Log-Result,PASS,$(1):$(2))
@@ -451,8 +486,13 @@ ${_macro}
   Display a test failed message. This also flags the current test and suite
   as having failed. If results are expected the FAIL result is verified using
   Verify-Result.
+  Command line options:
+    PAUSE_ON_FAIL
+      When not empty pause test execution.
   Parameters:
     1 = The message to display.
+    2 = When not empty this parameter signals that the tests should be
+        terminated. This is done by calling Signal-Error.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
@@ -462,13 +502,30 @@ define ${_macro}
   ,
     $(call Log-Result,FAIL,$(1))
     $(call Record-FAIL)
+    $(if ${PAUSE_ON_FAIL},
+      $(call Pause)
+    )
+    $(if $(2),
+      $(call Signal-Error,Exiting because of failure.,exit)
+    )
   )
 endef
 
 $(call Add-Help-Section,Expects,Verifying expected results and variable values.)
 
+_var := Differences
+${_var} := 1
+define _help
+${_var}
+  This variable contains the list of detected differences between expected
+  values and actual values.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+
 # NOTE: The expect macros should not use Enter-Macro or Exit-Macro because
-# they could influence other tets.
+# they could influence other tests.
 
 _macro := Set-Expected-Results
 define _help
@@ -500,15 +557,19 @@ define ${_macro}
   $(foreach _e,$(1),
     $(eval _ve := $(subst :,${Space},${_e}))
     $(call Verbose,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
+    $(call Verbose,Actual:(${$(word 1,${_ve})}))
+    $(eval Differences := )
     $(if $(word 2,${_ve}),
       $(if $(filter ${$(word 1,${_ve})},$(word 2,${_ve})),
         $(call PASS,Expecting:(${_e}))
       ,
         $(call FAIL,Expecting:(${_e}) actual (${$(word 1,${_ve})}))
+        $(eval Differences += ${_e}:${$(word 1,${_ve})})
       )
     ,
       $(if $(strip ${$(word 1,${_ve})}),
         $(call FAIL,Expecting:(${_e}) actual (${$(word 1,${_ve})}))
+        $(eval Differences += ${_e}:${$(word 1,${_ve})})
       ,
         $(call PASS,Expecting:(${_e}))
       )
@@ -533,24 +594,26 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Test-Info,Expecting:"$(1)")
-  $(call Test-Info,Actual:"$(2)")
+  $(call Test-Info,Expecting:$(1))
+  $(call Test-Info,Actual:$(2))
   $(eval __le := $(words $(1)))
   $(eval __la := $(words $(2)))
   $(if $(filter ${__le},${__la}),
-    $(eval _i := 0)
-    $(eval _ex := )
+    $(eval _index := 0)
+    $(eval Differences := )
     $(foreach _w,$(1),
-      $(call Inc-Var,_i)
-      $(if $(filter ${_w},$(word ${_i},$(2))),
-        $(call Verbose,${_w} = $(word ${_i},$(2)))
+      $(call Inc-Var,_index)
+      $(call Verbose,Checking word at ${_index} = ${_w})
+      $(if $(filter ${_w},$(word ${_index},$(2))),
+        $(call Verbose,${_w} = $(word ${_index},$(2)))
       ,
-        $(eval _ex += ${_i})
+        $(eval Differences += ${_index})
       )
     )
-    $(if ${_ex},
+    $(if ${Differences},
       $(call Test-Info,Lists do not match.)
-      $(foreach _i,${_ex},
+      $(call Test-Info,Differences at: ${Differences})
+      $(foreach _i,${Differences},
         $(call FAIL,\
           Expected:($(word ${_i},$(1))) Found:($(word ${_i},$(2))))
       )
@@ -573,8 +636,8 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Verbose,Expecting:"$(1)")
-  $(call Verbose,Actual:"$(2)")
+  $(call Verbose,Expecting:$(1))
+  $(call Verbose,Actual:$(2))
   $(call Expect-List,$(1),$(2))
 endef
 
@@ -629,6 +692,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(call Test-Info,Expecting message:$(1))
   $(eval ExpectedMessage := $(1))
   $(eval MatchFound := )
   $(eval MatchCount := 0)
@@ -718,6 +782,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(call Test-Info,Expecting warning:$(1))
   $(eval Expected_Warning := $(1))
   $(eval Actual_Warning :=)
   $(call Set-Warning-Callback,Oneshot-Warning-Callback)
@@ -818,8 +883,10 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(call Test-Info,Expecting error:$(1))
   $(eval Expected_Error := $(1))
   $(eval Actual_Error :=)
+  $(eval Exit_On_Error :=)
   $(call Set-Error-Callback,Oneshot-Error-Callback)
 endef
 
@@ -829,6 +896,7 @@ ${_macro}
   Verifies Oneshot-Error-Callback was called since calling Expect-Error.
   A PASS is recorded if the error occurred. Otherwise, a FAIL is recorded.
   This also disables the error handler to avoid confusing subsequent tests.
+  The expected error is cleared.
   NOTE: For this to work Expect-Error must be called to arm the one-shot
   handler.
 endef
@@ -838,6 +906,12 @@ define ${_macro}
   $(if ${Actual_Error},
     $(call PASS,Error occurred -- as expected.)
     $(call Expect-String,${Expected_Error},${Actual_Error})
+    $(if ${Differences},
+      $(call FAIL,An unexpected error occurred.)
+    ,
+      $(call PASS,Error occurred -- as expected.)
+    )
+    $(call Clear-Errors)
   ,
     $(call FAIL,Error did not occur.)
     $(call Set-Error-Callback)
@@ -893,7 +967,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Vars:$(call To-String,$(1)))
   $(foreach _v,$(1),
     $(call Test-Info,$(_v) = ${$(_v)})
   )
@@ -967,7 +1041,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0))
+  $(call Enter-Macro,$(0),Context=$(1))
   $(eval $(1).SuiteC := 0)
   $(eval $(1).SuiteL :=)
   $(eval $(1).TestC := 0)
@@ -986,7 +1060,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0))
+  $(call Enter-Macro,$(0),Context=$(1))
   $(eval $(1).Completed :=)
   $(eval $(1).Failed :=)
   $(eval $(1).CompletedTestsC := 0)
@@ -1010,7 +1084,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)))
   $(foreach _ctx,$(1),
     $(call Init-Context-Manifest,${_ctx})
     $(call Init-Context-Results,${_ctx})
@@ -1029,7 +1103,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1) $(2))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)) Suite=$(2))
   $(foreach _ctx,$(1),
     $(if ${${_ctx}.SuiteC},
       $(if $(filter $(2),${${_ctx}.SuiteL}),
@@ -1059,7 +1133,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)) Tests: $(2))
   $(foreach _ctx,$(1),
     $(if ${${_ctx}.TestC},
       $(foreach _t,$(2),
@@ -1093,7 +1167,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)))
   $(if $(1),
     $(foreach _ctx,$(1),
       $(if ${_ctx}.ID,
@@ -1133,9 +1207,10 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),ContextList:$(call To-String,$(1)))
   $(if $(1),
     $(foreach _ctx,$(1),
+      $(call Line)
       $(call Test-Info,Results for context:${_ctx})
       $(call Test-Info,\
         Ran ${${_ctx}.StepC} steps in ${${_ctx}.CompletedTestsC} tests.)
@@ -1157,15 +1232,16 @@ $(call Add-Help-Section,TestWrappers,Test entry and exit.)
 _macro := Begin-Test
 define _help
 ${_macro}
-  Prepare to run a test and set the suite context.
+  Prepare to run a test and set the suite context. Previous errors are cleared.
   Parameters:
     1 = The unique name of the test (defined by Declare-Test).
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),TestUN=$(1))
 
+  $(call Clear-Errors)
   $(eval .TestUN := $(1))
   $(eval Self := $(1))
   $(eval .SuiteN := $(call Get-Suite-Name,$(1)))
@@ -1220,7 +1296,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1) $(2))
+  $(call Enter-Macro,$(0),Suite=$(1) Msg=$(call To-String,$(2)))
 
   $(eval .SuiteN := $(1))
   $(eval Self := $(1))
@@ -1263,7 +1339,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Test=$(1))
   $(if ${.SuiteN},
     $(eval .TestUN := ${.SuiteN}.$(1))
     $(if $(filter ${.TestUN},${Declared.TestL}),
@@ -1297,7 +1373,7 @@ ${_macro}
 endef
 help-${_macro} = $(call _help)
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Test=$(1))
   $(if ${$(1).Prereqs},
     $(eval Prereq.Running := 1)
     $(call Verbose,$(1) prereqs:${$(1).Prereqs})
@@ -1330,7 +1406,11 @@ define ${_macro}
             $(eval ${_prereq}.Running := 1)
             $(call Run-Prerequisites,${_prereq})
             $(eval RunContext := Prereq)
-            $(call ${_prereq})
+            $(if ${SKIP_PREREQS},
+              $(call Test-Info,NOT running prereq:$(_prereq))
+            ,
+              $(call ${_prereq})
+            )
             $(eval RunContext :=)
             $(if ${${_prereq}.Failed},
               $(call Test-Info,Test ${_prereq} FAILED -- skipping.)
@@ -1361,7 +1441,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Test list=$(1))
   $(if $(1),
     $(call Init-Context-Results,Run)
     $(foreach _t,${$(1)},
@@ -1410,7 +1490,7 @@ endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1))
+  $(call Enter-Macro,$(0),Test suites=$(call To-String,$(1)))
   $(call Declare-Contexts,Run)
   $(if $(1),
     $(eval _cases := $(1))
@@ -1489,7 +1569,7 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 ifneq ($(call Is-Goal,help%),)
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1):$(2))
+  $(call Enter-Macro,$(0),Path=$(1) Test-list=$(call To-String,$(2)))
   $(call Test-Info,Displaying help -- not running test suites.)
   $(call Declare-Contexts,Session Declared)
   $(eval Session.ID := ${SegID})
@@ -1508,7 +1588,7 @@ define ${_macro}
 endef
 else ifneq ($(call Is-Goal,test),)
 define ${_macro}
-  $(call Enter-Macro,$(0),$(1):$(2))
+  $(call Enter-Macro,$(0),Path=$(1) Test-list=$(call To-String,$(2)))
   $(call Add-Segment-Path,$(1))
   $(call Declare-Contexts,Session Declared Prereq)
   $(eval Session.ID := ${SegID})
@@ -1516,8 +1596,7 @@ define ${_macro}
   $(call Create-Run-List,$(2))
   $(if ${Run.TestL},
     $(call Run-Tests,Run.TestL)
-    $(call Report-Test-Results,Prereq)
-    $(call Report-Test-Results,Session)
+    $(call Report-Test-Results,Prereq Session)
   ,
     $(call Warn,No tests in the Run.TestL list.)
   )

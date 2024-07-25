@@ -15,7 +15,7 @@ ${_macro}
   segment uses variables from other segments which haven't been loaded.
 $.endef
 $.define ${_macro}
-$(call Enter-Macro,$(0),$(1))
+$(call Enter-Macro,$(0),Seg=$(1))
 $(call Info,Initializing $(1).)
 $(call Exit-Macro)
 $.endef
