@@ -470,6 +470,30 @@ endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
+$(call Add-Help-Section,Messaging,Message helpers.)
+
+_var := DEBUG
+${_var} ?=
+define _help
+${_var}
+  Set this variable on the command line or a makefile segment to enable debug
+  messages. If ${_var} is defined in a makefile segment setting ${_var} on the
+  command line will override the previous setting.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := VERBOSE
+${_var} ?=
+define _help
+${_var}
+  Set this variable on the command line or a makefile segment to enable verbose
+  messages. If ${_var} is defined in a makefile segment setting ${_var} on the
+  command line will override the previous setting.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 _var := QUIET
 ${_var} ?=
 define _help
@@ -481,8 +505,6 @@ ${_var}
 endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
-
-$(call Add-Help-Section,Messaging,Message helpers.)
 
 _macro := Div
 define _help
