@@ -31,7 +31,6 @@ clean:
 > rm -rf ${TmpTestPath}
 
 __h := $(or \
-  $(call Is-Goal,help), \
   $(call Is-Goal,help-${Seg}), \
   $(call Is-Goal,help-${SegUN}), \
   $(call Is-Goal,help-${SegID}))
