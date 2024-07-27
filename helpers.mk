@@ -2709,17 +2709,6 @@ ${__goal}%:
 > less ${TmpPath}/help-$*
 > rm ${TmpPath}/help-$*
 
-__goal := help
-define _help
-${__goal}
-  Display the help for the makefile. This help must be named "help-Usage".
-endef
-help-${__goal} := $(call _help)
-$(call Add-Help,${__goal})
-
-.PHONY: ${__goal}
-${__goal}: ${__goal}-1
-
 __goal := origin-
 define _help
 ${__goal}<sym>

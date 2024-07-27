@@ -31,10 +31,12 @@ clean:
 > rm -rf ${TmpTestPath}
 
 __h := $(or \
+  $(call Is-Goal,help), \
+  $(call Is-Goal,help-${Seg}), \
   $(call Is-Goal,help-${SegUN}), \
   $(call Is-Goal,help-${SegID}))
 ifneq (${__h},)
-$(call Attention,Defining ${__h} for:${Seg})
+$(call Attention,Defining ${__h} for:${Seg} SegUN:${SegUN})
 define __help
 Makefile: ${Seg}
 Usage: make [<option>=<value> ...] [<goal> [<goal> ...]]
