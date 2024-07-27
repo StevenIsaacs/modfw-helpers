@@ -2610,23 +2610,49 @@ $(call Info,Running on: ${Platform})
 $(call Verbose,MAKELEVEL = ${MAKELEVEL})
 $(call Verbose,MAKEFLAGS = ${MAKEFLAGS})
 
+$(call Add-Help-Section,CommandLineGoals,Command line goals.)
+
+__goal := display-messages
+define _help
+${__goal}
+  This goal displays the log file if LOG_FILE is defined.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
 ifneq (${LOG_FILE},)
-display-messages: ${LogFile}
+${__goal}: ${LogFile}
 > less $<
 else
   $(call Attention,Use LOG_FILE=<file> to enable message logging.)
-display-messages:
+${__goal}:
 endif
 
-display-errors:
+__goal := display-errors
+define _help
+${__goal}
+  This goal displays a list of accumulated errors if defined.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
+${__goal}:
 > @if [ -n '${ErrorList}' ]; then \
   m="${ErrorList}";printf "Errors:$${m//${NewLine}/\\n}" | less;\
   fi
 
-show-%:
+__goal := show-
+define _help
+${__goal}<var>
+  Display the value of any variable.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
+${__goal}%:
 > @echo '$*=$($*)'
 
-define _Call-Macro
+define __Call-Macro
 $(eval __w := $(subst :, ,$(2)))
 $(foreach pn,1 2 3,
   $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
@@ -2635,41 +2661,9 @@ $(foreach pn,1 2 3,
 $(call $(1),${p1},${p2},${p3})
 endef
 
-call-%:
-> $(file >${TmpPath}/call-$*,$(call _Call-Macro,$*,${$*.PARMS}))
-> less ${TmpPath}/call-$*
-> rm ${TmpPath}/call-$*
-
-help-%:
-> $(file >${TmpPath}/help-$*,${help-$*})
-> $(if $(call Is-Not-Defined,$*.MoreHelpList),,\
-    $(if ${$*.MoreHelpList},\
-      $(foreach _h,${$*.MoreHelpList},\
-        $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
-        $(file >>${TmpPath}/help-$*,${${__h}}))))
-> less ${TmpPath}/help-$*
-> rm ${TmpPath}/help-$*
-
-.PHONY: help
-help: help-1
-
-origin-%:
-> @echo 'Origin:$*=$(origin $*)'
-
-__h := \
-  $(or \
-    $(call Is-Goal,help-${Seg}),\
-    $(call Is-Goal,help-${SegUN}),\
-    $(call Is-Goal,help-${SegID}))
-ifneq (${__h},)
-define __help
-$(call Display-Help-List,${SegID})
-
-Special goals:
-show-<var>
-  Display the value of any variable.
-
-call-<macro>
+__goal := call-
+define _help
+${__goal}<macro>
   Call a macro with parameters.
   Uses:
     <macro>.PARMS
@@ -2688,24 +2682,65 @@ call-<macro>
       For example:
         <macro>.PARMS="parm1:parm2+string"
         This declares two parameters where the second parameter is a string.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
 
-help
-  Display the help for the makefile. This help must be named "help-Usage".
+${__goal}%:
+> $(file >${TmpPath}/call-$*,$(call __Call-Macro,$*,${$*.PARMS}))
+> less ${TmpPath}/call-$*
+> rm ${TmpPath}/call-$*
 
-help-<sym>
+__goal := help-
+define _help
+${__goal}<sym>
   Display the help for a specific macro, segment, or variable.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
 
-origin-<var>
-  Display the origin of a variable. The result can be any of the
+${__goal}%:
+> $(file >${TmpPath}/help-$*,${help-$*})
+> $(if $(call Is-Not-Defined,$*.MoreHelpList),,\
+    $(if ${$*.MoreHelpList},\
+      $(foreach _h,${$*.MoreHelpList},\
+        $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
+        $(file >>${TmpPath}/help-$*,${${__h}}))))
+> less ${TmpPath}/help-$*
+> rm ${TmpPath}/help-$*
+
+__goal := help
+define _help
+${__goal}
+  Display the help for the makefile. This help must be named "help-Usage".
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
+.PHONY: ${__goal}
+${__goal}: ${__goal}-1
+
+__goal := origin-
+define _help
+${__goal}<sym>
+  Display the origin of a symbol. The result can be any of the
   values described in section 8.11 of the GNU make documentation
   (https://www.gnu.org/software/make/manual/html_node/Origin-Function.html).
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
 
-display-messages
-  This goal displays a list of accumulated messages if defined.
+${__goal}%:
+> @echo 'Origin:$*=$(origin $*)'
 
-display-errors
-  This goal displays a list of accumulated errors if defined.
-
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
+$(call Display-Help-List,${SegID})
 endef
 ${__h} := ${__help}
 endif # help goal
