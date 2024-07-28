@@ -2374,6 +2374,8 @@ define ${_macro}
               $(eval __sv := $(2))
               $(call Verbose,Setting ${__sn} to default:"${__sv}")
               $(eval __save := 1)
+            ,
+              $(eval __sv :=)
             )
           )
         )
@@ -2610,6 +2612,91 @@ $(call Info,Running on: ${Platform})
 $(call Verbose,MAKELEVEL = ${MAKELEVEL})
 $(call Verbose,MAKEFLAGS = ${MAKEFLAGS})
 
+$(call Add-Help-Section,CallingMacros,Calling macros.)
+
+_var := Callable_Macros
+${_var} :=
+define _help
+${_var} = ${${_var}}
+  This is the list of macros which can be called from the command line.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_macro := Macro-Is-Callable
+define _help
+${_macro}
+  Returns a non-empty value if the macro has been declared to be callable.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+${_macro} = $(filter $(1),${Callable_Macros})
+
+_macro := Declare-Callable-Macro
+define _help
+${_macro}
+  Declare a macro to be callable from the command line. A macro must be
+  declared callable before it can be called using the call-<macro> goal.
+  Parameters:
+    1 = The name of the macro to declare callable.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(call Info,Declaring callable macro:$(1))
+  $(eval Callable_Macros += $(1))
+endef
+
+define __Call-Macro
+$(if $(call Macro-Is-Callable,$(1)),
+  $(eval __w := $(subst :, ,$(2)))
+  $(foreach pn,1 2 3,
+    $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
+    $(call Verbose,p${pn}:${p${pn}})
+  )
+  $(call $(1),${p1},${p2},${p3})
+,
+  $(call Signal-Error,Macro $(1) is not callable.,exit)
+)
+endef
+
+__goal := call
+define _help
+${__goal}-<macro>
+  Call a macro with parameters. The macro must have been previously declared
+  to be callable.
+  Uses:
+    <macro>.PARMS
+      A list of parameters to pass to the macro. The macro name provides
+      context so that multiple calls can be used on the command line.
+      Because of the limited manner in which make deals with strings and
+      lists of parameters special characters are needed to indicate
+      different parameters versus strings. Parameters are separated using the
+      colon character (:) and spaces in a parameter are indicated using the
+      plus character (+).
+      A maximum of three parameters are supported.
+      Output form the macro is routed to a text file and then displayed using
+      less.
+      WARNING: This may not work for all macros. The list of macros this can
+      be used with is currently undefined.
+      For example:
+        <macro>.PARMS="parm1:parm2+string"
+        This declares two parameters where the second parameter is a string.
+
+  Callable macros are:
+  ${Callable_Macros}
+$(foreach __callable,${Callable_Macros},
+${help-${__callable}}
+)
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
+${__goal}-%:
+> $(file >${TmpPath}/${__goal}-$*,$(call __Call-Macro,$*,${$*.PARMS}))
+> less ${TmpPath}/${__goal}-$*
+> rm ${TmpPath}/${__goal}-$*
+
 $(call Add-Help-Section,CommandLineGoals,Command line goals.)
 
 __goal := display-messages
@@ -2651,45 +2738,6 @@ $(call Add-Help,${__goal})
 
 ${__goal}%:
 > @echo '$*=$($*)'
-
-define __Call-Macro
-$(eval __w := $(subst :, ,$(2)))
-$(foreach pn,1 2 3,
-  $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
-  $(call Verbose,p${pn}:${p${pn}})
-)
-$(call $(1),${p1},${p2},${p3})
-endef
-
-__goal := call-
-define _help
-${__goal}<macro>
-  Call a macro with parameters.
-  Uses:
-    <macro>.PARMS
-      A list of parameters to pass to the macro. The macro name provides
-      context so that multiple calls can be used on the command line.
-      Because of the limited manner in which make deals with strings and
-      lists of parameters special characters are needed to indicate
-      different parameters versus strings. Parameters are separated using the
-      colon character (:) and spaces in a parameter are indicated using the
-      plus character (+).
-      A maximum of three parameters are supported.
-      Output form the macro is routed to a text file and then displayed using
-      less.
-      WARNING: This may not work for all macros. The list of macros this can
-      be used with is currently undefined.
-      For example:
-        <macro>.PARMS="parm1:parm2+string"
-        This declares two parameters where the second parameter is a string.
-endef
-help-${__goal} := $(call _help)
-$(call Add-Help,${__goal})
-
-${__goal}%:
-> $(file >${TmpPath}/call-$*,$(call __Call-Macro,$*,${$*.PARMS}))
-> less ${TmpPath}/call-$*
-> rm ${TmpPath}/call-$*
 
 __goal := help-
 define _help
