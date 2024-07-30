@@ -1873,11 +1873,15 @@ $${LastSegUN}: $${SegF}
 # +++++
 # Postamble
 # Define help only if needed.
-$.__h := $$(or $$(call Is-Goal,help-$${SegUN}),$$(call Is-Goal,help-$${SegID}))
+$.__h := $$(or $\
+  $$(call Is-Goal,help-$${Seg}),$\\
+  $$(call Is-Goal,help-$${SegUN}),$\\
+  $$(call Is-Goal,help-$${SegID}))
 $.ifneq ($${__h},)
 $.define __help
 $$(call Display-Help-List,$${SegID})
 $.endef
+$${__h} := $${__help}
 $.endif # help goal message.
 
 $$(call Exit-Segment)
