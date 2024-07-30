@@ -1216,10 +1216,15 @@ define ${_macro}
         Ran ${${_ctx}.StepC} steps in ${${_ctx}.CompletedTestsC} tests.)
       $(call Test-Info,\
         Total passed:${${_ctx}.PassedStepsC} Total failed:${${_ctx}.FailedStepsC})
-      $(if ${${_ctx}.FailedStepsL},
-        $(call Test-Info,Failed tests:)
-        $(foreach _step,${${_ctx}.FailedStepsL},
-          $(call Test-Info,${_step})
+      $(if ${QUIET},
+        $(info \
+          ${_ctx}:Total passed:${${_ctx}.PassedStepsC} Total failed:${${_ctx}.FailedStepsC})
+        $(if ${${_ctx}.FailedStepsL},
+          $(warning Context ${_ctx} ${${_ctx}.FailedStepsC} steps failed.)
+          $(call Test-Info,Failed tests:)
+          $(foreach _step,${${_ctx}.FailedStepsL},
+            $(call Test-Info,${_step})
+          )
         )
       )
     )
