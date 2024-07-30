@@ -1835,7 +1835,14 @@ $$(call Enter-Segment,$(2))
 # -----
 
 $.define _help
+Make segment: $${Seg}.mk
+
 <Overview of makefile segment>
+
+Command line goals:
+  # Describe additional goals provided by the segment.
+  help-$${SegUN}
+    Display this help.
 $.endef
 help-$${SegID} := $$(call _help)
 $$(call Add-Help,$${SegID})
@@ -1869,18 +1876,7 @@ $${LastSegUN}: $${SegF}
 $.__h := $$(or $$(call Is-Goal,help-$${SegUN}),$$(call Is-Goal,help-$${SegID}))
 $.ifneq ($${__h},)
 $.define __help
-Make segment: $${Seg}.mk
-
 $$(call Display-Help-List,$${SegID})
-
-Defines:
-
-  # Describe each variable or macro.
-
-Command line goals:
-  # Describe additional goals provided by the segment.
-  help-$${SegUN}
-    Display this help.
 $.endef
 $.endif # help goal message.
 
