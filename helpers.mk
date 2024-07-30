@@ -2649,7 +2649,8 @@ endef
 
 define __Call-Macro
 $(if $(call Macro-Is-Callable,$(1)),
-  $(eval __w := $(subst :, ,$(2)))
+  $(eval __w := $(subst :, ,${$(1).PARMS}))
+  $(call Attention,$(1) parameters:${__w})
   $(foreach pn,1 2 3,
     $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
     $(call Verbose,p${pn}:${p${pn}})
@@ -2693,9 +2694,7 @@ help-${__goal} := $(call _help)
 $(call Add-Help,${__goal})
 
 ${__goal}-%:
-> $(file >${TmpPath}/${__goal}-$*,$(call __Call-Macro,$*,${$*.PARMS}))
-> less ${TmpPath}/${__goal}-$*
-> rm ${TmpPath}/${__goal}-$*
+> $(call __Call-Macro,$*)
 
 $(call Add-Help-Section,CommandLineGoals,Command line goals.)
 
