@@ -495,9 +495,9 @@ help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
 _var := QUIET
-${_var} ?=
+${_var} ?= 1
 define _help
-${_var}
+${_var} = ${_var}
   Set this variable on the command line to suppress console output.
   If QUIET is not empty then all messages except error messages are suppressed.
   They are still added to the message list and can still be displayed using
