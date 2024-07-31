@@ -2619,6 +2619,9 @@ ${_var} :=
 define _help
 ${_var} = ${${_var}}
   This is the list of macros which can be called from the command line.
+
+  Callable macros are:
+
 endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
@@ -2645,6 +2648,7 @@ $(call Add-Help,${_macro})
 define ${_macro}
   $(call Info,Declaring callable macro:$(1))
   $(eval Callable_Macros += $(1))
+  $(eval help-Callable_Macros += $(1))
 endef
 
 define __Call-Macro
@@ -2684,11 +2688,7 @@ ${__goal}-<macro>
         <macro>.PARMS="parm1:parm2+string"
         This declares two parameters where the second parameter is a string.
 
-  Callable macros are:
-  ${Callable_Macros}
-$(foreach __callable,${Callable_Macros},
-${help-${__callable}}
-)
+  See help-Callable_Macros for a list.
 endef
 help-${__goal} := $(call _help)
 $(call Add-Help,${__goal})
