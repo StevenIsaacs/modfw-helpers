@@ -2681,6 +2681,7 @@ $(if $(call Macro-Is-Callable,$(1)),
     $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
     $(call Verbose,p${pn}:${p${pn}})
   )
+  $(call Clear-Errors)
   $(eval _q := ${QUIET})
   $(eval QUIET :=)
   $(call $(1),${p1},${p2},${p3})
