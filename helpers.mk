@@ -2659,7 +2659,10 @@ $(if $(call Macro-Is-Callable,$(1)),
     $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
     $(call Verbose,p${pn}:${p${pn}})
   )
+  $(eval _q := ${QUIET})
+  $(eval QUIET :=)
   $(call $(1),${p1},${p2},${p3})
+  $(eval QUIET := ${_q})
 ,
   $(call Signal-Error,Macro $(1) is not callable.,exit)
 )
