@@ -470,10 +470,34 @@ endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
 
-_var := QUIET
+$(call Add-Help-Section,Messaging,Message helpers.)
+
+_var := DEBUG
 ${_var} ?=
 define _help
 ${_var}
+  Set this variable on the command line or a makefile segment to enable debug
+  messages. If ${_var} is defined in a makefile segment setting ${_var} on the
+  command line will override the previous setting.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := VERBOSE
+${_var} ?=
+define _help
+${_var}
+  Set this variable on the command line or a makefile segment to enable verbose
+  messages. If ${_var} is defined in a makefile segment setting ${_var} on the
+  command line will override the previous setting.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_var := QUIET
+${_var} ?= 1
+define _help
+${_var} = ${_var}
   Set this variable on the command line to suppress console output.
   If QUIET is not empty then all messages except error messages are suppressed.
   They are still added to the message list and can still be displayed using
@@ -481,8 +505,6 @@ ${_var}
 endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
-
-$(call Add-Help-Section,Messaging,Message helpers.)
 
 _macro := Div
 define _help
@@ -1813,7 +1835,14 @@ $$(call Enter-Segment,$(2))
 # -----
 
 $.define _help
+Make segment: $${Seg}.mk
+
 <Overview of makefile segment>
+
+Command line goals:
+  # Describe additional goals provided by the segment.
+  help-$${SegUN}
+    Display this help.
 $.endef
 help-$${SegID} := $$(call _help)
 $$(call Add-Help,$${SegID})
@@ -1844,22 +1873,15 @@ $${LastSegUN}: $${SegF}
 # +++++
 # Postamble
 # Define help only if needed.
-$.__h := $$(or $$(call Is-Goal,help-$${SegUN}),$$(call Is-Goal,help-$${SegID}))
+$.__h := $$(or $\
+  $$(call Is-Goal,help-$${Seg}),$\\
+  $$(call Is-Goal,help-$${SegUN}),$\\
+  $$(call Is-Goal,help-$${SegID}))
 $.ifneq ($${__h},)
 $.define __help
-Make segment: $${Seg}.mk
-
 $$(call Display-Help-List,$${SegID})
-
-Defines:
-
-  # Describe each variable or macro.
-
-Command line goals:
-  # Describe additional goals provided by the segment.
-  help-$${SegUN}
-    Display this help.
 $.endef
+$${__h} := $${__help}
 $.endif # help goal message.
 
 $$(call Exit-Segment)
@@ -2352,6 +2374,8 @@ define ${_macro}
               $(eval __sv := $(2))
               $(call Verbose,Setting ${__sn} to default:"${__sv}")
               $(eval __save := 1)
+            ,
+              $(eval __sv :=)
             )
           )
         )
@@ -2588,67 +2612,64 @@ $(call Info,Running on: ${Platform})
 $(call Verbose,MAKELEVEL = ${MAKELEVEL})
 $(call Verbose,MAKEFLAGS = ${MAKEFLAGS})
 
-ifneq (${LOG_FILE},)
-display-messages: ${LogFile}
-> less $<
-else
-  $(call Attention,Use LOG_FILE=<file> to enable message logging.)
-display-messages:
-endif
+$(call Add-Help-Section,CallingMacros,Calling macros.)
 
-display-errors:
-> @if [ -n '${ErrorList}' ]; then \
-  m="${ErrorList}";printf "Errors:$${m//${NewLine}/\\n}" | less;\
-  fi
+_var := Callable_Macros
+${_var} :=
+define _help
+${_var} = ${${_var}}
+  This is the list of macros which can be called from the command line.
 
-show-%:
-> @echo '$*=$($*)'
+  Callable macros are:
 
-define _Call-Macro
-$(eval __w := $(subst :, ,$(2)))
-$(foreach pn,1 2 3,
-  $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
-  $(call Verbose,p${pn}:${p${pn}})
-)
-$(call $(1),${p1},${p2},${p3})
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
+_macro := Macro-Is-Callable
+define _help
+${_macro}
+  Returns a non-empty value if the macro has been declared to be callable.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+${_macro} = $(filter $(1),${Callable_Macros})
+
+_macro := Declare-Callable-Macro
+define _help
+${_macro}
+  Declare a macro to be callable from the command line. A macro must be
+  declared callable before it can be called using the call-<macro> goal.
+  Parameters:
+    1 = The name of the macro to declare callable.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+  $(call Info,Declaring callable macro:$(1))
+  $(eval Callable_Macros += $(1))
+  $(eval help-Callable_Macros += $(1))
 endef
 
-call-%:
-> $(file >${TmpPath}/call-$*,$(call _Call-Macro,$*,${$*.PARMS}))
-> less ${TmpPath}/call-$*
-> rm ${TmpPath}/call-$*
+define __Call-Macro
+$(if $(call Macro-Is-Callable,$(1)),
+  $(eval __w := $(subst :, ,${$(1).PARMS}))
+  $(call Attention,$(1) parameters:${__w})
+  $(foreach pn,1 2 3,
+    $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
+    $(call Verbose,p${pn}:${p${pn}})
+  )
+  $(call $(1),${p1},${p2},${p3})
+,
+  $(call Signal-Error,Macro $(1) is not callable.,exit)
+)
+endef
 
-help-%:
-> $(file >${TmpPath}/help-$*,${help-$*})
-> $(if $(call Is-Not-Defined,$*.MoreHelpList),,\
-    $(if ${$*.MoreHelpList},\
-      $(foreach _h,${$*.MoreHelpList},\
-        $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
-        $(file >>${TmpPath}/help-$*,${${__h}}))))
-> less ${TmpPath}/help-$*
-> rm ${TmpPath}/help-$*
-
-.PHONY: help
-help: help-1
-
-origin-%:
-> @echo 'Origin:$*=$(origin $*)'
-
-__h := \
-  $(or \
-    $(call Is-Goal,help-${Seg}),\
-    $(call Is-Goal,help-${SegUN}),\
-    $(call Is-Goal,help-${SegID}))
-ifneq (${__h},)
-define __help
-$(call Display-Help-List,${SegID})
-
-Special goals:
-show-<var>
-  Display the value of any variable.
-
-call-<macro>
-  Call a macro with parameters.
+__goal := call
+define _help
+${__goal}-<macro>
+  Call a macro with parameters. The macro must have been previously declared
+  to be callable.
   Uses:
     <macro>.PARMS
       A list of parameters to pass to the macro. The macro name provides
@@ -2667,23 +2688,95 @@ call-<macro>
         <macro>.PARMS="parm1:parm2+string"
         This declares two parameters where the second parameter is a string.
 
-help
-  Display the help for the makefile. This help must be named "help-Usage".
+  See help-Callable_Macros for a list.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
 
-help-<sym>
+${__goal}-%:
+> $(call __Call-Macro,$*)
+
+$(call Add-Help-Section,CommandLineGoals,Command line goals.)
+
+__goal := display-messages
+define _help
+${__goal}
+  This goal displays the log file if LOG_FILE is defined.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
+ifneq (${LOG_FILE},)
+${__goal}: ${LogFile}
+> less $<
+else
+  $(call Attention,Use LOG_FILE=<file> to enable message logging.)
+${__goal}:
+endif
+
+__goal := display-errors
+define _help
+${__goal}
+  This goal displays a list of accumulated errors if defined.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
+${__goal}:
+> @if [ -n '${ErrorList}' ]; then \
+  m="${ErrorList}";printf "Errors:$${m//${NewLine}/\\n}" | less;\
+  fi
+
+__goal := show-
+define _help
+${__goal}<var>
+  Display the value of any variable.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
+
+${__goal}%:
+> @echo '$*=$($*)'
+
+__goal := help-
+define _help
+${__goal}<sym>
   Display the help for a specific macro, segment, or variable.
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
 
-origin-<var>
-  Display the origin of a variable. The result can be any of the
+${__goal}%:
+> $(file >${TmpPath}/help-$*,${help-$*})
+> $(if $(call Is-Not-Defined,$*.MoreHelpList),,\
+    $(if ${$*.MoreHelpList},\
+      $(foreach _h,${$*.MoreHelpList},\
+        $(file >>${TmpPath}/help-$*,==== ${__h} ====)\
+        $(file >>${TmpPath}/help-$*,${${__h}}))))
+> less ${TmpPath}/help-$*
+> rm ${TmpPath}/help-$*
+
+__goal := origin-
+define _help
+${__goal}<sym>
+  Display the origin of a symbol. The result can be any of the
   values described in section 8.11 of the GNU make documentation
   (https://www.gnu.org/software/make/manual/html_node/Origin-Function.html).
+endef
+help-${__goal} := $(call _help)
+$(call Add-Help,${__goal})
 
-display-messages
-  This goal displays a list of accumulated messages if defined.
+${__goal}%:
+> @echo 'Origin:$*=$(origin $*)'
 
-display-errors
-  This goal displays a list of accumulated errors if defined.
-
+__h := \
+  $(or \
+    $(call Is-Goal,help-${Seg}),\
+    $(call Is-Goal,help-${SegUN}),\
+    $(call Is-Goal,help-${SegID}))
+ifneq (${__h},)
+define __help
+$(call Display-Help-List,${SegID})
 endef
 ${__h} := ${__help}
 endif # help goal
