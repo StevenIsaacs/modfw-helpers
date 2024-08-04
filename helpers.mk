@@ -744,6 +744,16 @@ endef
 
 $(call Add-Help-Section,DebugSupport,Rudimentary makefile debug support.)
 
+_var := Single_Step
+${_var} :=
+define _help
+${_var}
+  This variable is used as a semaphore to indicate when single stepping
+  messages is enabled.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 _macro := Enable-Single-Step
 define _help
 ${_macro}
@@ -2614,14 +2624,21 @@ $(call Verbose,MAKEFLAGS = ${MAKEFLAGS})
 
 $(call Add-Help-Section,CallingMacros,Calling macros.)
 
+_var := PARMS
+${_var} :=
+define _help
+${_var} = ${${_var}}
+  This of parameters passed to a macro being called using the call-<macro>
+  goal when <macro>.PARMS is not defined.
+endef
+help-${_var} := $(call _help)
+$(call Add-Help,${_var})
+
 _var := Callable_Macros
 ${_var} :=
 define _help
 ${_var} = ${${_var}}
   This is the list of macros which can be called from the command line.
-
-  Callable macros are:
-
 endef
 help-${_var} := $(call _help)
 $(call Add-Help,${_var})
@@ -2653,7 +2670,12 @@ endef
 
 define __Call-Macro
 $(if $(call Macro-Is-Callable,$(1)),
-  $(eval __w := $(subst :, ,${$(1).PARMS}))
+  $(if ${$(1).PARMS},
+    $(eval __parms := ${$(1).PARMS})
+  ,
+    $(eval __parms := ${PARMS})
+  )
+  $(eval __w := $(subst :, ,${__parms}))
   $(call Attention,$(1) parameters:${__w})
   $(foreach pn,1 2 3,
     $(eval p${pn} := $(subst +, ,$(word ${pn},${__w})))
@@ -2674,17 +2696,21 @@ ${__goal}-<macro>
   Call a macro with parameters. The macro must have been previously declared
   to be callable.
   Uses:
-    <macro>.PARMS
+    <macro>.PARMS or PARMS
       A list of parameters to pass to the macro. The macro name provides
-      context so that multiple calls can be used on the command line.
+      context so that multiple calls can be used on the command line. If
+      the context is not provided then PARMS is used.
+
       Because of the limited manner in which make deals with strings and
       lists of parameters special characters are needed to indicate
       different parameters versus strings. Parameters are separated using the
       colon character (:) and spaces in a parameter are indicated using the
       plus character (+).
+
       A maximum of three parameters are supported.
       Output form the macro is routed to a text file and then displayed using
       less.
+
       WARNING: This may not work for all macros. The list of macros this can
       be used with is currently undefined.
       For example:
