@@ -2141,6 +2141,7 @@ ${_macro}
   Parameters:
     1 = The command to run. This can be multiple commands separated by
         semicolons (;) or AND (&&) OR (||) conditionals.
+    2 = When not empty then display the run output on the console.
   Returns:
     Run_Output
       The console output with the return code appended at the end of the last
@@ -2152,9 +2153,18 @@ help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
   $(call Enter-Macro,$(0),Cmd=$(call To-String,$(1)))
-  $(call Verbose,Command:$(1))
-  $(eval Run_Output := $(shell $(1) 2>&1;echo $$?))
-  $(call Verbose,Run_Output = ${Run_Output})
+  $(call Verbose,Command:$(1) )
+  $(if ${LogFile},
+    $(if $(2),
+      $(eval __log := | tee -a ${LogFile})
+    ,
+      $(eval __log := >>${LogFile})
+    )
+  ,
+    $(eval __log := )
+  )
+  $(eval Run_Output := $(shell $(1) 2>&1 ${__log} ;echo $$?))
+  $(call Info,Run_Output = ${Run_Output})
   $(eval Run_Rc := $(call Return-Code,${Run_Output}))
   $(if ${Run_Rc},
     $(call Warn,Shell return code:${Run_Rc})
