@@ -180,25 +180,25 @@ define ${.TestUN}
   $(call Expect-No-Error)
   $(call Path-To-UN,${__tp},__un)
   $(call Verify-No-Error)
-  $(call Expect-Vars,__un:test2.test3)
+  $(call Expect-Vars,__un=test2.test3)
 
   $(eval __tp := d1/td1.mk)
   $(call Expect-No-Error)
   $(call Path-To-UN,${__tp},__un)
   $(call Verify-No-Error)
-  $(call Expect-Vars,__un:d1.td1)
+  $(call Expect-Vars,__un=d1.td1)
 
   $(eval __tp := test-segs/d1)
   $(call Expect-No-Error)
   $(call Path-To-UN,${__tp},__un)
   $(call Verify-No-Error)
-  $(call Expect-Vars,__un:test-segs.d1)
+  $(call Expect-Vars,__un=test-segs.d1)
 
   $(eval __tp := test-segs/d1/td1.mk)
   $(call Expect-No-Error)
   $(call Path-To-UN,${__tp},__un)
   $(call Verify-No-Error)
-  $(call Expect-Vars,__un:d1.td1)
+  $(call Expect-Vars,__un=d1.td1)
 
   $(call End-Test)
   $(call Exit-Macro)
@@ -236,7 +236,7 @@ define ${.TestUN}
   $(call Add-Segment-Path,${__tp})
   $(call Verify-No-Error)
   $(call Test-Info,SegPaths:${SegPaths})
-  $(call Expect-Vars,SegPaths:${__tp})
+  $(call Expect-Vars,SegPaths=${__tp})
   $(if $(filter ${__tp},${SegPaths}),
     $(call PASS,The segment path was added.)
   ,
@@ -247,7 +247,7 @@ define ${.TestUN}
   $(call Add-Segment-Path,${__tp})
   $(call Verify-Warning)
   $(call Test-Info,SegPaths:${SegPaths})
-  $(call Expect-Vars,SegPaths:${__tp})
+  $(call Expect-Vars,SegPaths=${__tp})
   $(if $(filter ${__tp},${SegPaths}),
     $(call PASS,The segment path was added.)
   ,
@@ -339,7 +339,7 @@ define ${.TestUN}
   ,
     $(call FAIL,Find-Segment did not return a segment file name.)
   )
-  $(call Expect-Vars,__seg_f:test-segs/ts1.mk)
+  $(call Expect-Vars,__seg_f=test-segs/ts1.mk)
 
   $(call Test-Info,Using partial path relative to a segment path,)
   $(call Expect-No-Error)
@@ -352,7 +352,7 @@ define ${.TestUN}
   ,
     $(call FAIL,Find-Segment did not return a segment file name.)
   )
-  $(call Expect-Vars,__seg_f:test-segs/d1/td1.mk)
+  $(call Expect-Vars,__seg_f=test-segs/d1/td1.mk)
 
   $(call Restore-Seg-Lists)
   $(call End-Test)
@@ -386,7 +386,7 @@ define ${.TestUN}
   $(call Expect-List,1 2,${SegID_Stack})
   $(eval SegID := 3)
   $(call __Pop-SegID)
-  $(call Expect-Vars,SegID:2)
+  $(call Expect-Vars,SegID=2)
   $(call Expect-List,1,${SegID_Stack})
 
   $(eval SegID := 2)
@@ -397,22 +397,22 @@ define ${.TestUN}
   $(call Expect-List,1 2 3,${SegID_Stack})
   $(call __Pop-SegID)
   $(call Expect-List,1 2,${SegID_Stack})
-  $(call Expect-Vars,SegID:3)
+  $(call Expect-Vars,SegID=3)
   $(call __Pop-SegID)
   $(call Expect-List,1,${SegID_Stack})
-  $(call Expect-Vars,SegID:2)
+  $(call Expect-Vars,SegID=2)
   $(call __Pop-SegID)
   $(if ${SegID_Stack},
     $(call FAIL,SegID_Stack should be empty but contains:${SegID_Stack})
   ,
     $(call PASS,SegID_Stack is empty.)
   )
-  $(call Expect-Vars,SegID:1)
+  $(call Expect-Vars,SegID=1)
 
   $(call Expect-Error,SegID stack is empty.)
   $(call __Pop-SegID)
   $(call Verify-Error)
-  $(call Expect-Vars,SegID:1)
+  $(call Expect-Vars,SegID=1)
 
   $(eval SegID := 1)
   $(call __Push-SegID)
@@ -435,23 +435,23 @@ define ${.TestUN}
   $(call Expect-List,1 1 2 3 2,${SegID_Stack})
   $(call __Pop-SegID)
   $(call Expect-List,1 1 2 3,${SegID_Stack})
-  $(call Expect-Vars,SegID:2)
+  $(call Expect-Vars,SegID=2)
   $(call __Pop-SegID)
   $(call Expect-List,1 1 2,${SegID_Stack})
-  $(call Expect-Vars,SegID:3)
+  $(call Expect-Vars,SegID=3)
   $(call __Pop-SegID)
   $(call Expect-List,1 1,${SegID_Stack})
-  $(call Expect-Vars,SegID:2)
+  $(call Expect-Vars,SegID=2)
   $(call __Pop-SegID)
   $(call Expect-List,1,${SegID_Stack})
-  $(call Expect-Vars,SegID:1)
+  $(call Expect-Vars,SegID=1)
   $(call __Pop-SegID)
   $(if ${SegID_Stack},
     $(call FAIL,SegID_Stack should be empty but contains:${SegID_Stack})
   ,
     $(call PASS,SegID_Stack is empty.)
   )
-  $(call Expect-Vars,SegID:1)
+  $(call Expect-Vars,SegID=1)
 
   $(eval SegID_Stack := ${__SegID_Stack})
   $(eval SegID := ${__SegID})
@@ -487,7 +487,7 @@ define ${.TestUN}
 
   $(call __Push-Macro,2)
   $(call Expect-List,1 2,${Macro_Stack})
-  $(call Expect-Vars,Caller:1)
+  $(call Expect-Vars,Caller=1)
   $(call __Pop-Macro)
   $(call Expect-List,1,${Macro_Stack})
   $(if ${Caller},
@@ -498,64 +498,64 @@ define ${.TestUN}
 
   $(call __Push-Macro,2)
   $(call Expect-List,1 2,${Macro_Stack})
-  $(call Expect-Vars,Caller:1)
+  $(call Expect-Vars,Caller=1)
   $(call __Push-Macro,3)
   $(call Expect-List,1 2 3,${Macro_Stack})
-  $(call Expect-Vars,Caller:2)
+  $(call Expect-Vars,Caller=2)
 
   $(call __Pop-Macro)
   $(call Expect-List,1 2,${Macro_Stack})
-  $(call Expect-Vars,Caller:1)
+  $(call Expect-Vars,Caller=1)
   $(call __Pop-Macro)
   $(call Expect-List,1,${Macro_Stack})
-  $(call Expect-Vars,Caller:)
+  $(call Expect-Vars,Caller=)
   $(call __Pop-Macro)
-  $(call Expect-Vars,Macro_Stack: Caller:)
+  $(call Expect-Vars,Macro_Stack= Caller=)
 
   $(call Expect-Error,Macro call stack is empty.)
   $(call __Pop-Macro)
   $(call Verify-Error)
-  $(call Expect-Vars,Macro_Stack: Caller:)
+  $(call Expect-Vars,Macro_Stack= Caller=)
 
 
   $(call __Push-Macro,1)
   $(call Expect-List,1,${Macro_Stack})
-  $(call Expect-Vars,Caller:)
+  $(call Expect-Vars,Caller=)
   $(call Expect-Message,Recursive call to macro 1 detected.)
   $(call __Push-Macro,1)
   $(call Verify-Message)
   $(call Expect-List,1 1,${Macro_Stack})
-  $(call Expect-Vars,Caller:1)
+  $(call Expect-Vars,Caller=1)
   $(call __Push-Macro,2)
   $(call Expect-List,1 1 2,${Macro_Stack})
-  $(call Expect-Vars,Caller:1)
+  $(call Expect-Vars,Caller=1)
   $(call __Push-Macro,3)
   $(call Expect-List,1 1 2 3,${Macro_Stack})
-  $(call Expect-Vars,Caller:2)
+  $(call Expect-Vars,Caller=2)
   $(call Expect-Message,Recursive call to macro 2 detected.)
   $(call __Push-Macro,2)
   $(call Verify-Message)
   $(call Expect-List,1 1 2 3 2,${Macro_Stack})
-  $(call Expect-Vars,Caller:3)
+  $(call Expect-Vars,Caller=3)
   $(call __Pop-Macro)
   $(call Expect-List,1 1 2 3,${Macro_Stack})
-  $(call Expect-Vars,Caller:2)
+  $(call Expect-Vars,Caller=2)
   $(call __Pop-Macro)
   $(call Expect-List,1 1 2,${Macro_Stack})
-  $(call Expect-Vars,Caller:1)
+  $(call Expect-Vars,Caller=1)
   $(call __Pop-Macro)
   $(call Expect-List,1 1,${Macro_Stack})
-  $(call Expect-Vars,Caller:1)
+  $(call Expect-Vars,Caller=1)
   $(call __Pop-Macro)
   $(call Expect-List,1,${Macro_Stack})
-  $(call Expect-Vars,Caller:)
+  $(call Expect-Vars,Caller=)
   $(call __Pop-Macro)
   $(if ${Macro_Stack},
     $(call FAIL,Macro_Stack should be empty but contains:${Macro_Stack})
   ,
     $(call PASS,Macro_Stack is empty.)
   )
-  $(call Expect-Vars,Caller:)
+  $(call Expect-Vars,Caller=)
 
   $(eval Macro_Stack := ${__Macro_Stack})
   $(eval Caller := ${__Caller})
@@ -587,7 +587,7 @@ define ${.TestUN}
     $(call Display-Seg-Attributes,${__un})
     $(call Set-Segment-Context,${${__un}.SegID})
     $(foreach __att,${SegAttributes},
-      $(call Expect-Vars,${__att}:${${__un}.${__att}})
+      $(call Expect-Vars,${__att}=${${__un}.${__att}})
     )
   )
   $(call Test-Info,Restoring context for ${__SegUN} ID ${${__SegUN}.SegID}.)
@@ -694,8 +694,8 @@ define ${.TestUN}
 
   $(call Test-Info,Full segment path (no find).)
   $(call Expect-Vars,\
-    test-segs.ts3.SegP:${WorkingPath}/test-segs\
-    test-segs.ts3.SegF:test-segs/ts3.mk\
+    test-segs.ts3.SegP=${WorkingPath}/test-segs\
+    test-segs.ts3.SegF=test-segs/ts3.mk\
     )
 
   $(call Expect-Message,\

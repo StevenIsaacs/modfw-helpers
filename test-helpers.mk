@@ -549,13 +549,20 @@ ${_macro}
   value equal to <value>. PASS or FAIL messages are emitted accordingly.
   Parameters:
     1 = The list of <var>:<value> pairs. The pair must be separated with a
-        colon (:) and the <value> cannot contain any spaces.
+        equal (=) and the <value> cannot contain any spaces.
+    2 = An optional delimiter. This is provided for situations where the
+        normal delimiter (=) is contained within the expected value.
 endef
 help-${_macro} := $(call _help)
 $(call Add-Help,${_macro})
 define ${_macro}
+  $(if $(2),
+    $(eval __d := $(2))
+  ,
+    $(eval __d := =)
+  )
   $(foreach _e,$(1),
-    $(eval _ve := $(subst :,${Space},${_e}))
+    $(eval _ve := $(subst ${__d},${Space},${_e}))
     $(call Verbose,(${_ve}) Expecting:($(word 1,${_ve}))=($(word 2,${_ve})))
     $(call Verbose,Actual:(${$(word 1,${_ve})}))
     $(eval Differences := )
