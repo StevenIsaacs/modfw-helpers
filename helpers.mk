@@ -2102,6 +2102,19 @@ define ${_macro}
 $(strip $(filter $(2),$(shell read -r -p "$(1) [$(2)|N]: "; echo $$REPLY)))
 endef
 
+_macro := Input
+define _help
+${_macro}
+  Prompts the user to enter an input line.
+  Parameters:
+    1 = The prompt for the response.
+endef
+help-${_macro} := $(call _help)
+$(call Add-Help,${_macro})
+define ${_macro}
+$(strip $(shell read -r -p "$(1): "; echo $$REPLY))
+endef
+
 _macro := Pause
 define _help
 ${_macro}
