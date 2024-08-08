@@ -940,7 +940,7 @@ define ${_macro}
     $(if ${Error_Safe},
       $(eval Error_Safe := )
       $(call Verbose,Calling ${Error_Callback}.)
-      $(call Verbose,Message:$(1).)
+      $(call Verbose,Message:$(1))
       $(call ${Error_Callback},$(1))
       $(eval Error_Safe := 1)
     ,
