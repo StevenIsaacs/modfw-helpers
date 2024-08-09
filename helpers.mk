@@ -2150,11 +2150,12 @@ endef
 _macro := Run
 define _help
 ${_macro}
-  Run a shell command and return the error code.
+  Run a shell command and return the error code. The output is written to
+  the log file.
   Parameters:
     1 = The command to run. This can be multiple commands separated by
         semicolons (;) or AND (&&) OR (||) conditionals.
-    2 = When not empty then display the run output on the console.
+    2 = When not empty then do not display the run output on the console.
   Returns:
     Run_Output
       The console output with the return code appended at the end of the last
@@ -2169,14 +2170,14 @@ define ${_macro}
   $(call Verbose,Command:$(1) )
   $(if ${LogFile},
     $(if $(2),
-      $(eval __log := | tee -a ${LogFile})
+      $(eval __log := >>${LogFile} ;echo $$?)
     ,
-      $(eval __log := >>${LogFile})
+      $(eval __log := | tee -a ${LogFile};echo $${Dlr}PIPESTATUS)
     )
   ,
-    $(eval __log := )
+    $(eval __log := ;echo $$?)
   )
-  $(eval Run_Output := $(shell $(1) 2>&1 ${__log} ;echo $$?))
+  $(eval Run_Output := $(shell $(1) 2>&1 ${__log}))
   $(call Info,Run_Output = ${Run_Output})
   $(eval Run_Rc := $(call Return-Code,${Run_Output}))
   $(if ${Run_Rc},
